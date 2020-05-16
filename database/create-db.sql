@@ -24,11 +24,11 @@ CREATE TABLE IF NOT EXISTS visit (
     id INTEGER PRIMARY KEY, -- Autoincrements per the documentation
     restaurant_id INTEGER NOT NULL REFERENCES restaurant(id) ON UPDATE CASCADE, -- Must track the id in restaurant table
     user_id INTEGER NOT NULL REFERENCES user(id) ON UPDATE CASCADE, -- Must track the id in user table
-    visit_datetime TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, -- UTC timezone
+    visit_datetime TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', CURRENT_TIMESTAMP)), -- RFC3339 UTC timezone
     note TEXT,
     rating INTEGER,
-    CHECK (rating > 0 and rating < 6)
-    CHECK (length(visit_datetime) == 19)
+    CHECK ((rating > 0 and rating < 6) or rating is NULL)
+    CHECK (length(visit_datetime) == 20)
 );
 
 CREATE TABLE IF NOT EXISTS user (
