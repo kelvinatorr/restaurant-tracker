@@ -17,3 +17,5 @@
 # IDE directories
 .vscode/
 .idea/
+
+*.db
