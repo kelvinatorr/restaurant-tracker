@@ -19,3 +19,8 @@
 .idea/
 
 *.db
+
+# Built binaries
+cmd/api-server/api-server
+
+insert-initial.sql
