@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
@@ -9,15 +10,18 @@ import (
 
 func main() {
 	log.Println("Starting api server.")
-	// TODO: add flag for database path
+	// Flag for database path
+	dbPathPtr := flag.String("db", "", "Path to the sqlite database. See README for instructions on how to make one.")
+	flag.Parse()
+	dbPath := *dbPathPtr
 
-	var add adder.Service
-
-	// error handling omitted for simplicity
-	// TODO: Add error handling
-	s, _ := sqlite.NewStorage("/home/kelvin/Github.com/restaurant-tracker/database/kelvin-0-hand-clean.db")
+	s, err := sqlite.NewStorage(dbPath)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	defer s.CloseStorage()
 
+	var add adder.Service
 	add = adder.NewService(s)
 
 	// TODO: Add http endpoints to receive data
@@ -33,6 +37,6 @@ func main() {
 		log.Println(err)
 	} else {
 		log.Printf("New restaurant id: %d", newRID)
-	}	
+	}
 	log.Println("Done with api server")
 }
