@@ -22,7 +22,7 @@ func main() {
 	defer s.CloseStorage()
 
 	var add adder.Service
-	add = adder.NewService(s)
+	add = adder.NewService(&s)
 
 	// TODO: Add http endpoints to receive data
 	r := adder.Restaurant{

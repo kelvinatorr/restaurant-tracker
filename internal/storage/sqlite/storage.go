@@ -12,13 +12,14 @@ import (
 // NewStorage returns a new database/sql instance initialized with sqlite3
 func NewStorage(dbPath string) (Storage, error) {
 	db, err := sql.Open("sqlite3", dbPath+"?_fk=on")
-	s := Storage{db}
+	s := Storage{db: db}
 	return s, err
 }
 
 // Storage stores restaurant data in a sqlite3 database
 type Storage struct {
 	db *sql.DB
+	tx *sql.Tx
 }
 
 // CloseStorage closes the database by calling db.Close()
@@ -26,7 +27,25 @@ func (s Storage) CloseStorage() {
 	s.db.Close()
 }
 
-// AddRestaurant saves the given restaurant to the sqlite database.
+// Begin starts a transaction
+func (s *Storage) Begin() {
+	tx, err := s.db.Begin()
+	checkAndPanic(err)
+	s.tx = tx
+}
+
+// Commit "saves" the transaction to the database
+func (s Storage) Commit() {
+	err := s.tx.Commit()
+	checkAndPanic(err)
+}
+
+// Rollback rolls the inserts/updates back
+func (s Storage) Rollback() {
+	s.tx.Rollback()
+}
+
+// AddRestaurant adds the given restaurant to the sqlite database. Must call Commit() to commit transaction
 func (s Storage) AddRestaurant(r adder.Restaurant) int64 {
 	sqlStatement := `
 		INSERT INTO 
@@ -34,7 +53,7 @@ func (s Storage) AddRestaurant(r adder.Restaurant) int64 {
 		VALUES
 			($1, $2, $3, $4)
 	`
-	res, err := s.db.Exec(sqlStatement, r.Name, r.Cuisine, r.Note, r.CityID)
+	res, err := s.tx.Exec(sqlStatement, r.Name, r.Cuisine, r.Note, r.CityID)
 	checkAndPanic(err)
 	lastID, err := res.LastInsertId()
 	checkAndPanic(err)
@@ -82,7 +101,7 @@ func (s Storage) GetCityIDByNameAndState(r adder.Restaurant) int64 {
 	return id
 }
 
-// AddCity adds a city to the city table and returns the primary key id
+// AddCity adds a city to the city table and returns the primary key id. Must call Commit() to commit transaction
 func (s Storage) AddCity(r adder.Restaurant) int64 {
 	cityName := r.City
 	stateName := r.State
@@ -92,7 +111,7 @@ func (s Storage) AddCity(r adder.Restaurant) int64 {
 		VALUES
 			($1, $2)
 	`
-	res, err := s.db.Exec(sqlStatement, cityName, stateName)
+	res, err := s.tx.Exec(sqlStatement, cityName, stateName)
 	checkAndPanic(err)
 	lastID, err := res.LastInsertId()
 	checkAndPanic(err)

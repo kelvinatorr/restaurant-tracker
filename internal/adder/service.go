@@ -21,6 +21,9 @@ type Service interface {
 
 // Repository provides access to restaurant repository.
 type Repository interface {
+	Begin()
+	Commit()
+	Rollback()
 	// AddRestaurant saves a given restaurant to the repository.
 	AddRestaurant(Restaurant) int64
 	// IsDuplicateRestaurant checks if a restaurant with the same name in the same city and state is already in the db
@@ -35,7 +38,6 @@ type service struct {
 }
 
 func (s *service) AddRestaurant(r Restaurant) (int64, error) {
-	fmt.Println(r.Name)
 	// Check that there isn't a duplicate restaurant with the same name in the same city, state already
 	if s.r.IsDuplicateRestaurant(r) {
 		errorMsg := fmt.Sprintf("%s in %s, %s is already in the database.", r.Name, r.City, r.State)
@@ -43,6 +45,9 @@ func (s *service) AddRestaurant(r Restaurant) (int64, error) {
 	}
 	// Check if the city and state is already in the database, If it is, get the city id
 	cityID := s.r.GetCityIDByNameAndState(r)
+	s.r.Begin()
+	// Defer rollback just in case there is a problem.
+	defer s.r.Rollback()
 	if cityID == 0 {
 		// If not, then add it to the city table and get the city id back
 		log.Println(fmt.Sprintf("%s, %s not found, adding...", r.City, r.State))
@@ -51,9 +56,9 @@ func (s *service) AddRestaurant(r Restaurant) (int64, error) {
 	log.Println(fmt.Sprintf("%s, %s has cityID %d", r.City, r.State, cityID))
 	// Add the city id to the restaurant object
 	r.CityID = cityID
-	// TODO: Get the gmaps place details
 	// Add the restaurant
 	newRestaurantID := s.r.AddRestaurant(r)
+	s.r.Commit()
 	return newRestaurantID, nil
 }
 
