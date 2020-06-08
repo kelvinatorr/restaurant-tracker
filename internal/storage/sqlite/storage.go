@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"log"
 
+	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
+
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
 
 	_ "github.com/mattn/go-sqlite3" // Blank importing here because this is where we interact with the db
@@ -116,6 +118,76 @@ func (s Storage) AddCity(r adder.Restaurant) int64 {
 	lastID, err := res.LastInsertId()
 	checkAndPanic(err)
 	return lastID
+}
+
+// GetRestaurant queries the restaurant table for the given id. If the returned restaurant has ID = 0 then it is not in
+// the database
+func (s Storage) GetRestaurant(id int64) lister.Restaurant {
+	var r lister.Restaurant
+	// Need COALESCE because this is the least ugly way to handle nullable columns in go
+	sqlStatement := `
+		SELECT
+			res.id,
+    		res.name,
+    		cuisine,
+    		note,
+    		COALESCE(address, "") as address,
+    		COALESCE(zipcode, "") as zipcode,
+    		COALESCE(latitude, 0) as latitude,
+			COALESCE(longitude, 0) as longitude,
+			city.id as city_id,
+			city.name as city_name,
+			city.state as state_name,
+			COALESCE(gp.id, 0) as gmaps_place_id,
+			COALESCE(last_updated, ""),
+			COALESCE(place_id, ""),
+			COALESCE(business_status, "") as business_status,
+			COALESCE(formatted_phone_number, "") as formatted_phone_number,
+			COALESCE(gp.name, "") as gmaps_place_name,
+			COALESCE(price_level, 0) as price_level,
+			COALESCE(rating, 0) rating,
+			COALESCE(url, "") as url,
+			COALESCE(user_ratings_total, 0) as user_ratings_total,
+			COALESCE(utc_offset, 0) as utc_offset,
+			COALESCE(website, "") as website
+		FROM
+			restaurant as res
+			inner join city on city.id = res.city_id
+			left join gmaps_place as gp on gp.id = res.gmaps_place_id
+		WHERE
+			res.id=$1
+		;
+	`
+	row := s.db.QueryRow(sqlStatement, id)
+	err := row.Scan(
+		&r.ID,
+		&r.Name,
+		&r.Cuisine,
+		&r.Note,
+		&r.Address,
+		&r.Zipcode,
+		&r.Latitude,
+		&r.Longitude,
+		&r.CityState.ID,
+		&r.CityState.Name,
+		&r.CityState.State,
+		&r.GmapsPlace.ID,
+		&r.GmapsPlace.LastUpdated,
+		&r.GmapsPlace.PlaceID,
+		&r.GmapsPlace.BusinessStatus,
+		&r.GmapsPlace.FormattedPhoneNumber,
+		&r.GmapsPlace.Name,
+		&r.GmapsPlace.PriceLevel,
+		&r.GmapsPlace.Rating,
+		&r.GmapsPlace.URL,
+		&r.GmapsPlace.UserRatingsTotal,
+		&r.GmapsPlace.UTCOffset,
+		&r.GmapsPlace.Website,
+	)
+	if err != sql.ErrNoRows {
+		checkAndPanic(err)
+	}
+	return r
 }
 
 func checkAndPanic(err error) {

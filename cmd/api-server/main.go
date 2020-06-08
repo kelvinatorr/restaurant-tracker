@@ -4,6 +4,8 @@ import (
 	"flag"
 	"log"
 
+	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
+
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
 	"github.com/kelvinatorr/restaurant-tracker/internal/storage/sqlite"
 )
@@ -38,5 +40,15 @@ func main() {
 	} else {
 		log.Printf("New restaurant id: %d", newRID)
 	}
+
+	var list lister.Service = lister.NewService(&s)
+
+	newR, err := list.GetRestaurant(12)
+	if err != nil {
+		log.Println(err)
+	} else {
+		log.Printf("Found it: %#v\n", newR)
+	}
+
 	log.Println("Done with api server")
 }
