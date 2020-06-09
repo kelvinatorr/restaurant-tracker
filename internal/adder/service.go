@@ -40,7 +40,7 @@ type service struct {
 func (s *service) AddRestaurant(r Restaurant) (int64, error) {
 	// Check that there isn't a duplicate restaurant with the same name in the same city, state already
 	if s.r.IsDuplicateRestaurant(r) {
-		errorMsg := fmt.Sprintf("%s in %s, %s is already in the database.", r.Name, r.City, r.State)
+		errorMsg := fmt.Sprintf("%s in %s, %s is already in the database.", r.Name, r.CityState.Name, r.CityState.State)
 		return 0, &ErrDuplicate{msg: errorMsg}
 	}
 	// Check if the city and state is already in the database, If it is, get the city id
@@ -50,10 +50,10 @@ func (s *service) AddRestaurant(r Restaurant) (int64, error) {
 	defer s.r.Rollback()
 	if cityID == 0 {
 		// If not, then add it to the city table and get the city id back
-		log.Println(fmt.Sprintf("%s, %s not found, adding...", r.City, r.State))
+		log.Println(fmt.Sprintf("%s, %s not found, adding...", r.CityState.Name, r.CityState.State))
 		cityID = s.r.AddCity(r)
 	}
-	log.Println(fmt.Sprintf("%s, %s has cityID %d", r.City, r.State, cityID))
+	log.Println(fmt.Sprintf("%s, %s has cityID %d", r.CityState.Name, r.CityState.State, cityID))
 	// Add the city id to the restaurant object
 	r.CityID = cityID
 	// Add the restaurant

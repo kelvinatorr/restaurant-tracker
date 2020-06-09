@@ -4,9 +4,8 @@ import (
 	"flag"
 	"log"
 
-	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
-
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
+	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
 	"github.com/kelvinatorr/restaurant-tracker/internal/storage/sqlite"
 )
 
@@ -28,11 +27,10 @@ func main() {
 
 	// TODO: Add http endpoints to receive data
 	r := adder.Restaurant{
-		Name:    "Bovar",
-		Cuisine: "Coffee & Tea",
-		Note:    "First boba outing together during coronavirus time",
-		City:    "New York",
-		State:   "NY",
+		Name:      "Bovar",
+		Cuisine:   "Coffee & Tea",
+		Note:      "First boba outing together during coronavirus time",
+		CityState: adder.CityState{Name: "New York", State: "NY"},
 	}
 	newRID, err := add.AddRestaurant(r)
 	if err != nil {
