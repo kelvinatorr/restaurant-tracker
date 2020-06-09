@@ -50,5 +50,8 @@ func main() {
 		log.Printf("Found it: %#v\n", newR)
 	}
 
+	allRs := list.GetRestaurants()
+	log.Printf("%#v\n", allRs)
+
 	log.Println("Done with api server")
 }

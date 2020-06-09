@@ -120,12 +120,9 @@ func (s Storage) AddCity(r adder.Restaurant) int64 {
 	return lastID
 }
 
-// GetRestaurant queries the restaurant table for the given id. If the returned restaurant has ID = 0 then it is not in
-// the database
-func (s Storage) GetRestaurant(id int64) lister.Restaurant {
-	var r lister.Restaurant
+func generateRestaurantSQL(single bool) string {
 	// Need COALESCE because this is the least ugly way to handle nullable columns in go
-	sqlStatement := `
+	sql := `
 		SELECT
 			res.id,
     		res.name,
@@ -154,12 +151,23 @@ func (s Storage) GetRestaurant(id int64) lister.Restaurant {
 			restaurant as res
 			inner join city on city.id = res.city_id
 			left join gmaps_place as gp on gp.id = res.gmaps_place_id
-		WHERE
-			res.id=$1
-		;
 	`
-	row := s.db.QueryRow(sqlStatement, id)
-	err := row.Scan(
+	if single {
+		sql = sql + `
+				WHERE
+				res.id=$1
+		`
+	}
+	return sql
+}
+
+// Implements the Scan function of sql.Row and sql.Rows
+type scanner interface {
+	Scan(...interface{}) error
+}
+
+func fillRestaurant(row scanner, r *lister.Restaurant) error {
+	return row.Scan(
 		&r.ID,
 		&r.Name,
 		&r.Cuisine,
@@ -184,10 +192,38 @@ func (s Storage) GetRestaurant(id int64) lister.Restaurant {
 		&r.GmapsPlace.UTCOffset,
 		&r.GmapsPlace.Website,
 	)
+}
+
+// GetRestaurant queries the restaurant table for the given id. If the returned restaurant has ID = 0 then it is not in
+// the database
+func (s Storage) GetRestaurant(id int64) lister.Restaurant {
+	var r lister.Restaurant
+	sqlStatement := generateRestaurantSQL(true)
+	row := s.db.QueryRow(sqlStatement, id)
+	err := fillRestaurant(row, &r)
 	if err != sql.ErrNoRows {
 		checkAndPanic(err)
 	}
 	return r
+}
+
+// GetRestaurants queries the restaurant table for all restaurants.
+func (s Storage) GetRestaurants() []lister.Restaurant {
+	var allResturants []lister.Restaurant
+	var r lister.Restaurant
+	// Generate the get sql statement without the where clause.
+	sqlStatement := generateRestaurantSQL(false)
+	dbRows, err := s.db.Query(sqlStatement)
+	checkAndPanic(err)
+	defer dbRows.Close()
+	for dbRows.Next() {
+		err = fillRestaurant(dbRows, &r)
+		checkAndPanic(err)
+		allResturants = append(allResturants, r)
+	}
+	err = dbRows.Err()
+	checkAndPanic(err)
+	return allResturants
 }
 
 func checkAndPanic(err error) {

@@ -16,14 +16,14 @@ func (m *ErrDoesNotExist) Error() string {
 // Service provides adding operations.
 type Service interface {
 	GetRestaurant(int64) (Restaurant, error)
-	GetRestaurants()
+	GetRestaurants() []Restaurant
 }
 
 // Repository provides access to restaurant repository.
 type Repository interface {
 	// GetRestaurant gets a given restaurant to the repository.
 	GetRestaurant(int64) Restaurant
-	// GetRestaurants()
+	GetRestaurants() []Restaurant
 }
 
 type service struct {
@@ -41,8 +41,8 @@ func (s service) GetRestaurant(id int64) (Restaurant, error) {
 }
 
 // GetRestaurants returns all the restaurants in the storage
-func (s service) GetRestaurants() {
-
+func (s service) GetRestaurants() []Restaurant {
+	return s.r.GetRestaurants()
 }
 
 // NewService returns a new lister.service
