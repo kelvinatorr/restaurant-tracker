@@ -22,7 +22,7 @@ type cityState struct {
 type gmapsPlace struct {
 	ID                   int64
 	LastUpdated          string
-	PlaceID              string	
+	PlaceID              string
 	BusinessStatus       string
 	FormattedPhoneNumber string
 	Name                 string
