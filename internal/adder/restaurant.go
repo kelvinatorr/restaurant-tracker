@@ -7,11 +7,11 @@ type Restaurant struct {
 	Address      string
 	Zipcode      string
 	CityState    CityState
-	latitude     float32
-	longitude    float32
-	CityID       int64
-	gmapsPlaceID int64
+	Latitude     float32
+	Longitude    float32
 	GmapsPlace   GmapsPlace
+	CityID       int64
+	GmapsPlaceID int64
 }
 
 type CityState struct {

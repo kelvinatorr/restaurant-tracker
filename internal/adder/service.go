@@ -31,6 +31,7 @@ type Repository interface {
 	// GetCityIDByNameAndState gets the id of a city with the same name and state from the database
 	GetCityIDByNameAndState(Restaurant) int64
 	AddCity(Restaurant) int64
+	AddGmapsPlace(GmapsPlace) int64
 }
 
 type service struct {
@@ -56,6 +57,14 @@ func (s *service) AddRestaurant(r Restaurant) (int64, error) {
 	log.Println(fmt.Sprintf("%s, %s has cityID %d", r.CityState.Name, r.CityState.State, cityID))
 	// Add the city id to the restaurant object
 	r.CityID = cityID
+	// Only add gmaps place if we actually have it.
+	if r.GmapsPlace.PlaceID != "" {
+		// Add the GmapsPlace and get the id back
+		gmapsPlaceID := s.r.AddGmapsPlace(r.GmapsPlace)
+		// Add the gmaps place id to the restaurant
+		r.GmapsPlaceID = gmapsPlaceID
+	}
+
 	// Add the restaurant
 	newRestaurantID := s.r.AddRestaurant(r)
 	s.r.Commit()

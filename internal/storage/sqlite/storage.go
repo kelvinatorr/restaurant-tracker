@@ -49,13 +49,44 @@ func (s Storage) Rollback() {
 
 // AddRestaurant adds the given restaurant to the sqlite database. Must call Commit() to commit transaction
 func (s Storage) AddRestaurant(r adder.Restaurant) int64 {
+	// We use case when to allow inserting nulls in the database
 	sqlStatement := `
 		INSERT INTO 
-			restaurant(name, cuisine, note, city_id)
+			restaurant(
+				name,
+				cuisine,
+				note,
+				city_id,
+				address,
+				zipcode,
+				latitude,
+				longitude,
+				gmaps_place_id
+			)
 		VALUES
-			($1, $2, $3, $4)
+			(
+				$1,
+				$2,
+				CASE WHEN $3 == "" THEN NULL ELSE $3 END,
+				$4,
+				CASE WHEN $5 == "" THEN NULL ELSE $5 END,
+				CASE WHEN $6 == "" THEN NULL ELSE $6 END,
+				CASE WHEN $7 == 0 THEN NULL ELSE $7 END,
+				CASE WHEN $8 == 0 THEN NULL ELSE $8 END,
+				CASE WHEN $9 == 0 THEN NULL ELSE $9 END
+			)
 	`
-	res, err := s.tx.Exec(sqlStatement, r.Name, r.Cuisine, r.Note, r.CityID)
+	res, err := s.tx.Exec(sqlStatement,
+		r.Name,
+		r.Cuisine,
+		r.Note,
+		r.CityID,
+		r.Address,
+		r.Zipcode,
+		r.Latitude,
+		r.Longitude,
+		r.GmapsPlaceID,
+	)
 	checkAndPanic(err)
 	lastID, err := res.LastInsertId()
 	checkAndPanic(err)
@@ -122,6 +153,56 @@ func (s Storage) AddCity(r adder.Restaurant) int64 {
 			($1, $2)
 	`
 	res, err := s.tx.Exec(sqlStatement, cityName, stateName)
+	checkAndPanic(err)
+	lastID, err := res.LastInsertId()
+	checkAndPanic(err)
+	return lastID
+}
+
+// AddGmapsPlace adds a Google Maps Place to the database and returns the primary key id. Must call Commit() to commit
+// the transaction
+func (s Storage) AddGmapsPlace(g adder.GmapsPlace) int64 {
+	// We use case when to allow inserting nulls in the database
+	sqlStatement := `
+		INSERT INTO 
+			gmaps_place(
+				place_id,
+				business_status,
+				formatted_phone_number,
+				name,
+				price_level,
+				rating,
+				url,
+				user_ratings_total,
+				utc_offset,
+				website
+			)
+		VALUES
+			(
+				$1,
+				CASE WHEN $2 == "" THEN NULL ELSE $2 END, 
+				CASE WHEN $3 == "" THEN NULL ELSE $3 END, 
+				$4,
+				CASE WHEN $5 == 0 THEN NULL ELSE $5 END,
+				CASE WHEN $6 == 0 THEN NULL ELSE $6 END,
+				CASE WHEN $7 == "" THEN NULL ELSE $7 END,
+				CASE WHEN $8 == 0 THEN NULL ELSE $8 END,
+				CASE WHEN $9 == 0 THEN NULL ELSE $9 END,
+				CASE WHEN $10 == "" THEN NULL ELSE $10 END
+			)
+	`
+	res, err := s.tx.Exec(sqlStatement,
+		g.PlaceID,
+		g.BusinessStatus,
+		g.FormattedPhoneNumber,
+		g.Name,
+		g.PriceLevel,
+		g.Rating,
+		g.URL,
+		g.UserRatingsTotal,
+		g.UTCOffset,
+		g.Website,
+	)
 	checkAndPanic(err)
 	lastID, err := res.LastInsertId()
 	checkAndPanic(err)
