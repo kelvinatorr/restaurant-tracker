@@ -3,8 +3,10 @@ package main
 import (
 	"flag"
 	"log"
+	"net/http"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
+	"github.com/kelvinatorr/restaurant-tracker/internal/http/rest"
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
 	"github.com/kelvinatorr/restaurant-tracker/internal/storage/sqlite"
 )
@@ -65,8 +67,11 @@ func main() {
 		log.Printf("Found it: %#v\n", newR)
 	}
 
-	allRs := list.GetRestaurants()
-	log.Printf("%#v\n", allRs)
+	// set up the HTTP server
+	router := rest.Handler(list)
+
+	log.Println("The restaurant tracker api server is on tap now: http://localhost:8888")
+	log.Fatal(http.ListenAndServe(":8888", router))
 
 	log.Println("Done with api server")
 }
