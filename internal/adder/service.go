@@ -29,8 +29,8 @@ type Repository interface {
 	// IsDuplicateRestaurant checks if a restaurant with the same name in the same city and state is already in the db
 	IsDuplicateRestaurant(Restaurant) bool
 	// GetCityIDByNameAndState gets the id of a city with the same name and state from the database
-	GetCityIDByNameAndState(Restaurant) int64
-	AddCity(Restaurant) int64
+	GetCityIDByNameAndState(string, string) int64
+	AddCity(string, string) int64
 	AddGmapsPlace(GmapsPlace) int64
 }
 
@@ -45,14 +45,14 @@ func (s *service) AddRestaurant(r Restaurant) (int64, error) {
 		return 0, &ErrDuplicate{msg: errorMsg}
 	}
 	// Check if the city and state is already in the database, If it is, get the city id
-	cityID := s.r.GetCityIDByNameAndState(r)
+	cityID := s.r.GetCityIDByNameAndState(r.CityState.Name, r.CityState.State)
 	s.r.Begin()
 	// Defer rollback just in case there is a problem.
 	defer s.r.Rollback()
 	if cityID == 0 {
 		// If not, then add it to the city table and get the city id back
 		log.Println(fmt.Sprintf("%s, %s not found, adding...", r.CityState.Name, r.CityState.State))
-		cityID = s.r.AddCity(r)
+		cityID = s.r.AddCity(r.CityState.Name, r.CityState.State)
 	}
 	log.Println(fmt.Sprintf("%s, %s has cityID %d", r.CityState.Name, r.CityState.State, cityID))
 	// Add the city id to the restaurant object

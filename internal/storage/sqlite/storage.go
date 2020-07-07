@@ -122,7 +122,7 @@ func (s Storage) IsDuplicateRestaurant(r adder.Restaurant) bool {
 
 // GetCityIDByNameAndState queries the database for a given city name and state name, returns the id of the row if it
 // exists
-func (s Storage) GetCityIDByNameAndState(r adder.Restaurant) int64 {
+func (s Storage) GetCityIDByNameAndState(cityName string, stateName string) int64 {
 	// upper() so we get better matching
 	sqlStatement := `
 		SELECT 
@@ -134,7 +134,7 @@ func (s Storage) GetCityIDByNameAndState(r adder.Restaurant) int64 {
 			and upper(state)=upper($2)
 	`
 	var id int64
-	row := s.db.QueryRow(sqlStatement, r.CityState.Name, r.CityState.State)
+	row := s.db.QueryRow(sqlStatement, cityName, stateName)
 	err := row.Scan(&id)
 	if err != sql.ErrNoRows {
 		checkAndPanic(err)
@@ -143,9 +143,7 @@ func (s Storage) GetCityIDByNameAndState(r adder.Restaurant) int64 {
 }
 
 // AddCity adds a city to the city table and returns the primary key id. Must call Commit() to commit transaction
-func (s Storage) AddCity(r adder.Restaurant) int64 {
-	cityName := r.CityState.Name
-	stateName := r.CityState.State
+func (s Storage) AddCity(cityName string, stateName string) int64 {
 	sqlStatement := `
 		INSERT INTO 
 			city(name, state)
