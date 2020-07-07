@@ -9,6 +9,7 @@ import (
 	"github.com/kelvinatorr/restaurant-tracker/internal/http/rest"
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
 	"github.com/kelvinatorr/restaurant-tracker/internal/storage/sqlite"
+	"github.com/kelvinatorr/restaurant-tracker/internal/updater"
 )
 
 func main() {
@@ -27,7 +28,6 @@ func main() {
 	var add adder.Service
 	add = adder.NewService(&s)
 
-	// TODO: Add http endpoints to receive data
 	gp := adder.GmapsPlace{
 		PlaceID:              "ChIJ9_tgjT3AyIARfFErWP0PX70",
 		BusinessStatus:       "OPERATIONAL",
@@ -67,6 +67,39 @@ func main() {
 		log.Printf("Found it: %#v\n", newR)
 	}
 
+	gpu := updater.GmapsPlace{
+		ID:                   0,
+		LastUpdated:          "",
+		PlaceID:              "",
+		BusinessStatus:       "",
+		FormattedPhoneNumber: "",
+		Name:                 "",
+		PriceLevel:           0,
+		Rating:               0,
+		URL:                  "",
+		UserRatingsTotal:     0,
+		UTCOffset:            0,
+		Website:              "",
+	}
+	// Test updating.
+	ru := updater.Restaurant{
+		ID:         1,
+		Name:       "Yu-Yu",
+		Cuisine:    "Japanese",
+		Note:       "Main Chinatown Plaza",
+		CityState:  updater.CityState{Name: "Las Vegas", State: "NV"},
+		GmapsPlace: gpu,
+		Address:    "",
+		Zipcode:    "",
+		Latitude:   0,
+		Longitude:  0,
+	}
+
+	var update updater.Service = updater.NewService(&s)
+	rowsAffected := update.UpdateRestaurant(ru)
+	log.Printf("Updated %s. Rows affected %d\n", ru.Name, rowsAffected)
+
+	// TODO: Add http endpoints to receive data
 	// set up the HTTP server
 	router := rest.Handler(list)
 

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"log"
 
+	"github.com/kelvinatorr/restaurant-tracker/internal/updater"
+
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
@@ -311,6 +313,44 @@ func (s Storage) GetRestaurants() []lister.Restaurant {
 	err = dbRows.Err()
 	checkAndPanic(err)
 	return allResturants
+}
+
+// UpdateRestaurant updates a given restaurant, returns the rows affected. Must call Commit() to commit transaction
+func (s Storage) UpdateRestaurant(r updater.Restaurant) int64 {
+	// We use case when to allow updating to nulls in the database
+	sqlStatement := `
+		UPDATE
+			restaurant
+		SET
+			name = $1,
+			cuisine = $2,
+			note = CASE WHEN $3 == "" THEN NULL ELSE $3 END,
+			city_id = $4,
+			address = CASE WHEN $5 == "" THEN NULL ELSE $5 END,
+			zipcode = CASE WHEN $6 == 0 THEN NULL ELSE $6 END,
+			latitude = CASE WHEN $7 == 0 THEN NULL ELSE $7 END,
+			longitude = CASE WHEN $8 == 0 THEN NULL ELSE $8 END,
+			gmaps_place_id = CASE WHEN $9 == 0 THEN NULL ELSE $9 END
+		WHERE
+			id = $10
+	`
+
+	res, err := s.tx.Exec(sqlStatement,
+		r.Name,
+		r.Cuisine,
+		r.Note,
+		r.CityID,
+		r.Address,
+		r.Zipcode,
+		r.Latitude,
+		r.Longitude,
+		r.GmapsPlaceID,
+		r.ID,
+	)
+	checkAndPanic(err)
+	rowsAffected, err := res.RowsAffected()
+	checkAndPanic(err)
+	return rowsAffected
 }
 
 func checkAndPanic(err error) {
