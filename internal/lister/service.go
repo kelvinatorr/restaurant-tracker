@@ -13,7 +13,7 @@ func (m *ErrDoesNotExist) Error() string {
 	return m.msg
 }
 
-// Service provides adding operations.
+// Service provides listing operations.
 type Service interface {
 	GetRestaurant(int64) (Restaurant, error)
 	GetRestaurants() []Restaurant
