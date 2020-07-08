@@ -3,6 +3,8 @@ package updater
 import (
 	"fmt"
 	"log"
+
+	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
 )
 
 // Service provides listing operations.
@@ -19,6 +21,8 @@ type Repository interface {
 	UpdateRestaurant(Restaurant) int64
 	GetCityIDByNameAndState(string, string) int64
 	AddCity(string, string) int64
+	AddGmapsPlace(adder.GmapsPlace) int64
+	UpdateGmapsPlace(GmapsPlace) int64
 }
 
 type service struct {
@@ -39,17 +43,39 @@ func (s service) UpdateRestaurant(r Restaurant) int64 {
 	log.Println(fmt.Sprintf("%s, %s has cityID %d", r.CityState.Name, r.CityState.State, cityID))
 	// Add the city id to the restaurant object
 	r.CityID = cityID
-	fmt.Println(r.CityID)
-	// TODO: If the gmaps place id is 0 and PlaceID is not "" then insert it and get the id.
-	// TODO: ElseIf if PlaceID is not "", update the gmaps place.
-	// TODO: ElseIf if PlaceID is not "", update the gmaps place.
-	// TODO: Handle errors, rollback?
+	// This restaurant did not have a GmapsPlace, but now has 1, so we insert it and get the id back.
+	if r.GmapsPlaceID == 0 && r.GmapsPlace.PlaceID != "" {
+		log.Printf("Inserting new GmapsPlace with PlaceID %s\n", r.GmapsPlace.PlaceID)
+		// Create a new GmapsPlace for adding
+		newGmapsPlace := adder.GmapsPlace{
+			PlaceID:              r.GmapsPlace.PlaceID,
+			BusinessStatus:       r.GmapsPlace.BusinessStatus,
+			FormattedPhoneNumber: r.GmapsPlace.FormattedPhoneNumber,
+			Name:                 r.GmapsPlace.Name,
+			PriceLevel:           r.GmapsPlace.PriceLevel,
+			Rating:               r.GmapsPlace.Rating,
+			URL:                  r.GmapsPlace.URL,
+			UserRatingsTotal:     r.GmapsPlace.UserRatingsTotal,
+			UTCOffset:            r.GmapsPlace.UTCOffset,
+			Website:              r.GmapsPlace.Website,
+		}
+		// Add the id of the new Gmaps Place back to the restaurant.
+		r.GmapsPlaceID = s.r.AddGmapsPlace(newGmapsPlace)
+	} else if r.GmapsPlaceID != 0 {
+		// This restaurant already has a GmapsPlace Record so we just update it.
+		log.Printf("Updating GmapsPlace id: %d.\n", r.GmapsPlaceID)
+		gmapsPlaceRecordsAffected := s.r.UpdateGmapsPlace(r.GmapsPlace)
+		log.Printf("%d GmapsPlace records affected.\n", gmapsPlaceRecordsAffected)
+	} else {
+		log.Printf("Restaurant id: %d has no GmapsPlace record and update data has no GmapsPlace data.", r.ID)
+	}
+
 	// Update the restaurant.
-	rowsAffected := s.r.UpdateRestaurant(r)
+	recordsAffected := s.r.UpdateRestaurant(r)
 
 	s.r.Commit()
 
-	return rowsAffected
+	return recordsAffected
 }
 
 // NewService returns a new lister.service

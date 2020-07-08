@@ -68,31 +68,32 @@ func main() {
 	}
 
 	gpu := updater.GmapsPlace{
-		ID:                   0,
-		LastUpdated:          "",
-		PlaceID:              "",
-		BusinessStatus:       "",
-		FormattedPhoneNumber: "",
-		Name:                 "",
+		ID:                   466,
+		LastUpdated:          "2020-07-07T22:15:44Z",
+		PlaceID:              "ChIJ9_tgjT3AyIARfFErWP0PX70",
+		BusinessStatus:       "OPERATIONAL",
+		FormattedPhoneNumber: "(702) 778-5757",
+		Name:                 "Bover",
 		PriceLevel:           0,
-		Rating:               0,
-		URL:                  "",
-		UserRatingsTotal:     0,
-		UTCOffset:            0,
+		Rating:               4.7,
+		URL:                  "https://maps.google.com/?cid=13645642976736268668",
+		UserRatingsTotal:     51,
+		UTCOffset:            -420,
 		Website:              "",
 	}
 	// Test updating.
 	ru := updater.Restaurant{
-		ID:         1,
-		Name:       "Yu-Yu",
-		Cuisine:    "Japanese",
-		Note:       "Main Chinatown Plaza",
-		CityState:  updater.CityState{Name: "Las Vegas", State: "NV"},
-		GmapsPlace: gpu,
-		Address:    "",
-		Zipcode:    "",
-		Latitude:   0,
-		Longitude:  0,
+		ID:           496,
+		Name:         "Bover",
+		Cuisine:      "Coffee & Tea",
+		Note:         "First boba outing together during coronavirus time",
+		CityState:    updater.CityState{Name: "Las Vegas", State: "NV"},
+		GmapsPlace:   gpu,
+		Address:      "1780 N Buffalo Dr #107",
+		Zipcode:      "89128",
+		Latitude:     36.1914303,
+		Longitude:    -115.2592753,
+		GmapsPlaceID: 466,
 	}
 
 	var update updater.Service = updater.NewService(&s)
