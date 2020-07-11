@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 
+	"github.com/kelvinatorr/restaurant-tracker/internal/remover"
 	"github.com/kelvinatorr/restaurant-tracker/internal/updater"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
@@ -353,7 +354,7 @@ func (s Storage) UpdateRestaurant(r updater.Restaurant) int64 {
 	return rowsAffected
 }
 
-// UpdateGmapsPlace updates a given gmaps_place, returns the rows affected. Caller must call Commit() to commit
+// UpdateGmapsPlace updates a given gmaps_place, returns the rows affected. Caller must call Commit() to commit the
 // transaction
 func (s Storage) UpdateGmapsPlace(gp updater.GmapsPlace) int64 {
 	// We use case when to allow updating to nulls in the database
@@ -390,6 +391,40 @@ func (s Storage) UpdateGmapsPlace(gp updater.GmapsPlace) int64 {
 		gp.Website,
 		gp.ID,
 	)
+	checkAndPanic(err)
+	rowsAffected, err := res.RowsAffected()
+	checkAndPanic(err)
+	return rowsAffected
+}
+
+// RemoveRestaurant deletes a given restaurant from the database and returns the rows affected. Caller must call
+// Commit() to commit the transaction
+func (s Storage) RemoveRestaurant(r remover.Restaurant) int64 {
+	sqlStatement := `
+		DELETE FROM
+			restaurant
+		WHERE
+			id = $1
+	`
+
+	res, err := s.tx.Exec(sqlStatement, r.ID)
+	checkAndPanic(err)
+	rowsAffected, err := res.RowsAffected()
+	checkAndPanic(err)
+	return rowsAffected
+}
+
+// RemoveGmapsPlace deletes a given gmaps_place from the database and returns the rows affected. Caller must call
+// Commit() to commit the transaction
+func (s Storage) RemoveGmapsPlace(gpID int64) int64 {
+	sqlStatement := `
+		DELETE FROM
+			gmaps_place
+		WHERE
+			id = $1
+	`
+
+	res, err := s.tx.Exec(sqlStatement, gpID)
 	checkAndPanic(err)
 	rowsAffected, err := res.RowsAffected()
 	checkAndPanic(err)

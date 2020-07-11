@@ -8,6 +8,7 @@ import (
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
 	"github.com/kelvinatorr/restaurant-tracker/internal/http/rest"
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
+	"github.com/kelvinatorr/restaurant-tracker/internal/remover"
 	"github.com/kelvinatorr/restaurant-tracker/internal/storage/sqlite"
 	"github.com/kelvinatorr/restaurant-tracker/internal/updater"
 )
@@ -99,6 +100,15 @@ func main() {
 	var update updater.Service = updater.NewService(&s)
 	rowsAffected := update.UpdateRestaurant(ru)
 	log.Printf("Updated %s. Rows affected %d\n", ru.Name, rowsAffected)
+
+	rr := remover.Restaurant{
+		ID:           496,
+		CityID:       1,
+		GmapsPlaceID: 0,
+	}
+	var remove remover.Service = remover.NewService(&s)
+	rowsAffected = remove.RemoveRestaurant(rr)
+	log.Printf("Removed %d. Total Rows affected %d\n", rr.ID, rowsAffected)
 
 	// TODO: Add http endpoints to receive data
 	// set up the HTTP server
