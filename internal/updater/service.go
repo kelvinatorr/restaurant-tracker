@@ -78,7 +78,7 @@ func (s service) UpdateRestaurant(r Restaurant) int64 {
 	return recordsAffected
 }
 
-// NewService returns a new lister.service
+// NewService returns a new updater.service
 func NewService(r Repository) Service {
 	return service{r}
 }
