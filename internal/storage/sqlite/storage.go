@@ -424,35 +424,13 @@ func (s Storage) UpdateGmapsPlace(gp updater.GmapsPlace) int64 {
 // RemoveRestaurant deletes a given restaurant from the database and returns the rows affected. Caller must call
 // Commit() to commit the transaction
 func (s Storage) RemoveRestaurant(r remover.Restaurant) int64 {
-	sqlStatement := `
-		DELETE FROM
-			restaurant
-		WHERE
-			id = $1
-	`
-
-	res, err := s.tx.Exec(sqlStatement, r.ID)
-	checkAndPanic(err)
-	rowsAffected, err := res.RowsAffected()
-	checkAndPanic(err)
-	return rowsAffected
+	return s.removeRow("restaurant", r.ID)
 }
 
 // RemoveGmapsPlace deletes a given gmaps_place from the database and returns the rows affected. Caller must call
 // Commit() to commit the transaction
 func (s Storage) RemoveGmapsPlace(gpID int64) int64 {
-	sqlStatement := `
-		DELETE FROM
-			gmaps_place
-		WHERE
-			id = $1
-	`
-
-	res, err := s.tx.Exec(sqlStatement, gpID)
-	checkAndPanic(err)
-	rowsAffected, err := res.RowsAffected()
-	checkAndPanic(err)
-	return rowsAffected
+	return s.removeRow("gmaps_place", gpID)
 }
 
 // RemoveCity deletes a given city and returns the number of rows affected. Caller must call Commit() to commit the
