@@ -1,6 +1,10 @@
 package remover
 
-import "log"
+import (
+	"log"
+
+	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
+)
 
 // Service provides removing operations.
 type Service interface {
@@ -14,6 +18,8 @@ type Repository interface {
 	Rollback()
 	RemoveRestaurant(Restaurant) int64
 	RemoveGmapsPlace(int64) int64
+	GetRestaurantsByCity(int64) []lister.Restaurant
+	RemoveCity(int64) int64
 }
 
 type service struct {
@@ -33,10 +39,26 @@ func (s service) RemoveRestaurant(r Restaurant) int64 {
 		gmapsPlaceRecordsAffected = s.r.RemoveGmapsPlace(r.GmapsPlaceID)
 		log.Printf("Removed GmapsPlace id: %d. Records affected: %d\n", r.GmapsPlaceID, gmapsPlaceRecordsAffected)
 	}
-	// Return the total records affected
-	// TODO: Remove city too.
+	// Remove city too.
+	cityRecordsAffected := s.removeCity(r.CityID)
 	s.r.Commit()
-	return restaurantRecordsAffected + gmapsPlaceRecordsAffected
+	// Return the total records affected
+	return restaurantRecordsAffected + gmapsPlaceRecordsAffected + cityRecordsAffected
+}
+
+// removeCity removes a city if there are no longer any restaurants referencing it. Caller must call s.r.Commit()
+// otherwise cities won't actually be removed!
+func (s service) removeCity(cityID int64) int64 {
+	var recordsAffected int64
+	// Check if there are any restaurants with this cityID
+	countOfRestaurants := len(s.r.GetRestaurantsByCity(cityID))
+	// If there's 1 or none then remove it (the 1 is the restaurant we are currently deleting).
+	if countOfRestaurants <= 1 {
+		recordsAffected = s.r.RemoveCity(cityID)
+		log.Printf("Removed City id: %d. Records affected: %d\n", cityID, recordsAffected)
+	}
+	// Return the number of records affected.
+	return recordsAffected
 }
 
 // NewService returns a new remover.service

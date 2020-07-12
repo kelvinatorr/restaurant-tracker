@@ -104,7 +104,7 @@ func main() {
 	rr := remover.Restaurant{
 		ID:           496,
 		CityID:       1,
-		GmapsPlaceID: 0,
+		GmapsPlaceID: 466,
 	}
 	var remove remover.Service = remover.NewService(&s)
 	rowsAffected = remove.RemoveRestaurant(rr)

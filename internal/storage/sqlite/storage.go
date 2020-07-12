@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/remover"
@@ -210,7 +211,7 @@ func (s Storage) AddGmapsPlace(g adder.GmapsPlace) int64 {
 	return lastID
 }
 
-func generateRestaurantSQL(single bool) string {
+func generateRestaurantSQL() string {
 	// Need COALESCE because this is the least ugly way to handle nullable columns in go
 	sql := `
 		SELECT
@@ -242,12 +243,7 @@ func generateRestaurantSQL(single bool) string {
 			inner join city on city.id = res.city_id
 			left join gmaps_place as gp on gp.id = res.gmaps_place_id
 	`
-	if single {
-		sql = sql + `
-				WHERE
-				res.id=$1
-		`
-	}
+
 	return sql
 }
 
@@ -288,7 +284,12 @@ func fillRestaurant(row scanner, r *lister.Restaurant) error {
 // the database
 func (s Storage) GetRestaurant(id int64) lister.Restaurant {
 	var r lister.Restaurant
-	sqlStatement := generateRestaurantSQL(true)
+	sqlStatement := generateRestaurantSQL()
+	// Add where clause by restaurant id
+	sqlStatement = sqlStatement + `
+		WHERE
+			res.id=$1
+	`
 	row := s.db.QueryRow(sqlStatement, id)
 	err := fillRestaurant(row, &r)
 	if err != sql.ErrNoRows {
@@ -302,7 +303,7 @@ func (s Storage) GetRestaurants() []lister.Restaurant {
 	var allResturants []lister.Restaurant
 	var r lister.Restaurant
 	// Generate the get sql statement without the where clause.
-	sqlStatement := generateRestaurantSQL(false)
+	sqlStatement := generateRestaurantSQL()
 	dbRows, err := s.db.Query(sqlStatement)
 	checkAndPanic(err)
 	defer dbRows.Close()
@@ -314,6 +315,29 @@ func (s Storage) GetRestaurants() []lister.Restaurant {
 	err = dbRows.Err()
 	checkAndPanic(err)
 	return allResturants
+}
+
+// GetRestaurantsByCity gives you all the restaurants with a given city id.
+func (s Storage) GetRestaurantsByCity(cityID int64) []lister.Restaurant {
+	var restaurantsInCity []lister.Restaurant
+	var r lister.Restaurant
+	// Generate the get sql statement without the where clause.
+	sqlStatement := generateRestaurantSQL()
+	sqlStatement = sqlStatement + `
+		WHERE
+			city.id=$1
+	`
+	dbRows, err := s.db.Query(sqlStatement, cityID)
+	checkAndPanic(err)
+	defer dbRows.Close()
+	for dbRows.Next() {
+		err = fillRestaurant(dbRows, &r)
+		checkAndPanic(err)
+		restaurantsInCity = append(restaurantsInCity, r)
+	}
+	err = dbRows.Err()
+	checkAndPanic(err)
+	return restaurantsInCity
 }
 
 // UpdateRestaurant updates a given restaurant, returns the rows affected. Must call Commit() to commit transaction
@@ -425,6 +449,29 @@ func (s Storage) RemoveGmapsPlace(gpID int64) int64 {
 	`
 
 	res, err := s.tx.Exec(sqlStatement, gpID)
+	checkAndPanic(err)
+	rowsAffected, err := res.RowsAffected()
+	checkAndPanic(err)
+	return rowsAffected
+}
+
+// RemoveCity deletes a given city and returns the number of rows affected. Caller must call Commit() to commit the
+// transaction
+func (s Storage) RemoveCity(cityID int64) int64 {
+	return s.removeRow("city", cityID)
+}
+
+func (s Storage) removeRow(tableName string, rowID int64) int64 {
+	sqlStatement := `
+		DELETE FROM
+			%s
+		WHERE
+			id = $1
+	`
+	// Never pass tableName from user input!
+	sqlStatement = fmt.Sprintf(sqlStatement, tableName)
+
+	res, err := s.tx.Exec(sqlStatement, rowID)
 	checkAndPanic(err)
 	rowsAffected, err := res.RowsAffected()
 	checkAndPanic(err)
