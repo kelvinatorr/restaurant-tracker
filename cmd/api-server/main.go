@@ -81,20 +81,20 @@ func main() {
 		UserRatingsTotal:     51,
 		UTCOffset:            -420,
 		Website:              "",
+		RestaurantID:         496,
 	}
 	// Test updating.
 	ru := updater.Restaurant{
-		ID:           496,
-		Name:         "Bover",
-		Cuisine:      "Coffee & Tea",
-		Note:         "First boba outing together during coronavirus time",
-		CityState:    updater.CityState{Name: "Las Vegas", State: "NV"},
-		GmapsPlace:   gpu,
-		Address:      "1780 N Buffalo Dr #107",
-		Zipcode:      "89128",
-		Latitude:     36.1914303,
-		Longitude:    -115.2592753,
-		GmapsPlaceID: 466,
+		ID:         496,
+		Name:       "Bover",
+		Cuisine:    "Coffee & Tea",
+		Note:       "First boba outing together during coronavirus time",
+		CityState:  updater.CityState{Name: "Las Vegas", State: "NV"},
+		GmapsPlace: gpu,
+		Address:    "1780 N Buffalo Dr #107",
+		Zipcode:    "89128",
+		Latitude:   36.1914303,
+		Longitude:  -115.2592753,
 	}
 
 	var update updater.Service = updater.NewService(&s)
@@ -102,9 +102,8 @@ func main() {
 	log.Printf("Updated %s. Rows affected %d\n", ru.Name, rowsAffected)
 
 	rr := remover.Restaurant{
-		ID:           496,
-		CityID:       1,
-		GmapsPlaceID: 466,
+		ID:     1,
+		CityID: 22,
 	}
 	var remove remover.Service = remover.NewService(&s)
 	rowsAffected = remove.RemoveRestaurant(rr)
