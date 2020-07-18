@@ -17,7 +17,6 @@ type Repository interface {
 	Commit()
 	Rollback()
 	RemoveRestaurant(Restaurant) int64
-	RemoveGmapsPlace(int64) int64
 	GetRestaurantsByCity(int64) []lister.Restaurant
 	RemoveCity(int64) int64
 }
@@ -33,17 +32,12 @@ func (s service) RemoveRestaurant(r Restaurant) int64 {
 	// Remove the Restaurant
 	restaurantRecordsAffected := s.r.RemoveRestaurant(r)
 	log.Printf("Removed Restaurant id: %d. Records affected: %d\n", r.ID, restaurantRecordsAffected)
-	// Remove the GmapsPlace
-	var gmapsPlaceRecordsAffected int64
-	if r.GmapsPlaceID != 0 {
-		gmapsPlaceRecordsAffected = s.r.RemoveGmapsPlace(r.GmapsPlaceID)
-		log.Printf("Removed GmapsPlace id: %d. Records affected: %d\n", r.GmapsPlaceID, gmapsPlaceRecordsAffected)
-	}
+
 	// Remove city too.
 	cityRecordsAffected := s.removeCity(r.CityID)
 	s.r.Commit()
 	// Return the total records affected
-	return restaurantRecordsAffected + gmapsPlaceRecordsAffected + cityRecordsAffected
+	return restaurantRecordsAffected + cityRecordsAffected
 }
 
 // removeCity removes a city if there are no longer any restaurants referencing it. Caller must call s.r.Commit()

@@ -427,11 +427,6 @@ func (s Storage) RemoveRestaurant(r remover.Restaurant) int64 {
 	return s.removeRow("restaurant", r.ID)
 }
 
-// RemoveGmapsPlace deletes a given gmaps_place from the database and returns the rows affected. Caller must call
-// Commit() to commit the transaction
-func (s Storage) RemoveGmapsPlace(gpID int64) int64 {
-	return s.removeRow("gmaps_place", gpID)
-}
 
 // RemoveCity deletes a given city and returns the number of rows affected. Caller must call Commit() to commit the
 // transaction
