@@ -241,7 +241,7 @@ func generateRestaurantSQL() string {
 		FROM
 			restaurant as res
 			inner join city on city.id = res.city_id
-			left join gmaps_place as gp on gp.id = res.gmaps_place_id
+			left join gmaps_place as gp on gp.restaurant_id = res.id
 	`
 
 	return sql
