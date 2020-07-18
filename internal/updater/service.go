@@ -43,8 +43,11 @@ func (s service) UpdateRestaurant(r Restaurant) int64 {
 	log.Println(fmt.Sprintf("%s, %s has cityID %d", r.CityState.Name, r.CityState.State, cityID))
 	// Add the city id to the restaurant object
 	r.CityID = cityID
+	// Update the restaurant.
+	recordsAffected := s.r.UpdateRestaurant(r)
+
 	// This restaurant did not have a GmapsPlace, but now has 1, so we insert it and get the id back.
-	if r.GmapsPlaceID == 0 && r.GmapsPlace.PlaceID != "" {
+	if r.GmapsPlace.ID == 0 && r.GmapsPlace.PlaceID != "" {
 		log.Printf("Inserting new GmapsPlace with PlaceID %s\n", r.GmapsPlace.PlaceID)
 		// Create a new GmapsPlace for adding
 		newGmapsPlace := adder.GmapsPlace{
@@ -58,20 +61,18 @@ func (s service) UpdateRestaurant(r Restaurant) int64 {
 			UserRatingsTotal:     r.GmapsPlace.UserRatingsTotal,
 			UTCOffset:            r.GmapsPlace.UTCOffset,
 			Website:              r.GmapsPlace.Website,
+			RestaurantID:         r.ID,
 		}
-		// Add the id of the new Gmaps Place back to the restaurant.
-		r.GmapsPlaceID = s.r.AddGmapsPlace(newGmapsPlace)
-	} else if r.GmapsPlaceID != 0 {
+		// Add the GmapsPlace
+		s.r.AddGmapsPlace(newGmapsPlace)
+	} else if r.GmapsPlace.ID != 0 {
 		// This restaurant already has a GmapsPlace Record so we just update it.
-		log.Printf("Updating GmapsPlace id: %d.\n", r.GmapsPlaceID)
+		log.Printf("Updating GmapsPlace id: %d.\n", r.GmapsPlace.ID)
 		gmapsPlaceRecordsAffected := s.r.UpdateGmapsPlace(r.GmapsPlace)
 		log.Printf("%d GmapsPlace records affected.\n", gmapsPlaceRecordsAffected)
 	} else {
 		log.Printf("Restaurant id: %d has no GmapsPlace record and update data has no GmapsPlace data.", r.ID)
 	}
-
-	// Update the restaurant.
-	recordsAffected := s.r.UpdateRestaurant(r)
 
 	s.r.Commit()
 

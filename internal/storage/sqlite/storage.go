@@ -354,10 +354,9 @@ func (s Storage) UpdateRestaurant(r updater.Restaurant) int64 {
 			address = CASE WHEN $5 == "" THEN NULL ELSE $5 END,
 			zipcode = CASE WHEN $6 == 0 THEN NULL ELSE $6 END,
 			latitude = CASE WHEN $7 == 0 THEN NULL ELSE $7 END,
-			longitude = CASE WHEN $8 == 0 THEN NULL ELSE $8 END,
-			gmaps_place_id = CASE WHEN $9 == 0 THEN NULL ELSE $9 END
+			longitude = CASE WHEN $8 == 0 THEN NULL ELSE $8 END
 		WHERE
-			id = $10
+			id = $9
 	`
 
 	res, err := s.tx.Exec(sqlStatement,
@@ -369,7 +368,6 @@ func (s Storage) UpdateRestaurant(r updater.Restaurant) int64 {
 		r.Zipcode,
 		r.Latitude,
 		r.Longitude,
-		r.GmapsPlaceID,
 		r.ID,
 	)
 	checkAndPanic(err)
@@ -396,9 +394,10 @@ func (s Storage) UpdateGmapsPlace(gp updater.GmapsPlace) int64 {
 			url = CASE WHEN $8 == "" THEN NULL ELSE $8 END,
 			user_ratings_total = CASE WHEN $9 == 0 THEN NULL ELSE $9 END,
 			utc_offset = CASE WHEN $10 == 0 THEN NULL ELSE $10 END,
-			website = CASE WHEN $11 == "" THEN NULL ELSE $11 END
+			website = CASE WHEN $11 == "" THEN NULL ELSE $11 END,
+			restaurant_id = $12
 		WHERE
-			id = $12
+			id = $13
 	`
 
 	res, err := s.tx.Exec(sqlStatement,
@@ -413,6 +412,7 @@ func (s Storage) UpdateGmapsPlace(gp updater.GmapsPlace) int64 {
 		gp.UserRatingsTotal,
 		gp.UTCOffset,
 		gp.Website,
+		gp.RestaurantID,
 		gp.ID,
 	)
 	checkAndPanic(err)

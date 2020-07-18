@@ -1,18 +1,17 @@
 package updater
 
 type Restaurant struct {
-	ID           int64
-	Name         string
-	Cuisine      string
-	Note         string
-	Address      string
-	CityState    CityState
-	Zipcode      string
-	Latitude     float32
-	Longitude    float32
-	GmapsPlace   GmapsPlace
-	CityID       int64
-	GmapsPlaceID int64
+	ID         int64
+	Name       string
+	Cuisine    string
+	Note       string
+	Address    string
+	CityState  CityState
+	Zipcode    string
+	Latitude   float32
+	Longitude  float32
+	GmapsPlace GmapsPlace
+	CityID     int64
 }
 
 type CityState struct {
@@ -33,4 +32,5 @@ type GmapsPlace struct {
 	UserRatingsTotal     int
 	UTCOffset            int
 	Website              string
+	RestaurantID         int64
 }
