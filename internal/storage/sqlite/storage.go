@@ -64,8 +64,7 @@ func (s Storage) AddRestaurant(r adder.Restaurant) int64 {
 				address,
 				zipcode,
 				latitude,
-				longitude,
-				gmaps_place_id
+				longitude
 			)
 		VALUES
 			(
@@ -76,8 +75,7 @@ func (s Storage) AddRestaurant(r adder.Restaurant) int64 {
 				CASE WHEN $5 == "" THEN NULL ELSE $5 END,
 				CASE WHEN $6 == "" THEN NULL ELSE $6 END,
 				CASE WHEN $7 == 0 THEN NULL ELSE $7 END,
-				CASE WHEN $8 == 0 THEN NULL ELSE $8 END,
-				CASE WHEN $9 == 0 THEN NULL ELSE $9 END
+				CASE WHEN $8 == 0 THEN NULL ELSE $8 END
 			)
 	`
 	res, err := s.tx.Exec(sqlStatement,
@@ -89,7 +87,6 @@ func (s Storage) AddRestaurant(r adder.Restaurant) int64 {
 		r.Zipcode,
 		r.Latitude,
 		r.Longitude,
-		r.GmapsPlaceID,
 	)
 	checkAndPanic(err)
 	lastID, err := res.LastInsertId()
@@ -177,7 +174,8 @@ func (s Storage) AddGmapsPlace(g adder.GmapsPlace) int64 {
 				url,
 				user_ratings_total,
 				utc_offset,
-				website
+				website,
+				restaurant_id
 			)
 		VALUES
 			(
@@ -190,7 +188,8 @@ func (s Storage) AddGmapsPlace(g adder.GmapsPlace) int64 {
 				CASE WHEN $7 == "" THEN NULL ELSE $7 END,
 				CASE WHEN $8 == 0 THEN NULL ELSE $8 END,
 				CASE WHEN $9 == 0 THEN NULL ELSE $9 END,
-				CASE WHEN $10 == "" THEN NULL ELSE $10 END
+				CASE WHEN $10 == "" THEN NULL ELSE $10 END,
+				$11
 			)
 	`
 	res, err := s.tx.Exec(sqlStatement,
@@ -204,6 +203,7 @@ func (s Storage) AddGmapsPlace(g adder.GmapsPlace) int64 {
 		g.UserRatingsTotal,
 		g.UTCOffset,
 		g.Website,
+		g.RestaurantID,
 	)
 	checkAndPanic(err)
 	lastID, err := res.LastInsertId()

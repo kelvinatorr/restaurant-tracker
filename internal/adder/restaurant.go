@@ -11,7 +11,6 @@ type Restaurant struct {
 	Longitude    float32
 	GmapsPlace   GmapsPlace
 	CityID       int64
-	GmapsPlaceID int64
 }
 
 type CityState struct {
@@ -30,4 +29,5 @@ type GmapsPlace struct {
 	UserRatingsTotal     int
 	UTCOffset            int
 	Website              string
+	RestaurantID		 int64
 }
