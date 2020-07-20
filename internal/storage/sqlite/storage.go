@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/remover"
 	"github.com/kelvinatorr/restaurant-tracker/internal/updater"
@@ -150,6 +151,7 @@ func (s Storage) AddCity(cityName string, stateName string) int64 {
 			city(name, state)
 		VALUES
 			($1, $2)
+		ON CONFLICT DO NOTHING
 	`
 	res, err := s.tx.Exec(sqlStatement, cityName, stateName)
 	checkAndPanic(err)
@@ -191,7 +193,22 @@ func (s Storage) AddGmapsPlace(g adder.GmapsPlace) int64 {
 				CASE WHEN $10 == "" THEN NULL ELSE $10 END,
 				$11
 			)
+		ON CONFLICT(place_id) DO UPDATE
+		SET			
+			place_id = $1,
+			business_status = CASE WHEN $2 == "" THEN NULL ELSE $2 END,
+			formatted_phone_number = CASE WHEN $3 == "" THEN NULL ELSE $3 END,
+			name = $4,
+			price_level = CASE WHEN $5 == 0 THEN NULL ELSE $5 END,
+			rating = CASE WHEN $6 == 0 THEN NULL ELSE $6 END,
+			url = CASE WHEN $7 == "" THEN NULL ELSE $7 END,
+			user_ratings_total = CASE WHEN $8 == 0 THEN NULL ELSE $8 END,
+			utc_offset = CASE WHEN $9 == 0 THEN NULL ELSE $9 END,
+			website = CASE WHEN $10 == "" THEN NULL ELSE $10 END,
+			restaurant_id = $11,
+			last_updated = $12
 	`
+	currentDateTime := time.Now()
 	res, err := s.tx.Exec(sqlStatement,
 		g.PlaceID,
 		g.BusinessStatus,
@@ -204,6 +221,7 @@ func (s Storage) AddGmapsPlace(g adder.GmapsPlace) int64 {
 		g.UTCOffset,
 		g.Website,
 		g.RestaurantID,
+		currentDateTime.Format("2006-01-02T15:04:05Z"),
 	)
 	checkAndPanic(err)
 	lastID, err := res.LastInsertId()
@@ -426,7 +444,6 @@ func (s Storage) UpdateGmapsPlace(gp updater.GmapsPlace) int64 {
 func (s Storage) RemoveRestaurant(r remover.Restaurant) int64 {
 	return s.removeRow("restaurant", r.ID)
 }
-
 
 // RemoveCity deletes a given city and returns the number of rows affected. Caller must call Commit() to commit the
 // transaction
