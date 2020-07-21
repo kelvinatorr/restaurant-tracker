@@ -8,6 +8,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
+	"github.com/rs/cors"
 )
 
 // Handler sets the httprouter routes for the rest package
@@ -18,6 +19,16 @@ func Handler(l lister.Service) http.Handler {
 	router.GET("/restaurants/:id", getRestaurant(l))
 
 	return router
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"https://postwoman.io"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
+		// Enable Debugging for testing, consider disabling in production
+		Debug: true,
+	})
+
+	corsRouter := c.Handler(router)
+
+	return corsRouter
 }
 
 // getRestaurants returns a handler for GET /restaurants requests
