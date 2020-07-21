@@ -52,7 +52,7 @@ func getRestaurant(s lister.Service) func(w http.ResponseWriter, r *http.Request
 		// get the route parameter
 		ID, err := strconv.Atoi(p.ByName("id"))
 		if err != nil {
-			http.Error(w, fmt.Sprintf("%s is not a valid beer ID, it must be a number.", p.ByName("id")),
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("id")),
 				http.StatusBadRequest)
 			return
 		}
