@@ -30,6 +30,11 @@ func Handler(l lister.Service, a adder.Service, u updater.Service) http.Handler 
 
 	router.PUT("/restaurants", updateRestaurant(u))
 
+	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
+		log.Printf("ERROR http rest handler: %s\n", err)
+		http.Error(w, "The server encountered an error processing your request.", http.StatusInternalServerError)
+	}
+
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"https://postwoman.io"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
