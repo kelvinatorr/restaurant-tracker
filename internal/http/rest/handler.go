@@ -3,27 +3,34 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
 	"github.com/rs/cors"
 )
 
+type responseMessage struct {
+	Message string
+}
+
 // Handler sets the httprouter routes for the rest package
-func Handler(l lister.Service) http.Handler {
+func Handler(l lister.Service, a adder.Service) http.Handler {
 	router := httprouter.New()
 
 	router.GET("/restaurants", getRestaurants(l))
 	router.GET("/restaurants/:id", getRestaurant(l))
 
-	return router
+	router.POST("/restaurants", addRestaurant(a))
+
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"https://postwoman.io"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 		// Enable Debugging for testing, consider disabling in production
-		Debug: true,
+		Debug: false,
 	})
 
 	corsRouter := c.Handler(router)
@@ -57,5 +64,30 @@ func getRestaurant(s lister.Service) func(w http.ResponseWriter, r *http.Request
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(restaurant)
 		}
+	}
+}
+
+func addRestaurant(s adder.Service) func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		decoder := json.NewDecoder(r.Body)
+
+		var newRestaurant adder.Restaurant
+		err := decoder.Decode(&newRestaurant)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		newRestaurantID, err := s.AddRestaurant(newRestaurant)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else {
+			log.Printf("New restaurant id: %d", newRestaurantID)
+			w.Header().Set("Content-Type", "application/json")
+			rm := responseMessage{Message: fmt.Sprintf("New Restaurant added. ID: %d", newRestaurantID)}
+			json.NewEncoder(w).Encode(rm)
+		}
+
 	}
 }

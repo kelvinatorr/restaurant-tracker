@@ -111,7 +111,7 @@ func main() {
 
 	// TODO: Add http endpoints to receive data
 	// set up the HTTP server
-	router := rest.Handler(list)
+	router := rest.Handler(list, add)
 
 	log.Println("The restaurant tracker api server is on tap now: http://localhost:8888")
 	log.Fatal(http.ListenAndServe(":8888", router))
