@@ -102,16 +102,15 @@ func main() {
 	log.Printf("Updated %s. Rows affected %d\n", ru.Name, rowsAffected)
 
 	rr := remover.Restaurant{
-		ID:     1,
-		CityID: 22,
+		ID: 1,
 	}
 	var remove remover.Service = remover.NewService(&s)
 	rowsAffected = remove.RemoveRestaurant(rr)
-	log.Printf("Removed %d. Total Rows affected %d\n", rr.ID, rowsAffected)
+	log.Printf("Removed id: %d. Total Rows affected %d\n", rr.ID, rowsAffected)
 
-	// TODO: Add http endpoints to receive data
+	// http endpoints to receive data
 	// set up the HTTP server
-	router := rest.Handler(list, add, update)
+	router := rest.Handler(list, add, update, remove)
 
 	log.Println("The restaurant tracker api server is on tap now: http://localhost:8888")
 	log.Fatal(http.ListenAndServe(":8888", router))

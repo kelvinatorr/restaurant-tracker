@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/kelvinatorr/restaurant-tracker/internal/remover"
 	"github.com/kelvinatorr/restaurant-tracker/internal/updater"
 
 	"github.com/julienschmidt/httprouter"
@@ -20,7 +21,7 @@ type responseMessage struct {
 }
 
 // Handler sets the httprouter routes for the rest package
-func Handler(l lister.Service, a adder.Service, u updater.Service) http.Handler {
+func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Service) http.Handler {
 	router := httprouter.New()
 
 	router.GET("/restaurants", getRestaurants(l))
@@ -29,6 +30,8 @@ func Handler(l lister.Service, a adder.Service, u updater.Service) http.Handler 
 	router.POST("/restaurants", addRestaurant(a))
 
 	router.PUT("/restaurants", updateRestaurant(u))
+
+	router.DELETE("/restaurants/:id", removeRestaurant(r))
 
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
@@ -117,6 +120,27 @@ func updateRestaurant(s updater.Service) func(w http.ResponseWriter, r *http.Req
 		log.Printf("Number of records affected %d", recordsAffected)
 		w.Header().Set("Content-Type", "application/json")
 		rm := responseMessage{Message: fmt.Sprintf("Restaurant ID: %d updated", updatedRestaurant.ID)}
+		json.NewEncoder(w).Encode(rm)
+	}
+}
+
+func removeRestaurant(s remover.Service) func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		// get the route parameter
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		restaurantToRemove := remover.Restaurant{ID: int64(ID)}
+
+		log.Printf("Removing restaurant ID: %d\n", ID)
+		recordsAffected := s.RemoveRestaurant(restaurantToRemove)
+		log.Printf("Number of records affected %d", recordsAffected)
+		w.Header().Set("Content-Type", "application/json")
+		rm := responseMessage{Message: fmt.Sprintf("Restaurant ID: %d removed", restaurantToRemove.ID)}
 		json.NewEncoder(w).Encode(rm)
 	}
 }

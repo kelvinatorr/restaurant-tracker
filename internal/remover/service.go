@@ -18,6 +18,7 @@ type Repository interface {
 	Rollback()
 	RemoveRestaurant(Restaurant) int64
 	GetRestaurantsByCity(int64) []lister.Restaurant
+	GetRestaurant(int64) lister.Restaurant
 	RemoveCity(int64) int64
 }
 
@@ -29,12 +30,19 @@ func (s service) RemoveRestaurant(r Restaurant) int64 {
 	s.r.Begin()
 	// Defer Rollback just in case thre is a problem.
 	defer s.r.Rollback()
+	// Get the restaurant first so we can get the cityID
+	savedRestaurant := s.r.GetRestaurant(r.ID)
+	if savedRestaurant.ID == 0 {
+		log.Printf("Restaurant id: %d does not exist.\n", r.ID)
+		return 0
+	}
+	cityID := savedRestaurant.CityState.ID
 	// Remove the Restaurant
 	restaurantRecordsAffected := s.r.RemoveRestaurant(r)
 	log.Printf("Removed Restaurant id: %d. Records affected: %d\n", r.ID, restaurantRecordsAffected)
 
 	// Remove city too.
-	cityRecordsAffected := s.removeCity(r.CityID)
+	cityRecordsAffected := s.removeCity(cityID)
 	s.r.Commit()
 	// Return the total records affected
 	return restaurantRecordsAffected + cityRecordsAffected
