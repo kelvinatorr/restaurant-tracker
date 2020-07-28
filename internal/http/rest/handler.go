@@ -24,14 +24,15 @@ type responseMessage struct {
 func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Service) http.Handler {
 	router := httprouter.New()
 
+	// Restaurant Endpoints
 	router.GET("/restaurants", getRestaurants(l))
 	router.GET("/restaurants/:id", getRestaurant(l))
-
 	router.POST("/restaurants", addRestaurant(a))
-
 	router.PUT("/restaurants", updateRestaurant(u))
-
 	router.DELETE("/restaurants/:id", removeRestaurant(r))
+
+	// Visit Endpoints
+	router.GET("/visits/:id", getVisit(l))
 
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
@@ -142,5 +143,25 @@ func removeRestaurant(s remover.Service) func(w http.ResponseWriter, r *http.Req
 		w.Header().Set("Content-Type", "application/json")
 		rm := responseMessage{Message: fmt.Sprintf("Restaurant ID: %d removed", restaurantToRemove.ID)}
 		json.NewEncoder(w).Encode(rm)
+	}
+}
+
+func getVisit(s lister.Service) func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		// get the route parameter
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid visit ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		visit, err := s.GetVisit(int64(ID))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(visit)
+		}
 	}
 }

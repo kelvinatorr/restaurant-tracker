@@ -17,6 +17,7 @@ func (m *ErrDoesNotExist) Error() string {
 type Service interface {
 	GetRestaurant(int64) (Restaurant, error)
 	GetRestaurants() []Restaurant
+	GetVisit(int64) (Visit, error)
 }
 
 // Repository provides access to restaurant repository.
@@ -24,6 +25,8 @@ type Repository interface {
 	// GetRestaurant gets a given restaurant to the repository.
 	GetRestaurant(int64) Restaurant
 	GetRestaurants() []Restaurant
+	GetVisit(int64) Visit
+	GetVisitUsersByVisitID(int64) []VisitUser
 }
 
 type service struct {
@@ -43,6 +46,19 @@ func (s service) GetRestaurant(id int64) (Restaurant, error) {
 // GetRestaurants returns all the restaurants in the storage
 func (s service) GetRestaurants() []Restaurant {
 	return s.r.GetRestaurants()
+}
+
+// GetVisit returns a visit with the given id
+func (s service) GetVisit(id int64) (Visit, error) {
+	var err error
+	v := s.r.GetVisit(id)
+	if v.ID == 0 {
+		err = &ErrDoesNotExist{fmt.Sprintf("No visit with id: %d", id)}
+	} else {
+		// Get the users who were in this visit.
+		v.VisitUsers = s.r.GetVisitUsersByVisitID(v.ID)
+	}
+	return v, err
 }
 
 // NewService returns a new lister.service

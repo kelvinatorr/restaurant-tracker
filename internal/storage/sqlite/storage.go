@@ -265,6 +265,21 @@ func generateRestaurantSQL() string {
 	return sql
 }
 
+func generateVisitSQL() string {
+	// Need COALESCE because this is the least ugly way to handle nullable columns in go
+	sql := `
+		SELECT
+			v.id,
+			v.restaurant_id,
+			visit_datetime,
+			COALESCE(v.note, "") as note
+		FROM
+			visit as v
+	`
+
+	return sql
+}
+
 // Implements the Scan function of sql.Row and sql.Rows
 type scanner interface {
 	Scan(...interface{}) error
@@ -295,6 +310,15 @@ func fillRestaurant(row scanner, r *lister.Restaurant) error {
 		&r.GmapsPlace.UserRatingsTotal,
 		&r.GmapsPlace.UTCOffset,
 		&r.GmapsPlace.Website,
+	)
+}
+
+func fillVisit(row scanner, v *lister.Visit) error {
+	return row.Scan(
+		&v.ID,
+		&v.RestaurantID,
+		&v.VisitDateTime,
+		&v.Note,
 	)
 }
 
@@ -466,6 +490,62 @@ func (s Storage) removeRow(tableName string, rowID int64) int64 {
 	rowsAffected, err := res.RowsAffected()
 	checkAndPanic(err)
 	return rowsAffected
+}
+
+// GetVisit queries the visit table for a given visit id. If the returned visit has ID = 0 then it is not in
+// the database
+func (s Storage) GetVisit(id int64) lister.Visit {
+	var v lister.Visit
+	sqlStatement := generateVisitSQL()
+	// Add where clause by id
+	sqlStatement = sqlStatement + `
+		WHERE
+			v.id=$1
+	`
+	row := s.db.QueryRow(sqlStatement, id)
+	err := fillVisit(row, &v)
+	if err != sql.ErrNoRows {
+		checkAndPanic(err)
+	}
+	return v
+}
+
+// GetVisitUsersByVisitID queries the db for user for the given visit_id
+func (s Storage) GetVisitUsersByVisitID(visitID int64) []lister.VisitUser {
+	var allVisitUsers []lister.VisitUser
+	var vu lister.VisitUser
+
+	sqlStatement := `
+		SELECT
+			vu.id,			
+			COALESCE(vu.rating, "") as rating,
+			vu.user_id,
+			u.first_name,
+			u.last_name
+		FROM
+			visit_user as vu
+			inner join user as u on u.id = vu.user_id
+		WHERE
+			visit_id = $1
+	`
+
+	dbRows, err := s.db.Query(sqlStatement, visitID)
+	checkAndPanic(err)
+	defer dbRows.Close()
+	for dbRows.Next() {
+		err = dbRows.Scan(
+			&vu.ID,
+			&vu.Rating,
+			&vu.User.ID,
+			&vu.User.FirstName,
+			&vu.User.LastName,
+		)
+		checkAndPanic(err)
+		allVisitUsers = append(allVisitUsers, vu)
+	}
+	err = dbRows.Err()
+	checkAndPanic(err)
+	return allVisitUsers
 }
 
 func checkAndPanic(err error) {
