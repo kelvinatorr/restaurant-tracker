@@ -510,6 +510,29 @@ func (s Storage) GetVisit(id int64) lister.Visit {
 	return v
 }
 
+// GetVisitsByRestaurantID gets all the visits for a given restaurant_id
+func (s Storage) GetVisitsByRestaurantID(restaurantID int64) []lister.Visit {
+	var allVisits []lister.Visit
+	var v lister.Visit
+	sqlStatement := generateVisitSQL()
+	// Add where clause by id
+	sqlStatement = sqlStatement + `
+		WHERE
+			v.restaurant_id=$1
+	`
+	dbRows, err := s.db.Query(sqlStatement, restaurantID)
+	checkAndPanic(err)
+	defer dbRows.Close()
+	for dbRows.Next() {
+		err = fillVisit(dbRows, &v)
+		checkAndPanic(err)
+		allVisits = append(allVisits, v)
+	}
+	err = dbRows.Err()
+	checkAndPanic(err)
+	return allVisits
+}
+
 // GetVisitUsersByVisitID queries the db for user for the given visit_id
 func (s Storage) GetVisitUsersByVisitID(visitID int64) []lister.VisitUser {
 	var allVisitUsers []lister.VisitUser

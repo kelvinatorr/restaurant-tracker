@@ -33,6 +33,7 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 
 	// Visit Endpoints
 	router.GET("/visits/:id", getVisit(l))
+	router.GET("/visits", getVisits(l))
 
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
@@ -162,6 +163,27 @@ func getVisit(s lister.Service) func(w http.ResponseWriter, r *http.Request, p h
 		} else {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(visit)
+		}
+	}
+}
+
+func getVisits(s lister.Service) func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		queryParams := r.URL.Query()
+		restaurantIDString := queryParams.Get("restaurant_id")
+		if restaurantIDString != "" {
+			ID, err := strconv.Atoi(restaurantIDString)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.",
+					p.ByName("restaurant_id")), http.StatusBadRequest)
+				return
+			}
+			visits := s.GetVisitsByRestaurantID(int64(ID))
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(visits)
+		} else {
+			// TODO: Send back all visits
+			http.Error(w, fmt.Sprintf("You need to send a ?restaurant_id="), http.StatusBadRequest)
 		}
 	}
 }
