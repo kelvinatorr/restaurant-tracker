@@ -654,6 +654,60 @@ func (s Storage) GetUser(id int64) lister.User {
 	return u
 }
 
+// UpdateVisit updates a given visit, returns the rows affected. Caller must call Commit() to commit the
+// transaction
+func (s Storage) UpdateVisit(v updater.Visit) int64 {
+	// We use case when to allow updating to nulls in the database
+	sqlStatement := `
+		UPDATE
+			visit
+		SET
+			restaurant_id = $1,
+			visit_datetime = $2,
+			note = CASE WHEN $3 == "" THEN NULL ELSE $3 END
+		WHERE
+			id = $4
+	`
+
+	res, err := s.tx.Exec(sqlStatement,
+		v.RestaurantID,
+		v.VisitDateTime,
+		v.Note,
+		v.ID,
+	)
+	checkAndPanic(err)
+	rowsAffected, err := res.RowsAffected()
+	checkAndPanic(err)
+	return rowsAffected
+}
+
+// UpdateVisitUser updates a given visit_user, returns the rows affected. Caller must call Commit() to commit the
+// transaction
+func (s Storage) UpdateVisitUser(vu updater.VisitUser) int64 {
+	// We use case when to allow updating to nulls in the database
+	sqlStatement := `
+		UPDATE
+			visit_user
+		SET
+			visit_id = $1,
+			user_id = $2,
+			rating = CASE WHEN $3 == "" THEN NULL ELSE $3 END
+		WHERE
+			id = $4
+	`
+
+	res, err := s.tx.Exec(sqlStatement,
+		vu.VisitID,
+		vu.UserID,
+		vu.Rating,
+		vu.ID,
+	)
+	checkAndPanic(err)
+	rowsAffected, err := res.RowsAffected()
+	checkAndPanic(err)
+	return rowsAffected
+}
+
 func checkAndPanic(err error) {
 	if err != nil {
 		log.Panicln(err)

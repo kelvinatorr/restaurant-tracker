@@ -35,6 +35,7 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.GET("/visits/:id", getVisit(l))
 	router.GET("/visits", getVisits(l))
 	router.POST("/visits", addVisit(a))
+	router.PUT("/visits", updateVisit(u))
 
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
@@ -208,6 +209,32 @@ func addVisit(s adder.Service) func(w http.ResponseWriter, r *http.Request, p ht
 			log.Printf("New visit id: %d", newVisitID)
 			w.Header().Set("Content-Type", "application/json")
 			rm := responseMessage{Message: fmt.Sprintf("New visit added. ID: %d", newVisitID)}
+			json.NewEncoder(w).Encode(rm)
+		}
+
+	}
+}
+
+func updateVisit(s updater.Service) func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		decoder := json.NewDecoder(r.Body)
+
+		var updatedVisit updater.Visit
+		err := decoder.Decode(&updatedVisit)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		log.Printf("Updating visit ID: %d\n", updatedVisit.ID)
+		recordsAffected, err := s.UpdateVisit(updatedVisit)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else {
+			log.Printf("Number of records affected %d", recordsAffected)
+			w.Header().Set("Content-Type", "application/json")
+			rm := responseMessage{Message: fmt.Sprintf("Visit ID: %d updated", updatedVisit.ID)}
 			json.NewEncoder(w).Encode(rm)
 		}
 

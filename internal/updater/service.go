@@ -1,9 +1,12 @@
 package updater
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
 )
@@ -11,6 +14,7 @@ import (
 // Service provides listing operations.
 type Service interface {
 	UpdateRestaurant(Restaurant) int64
+	UpdateVisit(Visit) (int64, error)
 }
 
 // Repository provides access to restaurant repository.
@@ -24,6 +28,11 @@ type Repository interface {
 	AddCity(string, string) int64
 	AddGmapsPlace(adder.GmapsPlace) int64
 	UpdateGmapsPlace(GmapsPlace) int64
+	UpdateVisit(Visit) int64
+	UpdateVisitUser(VisitUser) int64
+	GetRestaurant(int64) lister.Restaurant
+	GetUser(int64) lister.User
+	AddVisitUser(adder.VisitUser) int64
 }
 
 type service struct {
@@ -80,6 +89,60 @@ func (s service) UpdateRestaurant(r Restaurant) int64 {
 	s.r.Commit()
 
 	return recordsAffected
+}
+
+func (s service) UpdateVisit(v Visit) (int64, error) {
+	// Check that the restaurant id is valid
+	r := s.r.GetRestaurant(v.RestaurantID)
+	if r.ID == 0 {
+		errorMsg := fmt.Sprintf("There is no restaurant with id: %d", v.RestaurantID)
+		return 0, errors.New(errorMsg)
+	}
+	// Check that the user id is valid and that there is only 1 entry per user id
+	userIDs := make(map[int64]bool)
+	for i, vu := range v.VisitUsers {
+		u := s.r.GetUser(vu.UserID)
+		if u.ID == 0 {
+			errorMsg := fmt.Sprintf("There is no user with id: %d", vu.UserID)
+			return 0, errors.New(errorMsg)
+		}
+		if _, ok := userIDs[vu.UserID]; ok {
+			errorMsg := fmt.Sprintf("The data has multiple users with id: %d", vu.UserID)
+			return 0, errors.New(errorMsg)
+		}
+		userIDs[vu.UserID] = true
+		// Add the visit id to each VisitUser
+		v.VisitUsers[i].VisitID = v.ID
+	}
+
+	s.r.Begin()
+	// Defer rollback just in case there is a problem.
+	defer s.r.Rollback()
+
+	var visitUserRecordsAffected int64
+	visitRecordsAffected := s.r.UpdateVisit(v)
+	log.Printf("%d Visit records affected.\n", visitRecordsAffected)
+	// Only update if the visit actually exists.
+	if visitRecordsAffected > 0 {
+		for _, vu := range v.VisitUsers {
+			if vu.ID != 0 {
+				visitUserRecordsAffected = visitUserRecordsAffected + s.r.UpdateVisitUser(vu)
+			} else {
+				newVisit := adder.VisitUser{
+					VisitID: vu.VisitID,
+					UserID:  vu.UserID,
+					Rating:  vu.Rating,
+				}
+				newVisitUserID := s.r.AddVisitUser(newVisit)
+				log.Printf("Added User id: %d to Visit id: %d. New VisitUser id: %d", vu.UserID, vu.VisitID,
+					newVisitUserID)
+			}
+		}
+	}
+
+	s.r.Commit()
+
+	return visitRecordsAffected + visitUserRecordsAffected, nil
 }
 
 // NewService returns a new updater.service
