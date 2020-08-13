@@ -708,6 +708,12 @@ func (s Storage) UpdateVisitUser(vu updater.VisitUser) int64 {
 	return rowsAffected
 }
 
+// RemoveVisit deletes a given visit and returns the number of rows affected. Caller must call Commit() to commit the
+// transaction
+func (s Storage) RemoveVisit(visitID int64) int64 {
+	return s.removeRow("visit", visitID)
+}
+
 func checkAndPanic(err error) {
 	if err != nil {
 		log.Panicln(err)
