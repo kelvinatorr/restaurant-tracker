@@ -1,10 +1,8 @@
 package adder
 
-type visit struct {
-	id            int64
-	restaurantID  int64
-	userID        int64
-	visitDateTime string
-	note          string
-	rating        int
+type Visit struct {
+	RestaurantID  int64       `json:"restaurant_id"`
+	VisitDateTime string      `json:"visit_datetime"`
+	Note          string      `json:"note"`
+	VisitUsers    []VisitUser `json:"visit_users"`
 }

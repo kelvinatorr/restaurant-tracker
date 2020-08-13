@@ -7,9 +7,3 @@ type Visit struct {
 	Note          string      `json:"note"`
 	VisitUsers    []VisitUser `json:"visit_users"`
 }
-
-type user struct {
-	ID        int64  `json:"id"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-}

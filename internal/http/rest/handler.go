@@ -34,6 +34,7 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	// Visit Endpoints
 	router.GET("/visits/:id", getVisit(l))
 	router.GET("/visits", getVisits(l))
+	router.POST("/visits", addVisit(a))
 
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
@@ -185,5 +186,30 @@ func getVisits(s lister.Service) func(w http.ResponseWriter, r *http.Request, p 
 			// TODO: Send back all visits
 			http.Error(w, fmt.Sprintf("You need to send a ?restaurant_id="), http.StatusBadRequest)
 		}
+	}
+}
+
+func addVisit(s adder.Service) func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		decoder := json.NewDecoder(r.Body)
+
+		var newVisit adder.Visit
+		err := decoder.Decode(&newVisit)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		newVisitID, err := s.AddVisit(newVisit)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else {
+			log.Printf("New visit id: %d", newVisitID)
+			w.Header().Set("Content-Type", "application/json")
+			rm := responseMessage{Message: fmt.Sprintf("New visit added. ID: %d", newVisitID)}
+			json.NewEncoder(w).Encode(rm)
+		}
+
 	}
 }

@@ -1,8 +1,11 @@
 package adder
 
 import (
+	"errors"
 	"fmt"
 	"log"
+
+	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
 )
 
 // ErrDuplicate is used when a resturant already exists.
@@ -17,6 +20,7 @@ func (m *ErrDuplicate) Error() string {
 // Service provides adding operations.
 type Service interface {
 	AddRestaurant(Restaurant) (int64, error)
+	AddVisit(Visit) (int64, error)
 }
 
 // Repository provides access to restaurant repository.
@@ -32,6 +36,10 @@ type Repository interface {
 	GetCityIDByNameAndState(string, string) int64
 	AddCity(string, string) int64
 	AddGmapsPlace(GmapsPlace) int64
+	AddVisit(Visit) int64
+	AddVisitUser(VisitUser) int64
+	GetRestaurant(int64) lister.Restaurant
+	GetUser(int64) lister.User
 }
 
 type service struct {
@@ -69,6 +77,43 @@ func (s *service) AddRestaurant(r Restaurant) (int64, error) {
 
 	s.r.Commit()
 	return newRestaurantID, nil
+}
+
+func (s *service) AddVisit(v Visit) (int64, error) {
+	// Check that the restaurant id is valid
+	r := s.r.GetRestaurant(v.RestaurantID)
+	if r.ID == 0 {
+		errorMsg := fmt.Sprintf("There is no restaurant with id: %d.", v.RestaurantID)
+		return 0, errors.New(errorMsg)
+	}
+	// Check that the user id is valid and that there is only 1 entry per user id
+	userIDs := make(map[int64]bool)
+	for _, vu := range v.VisitUsers {
+		u := s.r.GetUser(vu.UserID)
+		if u.ID == 0 {
+			errorMsg := fmt.Sprintf("There is no user with id: %d.", vu.UserID)
+			return 0, errors.New(errorMsg)
+		}
+		if _, ok := userIDs[vu.UserID]; ok {
+			errorMsg := fmt.Sprintf("The data has multiple users with id: %d.", vu.UserID)
+			return 0, errors.New(errorMsg)
+		}
+		userIDs[vu.UserID] = true
+	}
+
+	s.r.Begin()
+	// Defer rollback just in case there is a problem.
+	defer s.r.Rollback()
+
+	visitID := s.r.AddVisit(v)
+	for i := range v.VisitUsers {
+		v.VisitUsers[i].VisitID = visitID
+		s.r.AddVisitUser(v.VisitUsers[i])
+	}
+
+	s.r.Commit()
+
+	return visitID, nil
 }
 
 // NewService creates an adding service with the necessary dependencies

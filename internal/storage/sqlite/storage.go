@@ -571,6 +571,89 @@ func (s Storage) GetVisitUsersByVisitID(visitID int64) []lister.VisitUser {
 	return allVisitUsers
 }
 
+// AddVisit adds the given visit to the sqlite database. Must call Commit() to commit transaction
+func (s Storage) AddVisit(v adder.Visit) int64 {
+	// We use case when to allow inserting nulls in the database
+	sqlStatement := `
+		INSERT INTO 
+			visit(
+				restaurant_id,
+				visit_datetime,
+				note
+			)
+		VALUES
+			(
+				$1,
+				$2,
+				CASE WHEN $3 == "" THEN NULL ELSE $3 END
+			)
+	`
+	res, err := s.tx.Exec(sqlStatement,
+		v.RestaurantID,
+		v.VisitDateTime,
+		v.Note,
+	)
+	checkAndPanic(err)
+	lastID, err := res.LastInsertId()
+	checkAndPanic(err)
+	return lastID
+}
+
+// AddVisitUser adds the given visit to the sqlite database. Must call Commit() to commit transaction
+func (s Storage) AddVisitUser(vu adder.VisitUser) int64 {
+	// We use case when to allow inserting nulls in the database
+	sqlStatement := `
+		INSERT INTO 
+			visit_user(
+				visit_id,
+				user_id,
+				rating
+			)
+		VALUES
+			(
+				$1,
+				$2,
+				CASE WHEN $3 == 0 THEN NULL ELSE $3 END
+			)
+	`
+	res, err := s.tx.Exec(sqlStatement,
+		vu.VisitID,
+		vu.UserID,
+		vu.Rating,
+	)
+	checkAndPanic(err)
+	lastID, err := res.LastInsertId()
+	checkAndPanic(err)
+	return lastID
+}
+
+// GetUser queries the user table for a given user id. If the returned user has ID = 0 then it is not in the db.
+func (s Storage) GetUser(id int64) lister.User {
+	var u lister.User
+	sqlStatement := `
+		SELECT 
+			id,
+			first_name,
+			last_name,
+			email
+		FROM
+			user 
+		WHERE 
+			id = $1
+	`
+	row := s.db.QueryRow(sqlStatement, id)
+	err := row.Scan(
+		&u.ID,
+		&u.FirstName,
+		&u.LastName,
+		&u.Email,
+	)
+	if err != sql.ErrNoRows {
+		checkAndPanic(err)
+	}
+	return u
+}
+
 func checkAndPanic(err error) {
 	if err != nil {
 		log.Panicln(err)
