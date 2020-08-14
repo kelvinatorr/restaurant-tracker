@@ -615,6 +615,11 @@ func (s Storage) AddVisitUser(vu adder.VisitUser) int64 {
 				$2,
 				CASE WHEN $3 == 0 THEN NULL ELSE $3 END
 			)
+		ON CONFLICT(visit_id, user_id) DO UPDATE
+		SET			
+			visit_id = $1,
+			user_id = $2,
+			rating = CASE WHEN $3 == 0 THEN NULL ELSE $3 END
 	`
 	res, err := s.tx.Exec(sqlStatement,
 		vu.VisitID,
