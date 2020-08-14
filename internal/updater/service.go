@@ -33,6 +33,8 @@ type Repository interface {
 	GetRestaurant(int64) lister.Restaurant
 	GetUser(int64) lister.User
 	AddVisitUser(adder.VisitUser) int64
+	GetVisitUsersByVisitID(int64) []lister.VisitUser
+	RemoveVisitUser(int64) int64
 }
 
 type service struct {
@@ -124,9 +126,19 @@ func (s service) UpdateVisit(v Visit) (int64, error) {
 	log.Printf("%d Visit records affected.\n", visitRecordsAffected)
 	// Only update if the visit actually exists.
 	if visitRecordsAffected > 0 {
+		// Get the saved VisitUsers so we can remove anything that's not in this update.
+		savedVisitUsers := s.r.GetVisitUsersByVisitID(v.ID)
+		// Convert it to a map of ids
+		visitUsersMap := make(map[int64]bool)
+		for _, vu := range savedVisitUsers {
+			visitUsersMap[vu.ID] = false
+		}
+
 		for _, vu := range v.VisitUsers {
 			if vu.ID != 0 {
 				visitUserRecordsAffected = visitUserRecordsAffected + s.r.UpdateVisitUser(vu)
+				// Set this VisitUser to True in the map so it doesn't get deleted.
+				visitUsersMap[vu.ID] = true
 			} else {
 				newVisit := adder.VisitUser{
 					VisitID: vu.VisitID,
@@ -136,6 +148,15 @@ func (s service) UpdateVisit(v Visit) (int64, error) {
 				newVisitUserID := s.r.AddVisitUser(newVisit)
 				log.Printf("Added User id: %d to Visit id: %d. New VisitUser id: %d", vu.UserID, vu.VisitID,
 					newVisitUserID)
+			}
+		}
+
+		// Now loop through the saved VisitUsers and delete anything we didn't see in this update. The user was removed
+		// from the visit.
+		for k, val := range visitUsersMap {
+			if !val {
+				s.r.RemoveVisitUser(k)
+				log.Printf("Removed VisitUser id: %d from Visit id: %d", k, v.ID)
 			}
 		}
 	}

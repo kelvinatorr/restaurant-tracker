@@ -714,6 +714,12 @@ func (s Storage) RemoveVisit(visitID int64) int64 {
 	return s.removeRow("visit", visitID)
 }
 
+// RemoveVisitUser deletes a given visit_user and returns the number of rows affected. Caller must call Commit() to commit the
+// transaction
+func (s Storage) RemoveVisitUser(visitUserID int64) int64 {
+	return s.removeRow("visit_user", visitUserID)
+}
+
 func checkAndPanic(err error) {
 	if err != nil {
 		log.Panicln(err)
