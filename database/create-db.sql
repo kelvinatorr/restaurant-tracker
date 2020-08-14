@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS visit (
     note TEXT,
     CHECK (length(visit_datetime) == 20)
 );
+CREATE INDEX IF NOT EXISTS visit_restaurant on visit (restaurant_id);
 
 CREATE TABLE IF NOT EXISTS visit_user (
     id INTEGER PRIMARY KEY, -- Autoincrements per the documentation
@@ -35,6 +36,9 @@ CREATE TABLE IF NOT EXISTS visit_user (
     rating INTEGER,
     CHECK ((rating > 0 and rating < 6) or rating is NULL)
 );
+CREATE INDEX IF NOT EXISTS visit_user_visit_id on visit_user (visit_id);
+-- Can't have the same user more than once in the same visit.
+CREATE UNIQUE INDEX IF NOT EXISTS visit_user_visit_id_user_id on visit_user (visit_id, user_id); 
 
 CREATE TABLE IF NOT EXISTS user (
     id INTEGER PRIMARY KEY, -- Autoincrements per the documentation
