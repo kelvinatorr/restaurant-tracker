@@ -121,7 +121,11 @@ func updateRestaurant(s updater.Service) func(w http.ResponseWriter, r *http.Req
 		}
 
 		log.Printf("Updating restaurant ID: %d\n", updatedRestaurant.ID)
-		recordsAffected := s.UpdateRestaurant(updatedRestaurant)
+		recordsAffected, err := s.UpdateRestaurant(updatedRestaurant)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		log.Printf("Number of records affected %d", recordsAffected)
 		w.Header().Set("Content-Type", "application/json")
 		rm := responseMessage{Message: fmt.Sprintf("Restaurant ID: %d updated", updatedRestaurant.ID)}

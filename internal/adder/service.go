@@ -47,6 +47,11 @@ type service struct {
 }
 
 func (s *service) AddRestaurant(r Restaurant) (int64, error) {
+	err := checkRestaurantData(r)
+	if err != nil {
+		return 0, err
+	}
+
 	// Check that there isn't a duplicate restaurant with the same name in the same city, state already
 	if s.r.IsDuplicateRestaurant(r) {
 		errorMsg := fmt.Sprintf("%s in %s, %s is already in the database.", r.Name, r.CityState.Name, r.CityState.State)
@@ -114,6 +119,25 @@ func (s *service) AddVisit(v Visit) (int64, error) {
 	s.r.Commit()
 
 	return visitID, nil
+}
+
+func checkRestaurantData(r Restaurant) error {
+	// Check that Name is not null
+	if r.Name == "" {
+		return errors.New("A name is required")
+	}
+
+	// Check that CityState is not null
+	if r.CityState.Name == "" || r.CityState.State == "" {
+		return fmt.Errorf("You must provide a city and state for %s", r.Name)
+	}
+
+	// Check that Cuisine is not null
+	if r.Cuisine == "" {
+		return errors.New("You must provide a cuisine")
+	}
+
+	return nil
 }
 
 // NewService creates an adding service with the necessary dependencies

@@ -13,7 +13,7 @@ import (
 
 // Service provides listing operations.
 type Service interface {
-	UpdateRestaurant(Restaurant) int64
+	UpdateRestaurant(Restaurant) (int64, error)
 	UpdateVisit(Visit) (int64, error)
 }
 
@@ -41,7 +41,12 @@ type service struct {
 	r Repository
 }
 
-func (s service) UpdateRestaurant(r Restaurant) int64 {
+func (s service) UpdateRestaurant(r Restaurant) (int64, error) {
+	err := checkRestaurantData(r)
+	if err != nil {
+		return 0, err
+	}
+
 	// Check if the city and state is already in the database, If it is, get the city id
 	cityID := s.r.GetCityIDByNameAndState(r.CityState.Name, r.CityState.State)
 	s.r.Begin()
@@ -57,6 +62,10 @@ func (s service) UpdateRestaurant(r Restaurant) int64 {
 	r.CityID = cityID
 	// Update the restaurant.
 	recordsAffected := s.r.UpdateRestaurant(r)
+	if recordsAffected == 0 {
+		// Rollback should occur because of the defer.
+		return 0, fmt.Errorf("Restaurant id: %d was not found", r.ID)
+	}
 
 	// This restaurant did not have a GmapsPlace, but now has 1, so we insert it and get the id back.
 	if r.GmapsPlace.ID == 0 && r.GmapsPlace.PlaceID != "" {
@@ -90,7 +99,7 @@ func (s service) UpdateRestaurant(r Restaurant) int64 {
 
 	s.r.Commit()
 
-	return recordsAffected
+	return recordsAffected, nil
 }
 
 func (s service) UpdateVisit(v Visit) (int64, error) {
@@ -164,6 +173,29 @@ func (s service) UpdateVisit(v Visit) (int64, error) {
 	s.r.Commit()
 
 	return visitRecordsAffected + visitUserRecordsAffected, nil
+}
+
+func checkRestaurantData(r Restaurant) error {
+	if r.ID == 0 {
+		return errors.New("Update ID cannot be 0")
+	}
+
+	// Check that Name is not null
+	if r.Name == "" {
+		return errors.New("A name is required")
+	}
+
+	// Check that CityState is not null
+	if r.CityState.Name == "" || r.CityState.State == "" {
+		return fmt.Errorf("You must provide a city and state for %s", r.Name)
+	}
+
+	// Check that Cuisine is not null
+	if r.Cuisine == "" {
+		return errors.New("You must provide a cuisine")
+	}
+
+	return nil
 }
 
 // NewService returns a new updater.service

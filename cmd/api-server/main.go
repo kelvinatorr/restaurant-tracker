@@ -98,7 +98,10 @@ func main() {
 	}
 
 	var update updater.Service = updater.NewService(&s)
-	rowsAffected := update.UpdateRestaurant(ru)
+	rowsAffected, err := update.UpdateRestaurant(ru)
+	if err != nil {
+		log.Println(err)
+	}
 	log.Printf("Updated %s. Rows affected %d\n", ru.Name, rowsAffected)
 
 	rr := remover.Restaurant{
