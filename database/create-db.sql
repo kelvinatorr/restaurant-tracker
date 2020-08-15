@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS visit_user (
 );
 CREATE INDEX IF NOT EXISTS visit_user_visit_id on visit_user (visit_id);
 -- Can't have the same user more than once in the same visit.
-CREATE UNIQUE INDEX IF NOT EXISTS visit_user_visit_id_user_id on visit_user (visit_id, user_id); 
+CREATE UNIQUE INDEX IF NOT EXISTS visit_user_visit_id_user_id on visit_user (visit_id, user_id);
 
 CREATE TABLE IF NOT EXISTS user (
     id INTEGER PRIMARY KEY, -- Autoincrements per the documentation
