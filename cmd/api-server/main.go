@@ -20,6 +20,8 @@ func main() {
 	flag.Parse()
 	dbPath := *dbPathPtr
 
+	log.Printf("Connecting to database: %s\n", dbPath)
+
 	s, err := sqlite.NewStorage(dbPath)
 	if err != nil {
 		log.Fatalln(err)
