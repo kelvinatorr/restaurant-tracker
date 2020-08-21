@@ -29,89 +29,9 @@ func main() {
 	defer s.CloseStorage()
 
 	var add adder.Service
-	add = adder.NewService(&s)
-
-	gp := adder.GmapsPlace{
-		PlaceID:              "ChIJ9_tgjT3AyIARfFErWP0PX70",
-		BusinessStatus:       "OPERATIONAL",
-		FormattedPhoneNumber: "(702) 778-5757",
-		Name:                 "Bover",
-		PriceLevel:           0,
-		Rating:               4.7,
-		URL:                  "https://maps.google.com/?cid=13645642976736268668",
-		UserRatingsTotal:     51,
-		UTCOffset:            -420,
-		Website:              "",
-	}
-	r := adder.Restaurant{
-		Name:       "Bover",
-		Cuisine:    "Coffee & Tea",
-		Note:       "First boba outing together during coronavirus time",
-		CityState:  adder.CityState{Name: "Las Vegas", State: "NV"},
-		GmapsPlace: gp,
-		Address:    "1780 N Buffalo Dr #107",
-		Zipcode:    "89128",
-		Latitude:   36.1914303,
-		Longitude:  -115.2592753,
-	}
-	newRID, err := add.AddRestaurant(r)
-	if err != nil {
-		log.Println(err)
-	} else {
-		log.Printf("New restaurant id: %d", newRID)
-	}
-
 	var list lister.Service = lister.NewService(&s)
-
-	newR, err := list.GetRestaurant(12)
-	if err != nil {
-		log.Println(err)
-	} else {
-		log.Printf("Found it: %#v\n", newR)
-	}
-
-	gpu := updater.GmapsPlace{
-		ID:                   466,
-		LastUpdated:          "2020-07-07T22:15:44Z",
-		PlaceID:              "ChIJ9_tgjT3AyIARfFErWP0PX70",
-		BusinessStatus:       "OPERATIONAL",
-		FormattedPhoneNumber: "(702) 778-5757",
-		Name:                 "Bover",
-		PriceLevel:           0,
-		Rating:               4.7,
-		URL:                  "https://maps.google.com/?cid=13645642976736268668",
-		UserRatingsTotal:     51,
-		UTCOffset:            -420,
-		Website:              "",
-		RestaurantID:         496,
-	}
-	// Test updating.
-	ru := updater.Restaurant{
-		ID:         496,
-		Name:       "Bover",
-		Cuisine:    "Coffee & Tea",
-		Note:       "First boba outing together during coronavirus time",
-		CityState:  updater.CityState{Name: "Las Vegas", State: "NV"},
-		GmapsPlace: gpu,
-		Address:    "1780 N Buffalo Dr #107",
-		Zipcode:    "89128",
-		Latitude:   36.1914303,
-		Longitude:  -115.2592753,
-	}
-
 	var update updater.Service = updater.NewService(&s)
-	rowsAffected, err := update.UpdateRestaurant(ru)
-	if err != nil {
-		log.Println(err)
-	}
-	log.Printf("Updated %s. Rows affected %d\n", ru.Name, rowsAffected)
-
-	rr := remover.Restaurant{
-		ID: 1,
-	}
 	var remove remover.Service = remover.NewService(&s)
-	rowsAffected = remove.RemoveRestaurant(rr)
-	log.Printf("Removed id: %d. Total Rows affected %d\n", rr.ID, rowsAffected)
 
 	// http endpoints to receive data
 	// set up the HTTP server
