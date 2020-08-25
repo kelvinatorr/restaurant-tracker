@@ -1,8 +1,11 @@
 package rest
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -21,7 +24,7 @@ type responseMessage struct {
 }
 
 // Handler sets the httprouter routes for the rest package
-func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Service) http.Handler {
+func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Service, verbose bool) http.Handler {
 	router := httprouter.New()
 
 	// Restaurant Endpoints
@@ -44,15 +47,54 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	}
 
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"https://postwoman.io"},
+		AllowedOrigins: []string{"https://postwoman.io", "https://hoppscotch.io/"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 		// Enable Debugging for testing, consider disabling in production
 		Debug: false,
 	})
 
-	corsRouter := c.Handler(router)
+	var h http.Handler
+	if verbose {
+		// Wrap cors handler with json logger
+		h = jsonLogger(c.Handler(router))
+	} else {
+		// Just do the cors handler
+		h = c.Handler(router)
+	}
 
-	return corsRouter
+	return h
+}
+
+func jsonLogger(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PUT" || r.Method == "POST" {
+			log.Printf("Received %s with body:", r.Method)
+			var body []byte
+			buf := make([]byte, 1024)
+			for {
+				_, err := r.Body.Read(buf)
+
+				body = append(body, buf...)
+				if err != nil && err != io.EOF {
+					log.Println(err)
+					break
+				}
+				log.Printf(string(buf))
+
+				if err == io.EOF {
+					break
+				}
+			}
+
+			// Set a new body, which will simulate the same data we read:
+			r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		} else if r.Method == "GET" || r.Method == "DELETE" {
+			log.Printf("Received %s with URL: %s\n", r.Method, r.URL)
+		}
+
+		// Call next handler
+		handler.ServeHTTP(w, r)
+	})
 }
 
 // getRestaurants returns a handler for GET /restaurants requests

@@ -17,8 +17,10 @@ func main() {
 	log.Println("Starting api server.")
 	// Flag for database path
 	dbPathPtr := flag.String("db", "", "Path to the sqlite database. See README for instructions on how to make one.")
+	verbosePtr := flag.Bool("v", false, "Set -v for verbose logging.")
 	flag.Parse()
 	dbPath := *dbPathPtr
+	verbose := *verbosePtr
 
 	log.Printf("Connecting to database: %s\n", dbPath)
 
@@ -35,7 +37,7 @@ func main() {
 
 	// http endpoints to receive data
 	// set up the HTTP server
-	router := rest.Handler(list, add, update, remove)
+	router := rest.Handler(list, add, update, remove, verbose)
 
 	log.Println("The restaurant tracker api server is on tap now: http://localhost:8888")
 	log.Fatal(http.ListenAndServe(":8888", router))
