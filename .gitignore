@@ -13,3 +13,14 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# IDE directories
+.vscode/
+.idea/
+
+*.db
+
+# Built binaries
+cmd/api-server/api-server
+
+insert-initial.sql
