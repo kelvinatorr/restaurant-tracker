@@ -1,2 +1,2 @@
 #!/bin/bash
-api-server -db $DBPATH -v >> $LOG 2>&1
+api-server -db $DBPATH -v
