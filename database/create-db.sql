@@ -45,8 +45,10 @@ CREATE TABLE IF NOT EXISTS user (
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
-    password_hash TEXT
+    password_hash TEXT,
+    remember_hash TEXT
 );
+CREATE UNIQUE INDEX IF NOT EXISTS remember_hash on user (remember_hash);
 
 CREATE TABLE IF NOT EXISTS gmaps_place (
     id INTEGER PRIMARY KEY, -- Autoincrements per the documentation
