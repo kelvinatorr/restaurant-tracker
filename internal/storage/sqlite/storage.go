@@ -659,6 +659,34 @@ func (s Storage) GetUser(id int64) lister.User {
 	return u
 }
 
+// GetUserBy queries the user table for a given user by field and value. Do not pass field arguments from untrusted
+// sources. If the returned user has ID = 0 then it is not in the db.
+func (s Storage) GetUserBy(field string, value string) lister.User {
+	var u lister.User
+	sqlStatement := `
+		SELECT 
+			id,
+			first_name,
+			last_name,
+			email
+		FROM
+			user
+		WHERE
+			%s = $1
+	`
+	row := s.db.QueryRow(fmt.Sprintf(sqlStatement, field), value)
+	err := row.Scan(
+		&u.ID,
+		&u.FirstName,
+		&u.LastName,
+		&u.Email,
+	)
+	if err != sql.ErrNoRows {
+		checkAndPanic(err)
+	}
+	return u
+}
+
 // UpdateVisit updates a given visit, returns the rows affected. Caller must call Commit() to commit the
 // transaction
 func (s Storage) UpdateVisit(v updater.Visit) int64 {

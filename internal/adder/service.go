@@ -21,6 +21,7 @@ func (m *ErrDuplicate) Error() string {
 type Service interface {
 	AddRestaurant(Restaurant) (int64, error)
 	AddVisit(Visit) (int64, error)
+	AddUser(User) (int64, error)
 }
 
 // Repository provides access to restaurant repository.
@@ -40,6 +41,7 @@ type Repository interface {
 	AddVisitUser(VisitUser) int64
 	GetRestaurant(int64) lister.Restaurant
 	GetUser(int64) lister.User
+	GetUserBy(string, string) lister.User
 }
 
 type service struct {
@@ -135,6 +137,38 @@ func checkRestaurantData(r Restaurant) error {
 	// Check that Cuisine is not null
 	if r.Cuisine == "" {
 		return errors.New("You must provide a cuisine")
+	}
+
+	return nil
+}
+
+func (s *service) AddUser(u User) (int64, error) {
+	if err := checkUserData(u); err != nil {
+		return 0, err
+	}
+	// Check email is not duplicate
+	if existingUser := s.r.GetUserBy("email", u.Email); existingUser.ID != 0 {
+		return 0, errors.New("This user already exists")
+	}
+
+	// TODO: Hash password
+	// TODO: Clear password
+	// Add the user
+	return 0, nil
+}
+
+func checkUserData(u User) error {
+	// Check all fields are not empty
+	if u.FirstName == "" || u.LastName == "" {
+		return errors.New("First name and last name are required")
+	}
+	if u.Password == "" || u.RepeatPassword == "" {
+		return errors.New("A password and repeatPassword are required")
+	}
+
+	// Check passwords are the same
+	if u.Password != u.RepeatPassword {
+		return errors.New("Passwords do not match")
 	}
 
 	return nil
