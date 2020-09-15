@@ -172,6 +172,9 @@ func checkUserData(u User) error {
 	if u.FirstName == "" || u.LastName == "" {
 		return errors.New("First name and last name are required")
 	}
+	if u.Email == "" {
+		return errors.New("An email address is required")
+	}
 	if u.Password == "" || u.RepeatPassword == "" {
 		return errors.New("A password and repeatPassword are required")
 	}
