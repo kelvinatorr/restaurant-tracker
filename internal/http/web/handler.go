@@ -36,7 +36,7 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	// Add verbose output
 	var h http.Handler
 	if verbose {
-		// Wrap cors handler with verbose logger
+		// Wrap handler with verbose logger
 		h = verboseLogger(router, dontLogBodyURLs)
 	} else {
 		// Just do the handler
