@@ -43,6 +43,7 @@ type Repository interface {
 	GetRestaurant(int64) lister.Restaurant
 	GetUser(int64) lister.User
 	GetUserBy(string, string) lister.User
+	AddUser(User) int64
 }
 
 type service struct {
@@ -164,7 +165,13 @@ func (s *service) AddUser(u User) (int64, error) {
 	u.Password = ""
 
 	// Add the user
-	return 0, nil
+	s.r.Begin()
+	// Defer rollback just in case there is a problem.
+	defer s.r.Rollback()
+	newUserID := s.r.AddUser(u)
+	s.r.Commit()
+
+	return newUserID, nil
 }
 
 func checkUserData(u User) error {

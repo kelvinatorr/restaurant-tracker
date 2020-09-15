@@ -753,6 +753,38 @@ func (s Storage) RemoveVisitUser(visitUserID int64) int64 {
 	return s.removeRow("visit_user", visitUserID)
 }
 
+// AddUser adds a given user to the database and returns the new user id. Caller must call Commit() to commit the
+// transaction.
+func (s Storage) AddUser(u adder.User) int64 {
+	// We use case when to allow inserting nulls in the database
+	sqlStatement := `
+		INSERT INTO 
+			user(
+				first_name,
+				last_name,
+				email,
+				password_hash
+			)
+		VALUES
+			(
+				$1,
+				$2,
+				$3,
+				$4
+			)
+	`
+	res, err := s.tx.Exec(sqlStatement,
+		u.FirstName,
+		u.LastName,
+		u.Email,
+		u.PasswordHash,
+	)
+	checkAndPanic(err)
+	lastID, err := res.LastInsertId()
+	checkAndPanic(err)
+	return lastID
+}
+
 func checkAndPanic(err error) {
 	if err != nil {
 		log.Panicln(err)

@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS user (
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
-    password_hash TEXT,
+    password_hash TEXT NOT NULL,
     remember_hash TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS remember_hash on user (remember_hash);
