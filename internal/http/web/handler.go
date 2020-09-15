@@ -26,6 +26,7 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.GET("/initial-signup", getInitialSignup())
 	router.HEAD("/initial-signup", getInitialSignup())
 	router.POST("/initial-signup", postInitialSignup(a))
+	router.GET("/signin", getSignIn())
 	dontLogBodyURLs["/initial-signup"] = true
 
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
@@ -95,6 +96,17 @@ func getInitialSignup() func(w http.ResponseWriter, r *http.Request, _ httproute
 		data := struct {
 			Title string
 		}{"Initial Signup"}
+		v.render(w, data)
+	}
+}
+
+func getSignIn() func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		w.Header().Set("Content-Type", "text/html")
+		v := newView("base", "../../web/template/signin.html")
+		data := struct {
+			Title string
+		}{"Sign In"}
 		v.render(w, data)
 	}
 }
