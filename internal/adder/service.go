@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // ErrDuplicate is used when a resturant already exists.
@@ -151,8 +152,17 @@ func (s *service) AddUser(u User) (int64, error) {
 		return 0, errors.New("This user already exists")
 	}
 
-	// TODO: Hash password
-	// TODO: Clear password
+	// Hash password
+	pwBytes := []byte(u.Password)
+	// bcrypt automatically includes salt.
+	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
+	if err != nil {
+		return 0, err
+	}
+	u.PasswordHash = string(hashedBytes)
+	// Clear password so it isn't inadvertently logged
+	u.Password = ""
+
 	// Add the user
 	return 0, nil
 }
