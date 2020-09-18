@@ -47,7 +47,7 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	}
 
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"https://postwoman.io", "https://hoppscotch.io/"},
+		AllowedOrigins: []string{"https://hoppscotch.io"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 		// Enable Debugging for testing, consider disabling in production
 		Debug: false,
