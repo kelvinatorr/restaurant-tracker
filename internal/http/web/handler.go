@@ -11,23 +11,29 @@ import (
 	"github.com/gorilla/schema"
 	"github.com/julienschmidt/httprouter"
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
+	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
 	"github.com/kelvinatorr/restaurant-tracker/internal/remover"
 	"github.com/kelvinatorr/restaurant-tracker/internal/updater"
 )
 
 // Handler sets the httprouter routes for the web package
-func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Service, verbose bool) http.Handler {
+func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Service, auth auther.Service, verbose bool) http.Handler {
+
 	router := httprouter.New()
 
 	// Initialize a map of endpoints whose body should not be logged out because it might contain passwords
 	dontLogBodyURLs := make(map[string]bool)
-	// User Endpoints
+
 	router.GET("/initial-signup", getInitialSignup())
 	router.HEAD("/initial-signup", getInitialSignup())
 	router.POST("/initial-signup", postInitialSignup(a))
-	router.GET("/signin", getSignIn())
 	dontLogBodyURLs["/initial-signup"] = true
+
+	router.GET("/signin", getSignIn())
+	router.HEAD("/signin", getSignIn())
+	router.POST("/signin", postSignIn(auth))
+	dontLogBodyURLs["/signin"] = true
 
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
@@ -128,5 +134,24 @@ func postInitialSignup(a adder.Service) func(w http.ResponseWriter, r *http.Requ
 		log.Println(newUserID)
 		w.Header().Set("Content-Type", "text/html")
 		fmt.Fprintln(w, "Works post!")
+	}
+}
+
+func postSignIn(a auther.Service) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		var u auther.UserSignIn
+		if err := parseForm(r, &u); err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		err := a.SignIn(u)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprintln(w, "You're logged in!")
 	}
 }

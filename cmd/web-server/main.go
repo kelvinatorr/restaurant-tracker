@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
+	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
 	"github.com/kelvinatorr/restaurant-tracker/internal/http/web"
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
 	"github.com/kelvinatorr/restaurant-tracker/internal/remover"
@@ -33,10 +34,11 @@ func main() {
 	var list lister.Service = lister.NewService(&s)
 	var update updater.Service = updater.NewService(&s)
 	var remove remover.Service = remover.NewService(&s)
+	var auth auther.Service = auther.NewService(&s)
 
 	// http endpoints to receive data
 	// set up the HTTP server
-	router := web.Handler(list, add, update, remove, verbose)
+	router := web.Handler(list, add, update, remove, auth, verbose)
 
 	log.Println("The restaurant tracker web server is starting on: http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", router))

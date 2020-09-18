@@ -6,6 +6,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
+
 	"github.com/kelvinatorr/restaurant-tracker/internal/remover"
 	"github.com/kelvinatorr/restaurant-tracker/internal/updater"
 
@@ -685,6 +687,32 @@ func (s Storage) GetUserBy(field string, value string) lister.User {
 		checkAndPanic(err)
 	}
 	return u
+}
+
+// GetHashesByEmail returns the password and remember hashes of a given email. If the returned user has ID = 0 then it
+// is not in the db.
+func (s Storage) GetHashesByEmail(email string) auther.User {
+	var uh auther.User
+	sqlStatement := `
+		SELECT
+			id,
+			password_hash,
+			COALESCE(remember_hash, "")
+		FROM
+			user
+		WHERE
+			email = $1
+	`
+	row := s.db.QueryRow(sqlStatement, email)
+	err := row.Scan(
+		&uh.ID,
+		&uh.PasswordHash,
+		&uh.RememberHash,
+	)
+	if err != sql.ErrNoRows {
+		checkAndPanic(err)
+	}
+	return uh
 }
 
 // UpdateVisit updates a given visit, returns the rows affected. Caller must call Commit() to commit the
