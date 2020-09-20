@@ -38,6 +38,17 @@ func (s service) SignIn(u UserSignIn) error {
 	return err
 }
 
+// HashPassword hashes a given password string using bcrypt with bcrypt DefaultCost
+func HashPassword(password string) (string, error) {
+	pwBytes := []byte(password)
+	// bcrypt automatically includes salt.
+	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedBytes), nil
+}
+
 // NewService provides a new auth service
 func NewService(r Repository) Service {
 	return service{r}
