@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
@@ -190,6 +191,15 @@ func checkUserData(u User) error {
 	// Check passwords are the same
 	if u.Password != u.RepeatPassword {
 		return errors.New("Passwords do not match")
+	}
+
+	// Check email is valid
+	// Good enough validation: https://www.regextester.com/99632
+	match, err := regexp.MatchString("[^@]+@[^\\.]+\\..+", u.Email)
+	if err != nil {
+		return err
+	} else if !match {
+		return errors.New("Invalid email address")
 	}
 
 	return nil
