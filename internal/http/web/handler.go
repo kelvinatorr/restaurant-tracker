@@ -148,14 +148,27 @@ func postSignIn(a auther.Service) func(w http.ResponseWriter, r *http.Request, _
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		err := a.SignIn(u)
+		jwt, err := a.SignIn(u)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
+
+		// Given them a cookie.
+		cookie := http.Cookie{
+			Name:     "rt",
+			Value:    jwt,
+			HttpOnly: true,
+			MaxAge:   31536000, // One Year
+			SameSite: http.SameSiteLaxMode,
+		}
+
+		http.SetCookie(w, &cookie)
+
+		// TODO: Redirect to Home Page
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintln(w, "You're logged in!")
+		fmt.Fprintln(w, jwt)
 	}
 }
 

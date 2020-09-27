@@ -813,6 +813,29 @@ func (s Storage) AddUser(u adder.User) int64 {
 	return lastID
 }
 
+// UpdateUserRememberHash updates a user's remember_hash and then returns the number of rows affected. Caller must call 
+// Commit() to commit the transaction.
+func (s Storage) UpdateUserRememberHash(u auther.User) int64 {
+	// We use case when to allow updating to nulls in the database
+	sqlStatement := `
+		UPDATE
+			user
+		SET
+			remember_hash = $1
+		WHERE
+			id = $2
+	`
+
+	res, err := s.tx.Exec(sqlStatement,
+		u.RememberHash,
+		u.ID,
+	)
+	checkAndPanic(err)
+	rowsAffected, err := res.RowsAffected()
+	checkAndPanic(err)
+	return rowsAffected
+}
+
 func checkAndPanic(err error) {
 	if err != nil {
 		log.Panicln(err)

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
 	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
@@ -23,6 +24,12 @@ func main() {
 	dbPath := *dbPathPtr
 	verbose := *verbosePtr
 
+	// Read the secret key env variable.
+	secretKey := os.Getenv("SECRETKEY")
+	if secretKey == "" {
+		log.Fatalln("No SECRETKEY environment variable set.")
+	}
+
 	log.Printf("Connecting to database: %s\n", dbPath)
 	s, err := sqlite.NewStorage(dbPath)
 	if err != nil {
@@ -34,7 +41,7 @@ func main() {
 	var list lister.Service = lister.NewService(&s)
 	var update updater.Service = updater.NewService(&s)
 	var remove remover.Service = remover.NewService(&s)
-	var auth auther.Service = auther.NewService(&s)
+	var auth auther.Service = auther.NewService(&s, secretKey)
 
 	// http endpoints to receive data
 	// set up the HTTP server

@@ -6,7 +6,12 @@ type UserSignIn struct {
 }
 
 type User struct {
-	ID int64
+	ID           int64
 	PasswordHash string
 	RememberHash string
+}
+
+type userJWT struct {
+	Email        string `json:"email"`
+	RememberHash string `json:"rememberHash"`
 }
