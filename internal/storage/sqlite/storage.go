@@ -689,15 +689,15 @@ func (s Storage) GetUserBy(field string, value string) lister.User {
 	return u
 }
 
-// GetHashesByEmail returns the password and remember hashes of a given email. If the returned user has ID = 0 then it
+// GetUserAuthByEmail returns the password and remember hashes of a given email. If the returned user has ID = 0 then it
 // is not in the db.
-func (s Storage) GetHashesByEmail(email string) auther.User {
+func (s Storage) GetUserAuthByEmail(email string) auther.User {
 	var uh auther.User
 	sqlStatement := `
 		SELECT
 			id,
 			password_hash,
-			COALESCE(remember_hash, "")
+			COALESCE(remember_token, "")
 		FROM
 			user
 		WHERE
@@ -707,7 +707,7 @@ func (s Storage) GetHashesByEmail(email string) auther.User {
 	err := row.Scan(
 		&uh.ID,
 		&uh.PasswordHash,
-		&uh.RememberHash,
+		&uh.RememberToken,
 	)
 	if err != sql.ErrNoRows {
 		checkAndPanic(err)
@@ -813,21 +813,21 @@ func (s Storage) AddUser(u adder.User) int64 {
 	return lastID
 }
 
-// UpdateUserRememberHash updates a user's remember_hash and then returns the number of rows affected. Caller must call 
+// UpdateUserRememberToken updates a user's remember_hash and then returns the number of rows affected. Caller must call
 // Commit() to commit the transaction.
-func (s Storage) UpdateUserRememberHash(u auther.User) int64 {
+func (s Storage) UpdateUserRememberToken(u auther.User) int64 {
 	// We use case when to allow updating to nulls in the database
 	sqlStatement := `
 		UPDATE
 			user
 		SET
-			remember_hash = $1
+			remember_token = $1
 		WHERE
 			id = $2
 	`
 
 	res, err := s.tx.Exec(sqlStatement,
-		u.RememberHash,
+		u.RememberToken,
 		u.ID,
 	)
 	checkAndPanic(err)

@@ -25,8 +25,8 @@ type Repository interface {
 	Begin()
 	Commit()
 	Rollback()
-	GetHashesByEmail(string) User
-	UpdateUserRememberHash(User) int64
+	GetUserAuthByEmail(string) User
+	UpdateUserRememberToken(User) int64
 }
 
 type service struct {
@@ -41,7 +41,7 @@ func (s service) SignIn(u UserSignIn) (string, error) {
 	// Lower case to normalize it.
 	u.Email = strings.ToLower(u.Email)
 	// Check this email exists
-	foundUser := s.r.GetHashesByEmail(u.Email)
+	foundUser := s.r.GetUserAuthByEmail(u.Email)
 	if foundUser.ID == 0 {
 		err = fmt.Errorf("There is no user with this email address")
 		return "", err
@@ -54,7 +54,7 @@ func (s service) SignIn(u UserSignIn) (string, error) {
 		return "", err
 	}
 
-	if foundUser.RememberHash == "" {
+	if foundUser.RememberToken == "" {
 		log.Printf("%s has no remember_hash. Generating...", u.Email)
 		// Generate a new remember hash
 		rT, err := rememberToken()
@@ -62,18 +62,18 @@ func (s service) SignIn(u UserSignIn) (string, error) {
 			err = fmt.Errorf("There was an error generating a remember token")
 			return "", err
 		}
-		foundUser.RememberHash = s.hash(rT)
+		foundUser.RememberToken = rT
 		// Save it to the database
 		s.r.Begin()
 		// Defer rollback just in case there is a problem.
 		defer s.r.Rollback()
-		recordsAffected := s.r.UpdateUserRememberHash(foundUser)
+		recordsAffected := s.r.UpdateUserRememberToken(foundUser)
 		log.Printf("%d user records affected.", recordsAffected)
 		s.r.Commit()
 	}
 
 	// Generate new jwt
-	jwt, err := s.generateJWT(u.Email, foundUser.RememberHash)
+	jwt, err := s.generateJWT(u.Email, foundUser.RememberToken)
 
 	// Return the jwt
 	return jwt, err
@@ -91,7 +91,7 @@ func HashPassword(password string) (string, error) {
 }
 
 // generateJWT generates string tokens of rememberTokenBytes byte size
-func (s service) generateJWT(email string, rememberHash string) (string, error) {
+func (s service) generateJWT(email string, rememberToken string) (string, error) {
 	// Make the header
 	hS := header{Alg: "HS256", Typ: "JWT"}
 	hB, err := json.Marshal(hS)
@@ -102,7 +102,7 @@ func (s service) generateJWT(email string, rememberHash string) (string, error) 
 	h := base64.RawURLEncoding.EncodeToString(hB)
 
 	// make the payload
-	uJWTS := userJWT{Email: email, RememberHash: rememberHash}
+	uJWTS := userJWT{Email: email, RememberToken: rememberToken}
 	uJWTB, err := json.Marshal(uJWTS)
 	if err != nil {
 		return "", err
