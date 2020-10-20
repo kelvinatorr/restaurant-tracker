@@ -197,9 +197,9 @@ func postSignIn(a auther.Service) func(w http.ResponseWriter, r *http.Request, _
 
 		http.SetCookie(w, &cookie)
 
-		// TODO: Redirect to Home Page
-		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintln(w, jwt)
+		// Redirect to Home Page
+		// TODO: Redirect to the protected route they tried to access if any
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
 
