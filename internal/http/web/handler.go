@@ -2,7 +2,6 @@ package web
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -32,8 +31,8 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.POST("/initial-signup", postInitialSignup(a))
 	dontLogBodyURLs["/initial-signup"] = true
 
-	router.GET("/signin", getSignIn())
-	router.HEAD("/signin", getSignIn())
+	router.GET("/signin", getSignIn(l))
+	router.HEAD("/signin", getSignIn(l))
 	router.POST("/signin", postSignIn(auth))
 	dontLogBodyURLs["/signin"] = true
 
@@ -140,8 +139,14 @@ func getInitialSignup() func(w http.ResponseWriter, r *http.Request, _ httproute
 	}
 }
 
-func getSignIn() func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func getSignIn(l lister.Service) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		// If there are no users in the database then send them to the initial signup page
+		userCount := l.GetUserCount()
+		if userCount == 0 {
+			http.Redirect(w, r, "/initial-signup", http.StatusFound)
+			return
+		}
 		w.Header().Set("Content-Type", "text/html")
 		v := newView("base", "../../web/template/signin.html")
 		data := struct {
@@ -165,9 +170,9 @@ func postInitialSignup(a adder.Service) func(w http.ResponseWriter, r *http.Requ
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		log.Println(newUserID)
-		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintln(w, "Works post!")
+		log.Printf("New user created with ID: %d\n", newUserID)
+		// Redirect to homepage
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
 

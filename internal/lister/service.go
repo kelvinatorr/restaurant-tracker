@@ -19,6 +19,7 @@ type Service interface {
 	GetRestaurants() []Restaurant
 	GetVisit(int64) (Visit, error)
 	GetVisitsByRestaurantID(int64) []Visit
+	GetUserCount() int64
 }
 
 // Repository provides access to restaurant repository.
@@ -29,6 +30,7 @@ type Repository interface {
 	GetVisit(int64) Visit
 	GetVisitUsersByVisitID(int64) []VisitUser
 	GetVisitsByRestaurantID(int64) []Visit
+	GetUserCount() int64
 }
 
 type service struct {
@@ -70,6 +72,11 @@ func (s service) GetVisitsByRestaurantID(restaurantID int64) []Visit {
 		allVisits[i].VisitUsers = s.r.GetVisitUsersByVisitID(v.ID)
 	}
 	return allVisits
+}
+
+// GetUserCount returns the number of users in the repository.
+func (s service) GetUserCount() int64 {
+	return s.r.GetUserCount()
 }
 
 // NewService returns a new lister.service

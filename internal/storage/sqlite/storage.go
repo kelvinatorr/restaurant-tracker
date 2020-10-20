@@ -715,6 +715,25 @@ func (s Storage) GetUserAuthByEmail(email string) auther.User {
 	return uh
 }
 
+// GetUserCount returns the number of users in the db.
+func (s Storage) GetUserCount() int64 {
+	var userCount int64
+	sqlStatement := `
+		SELECT 
+			count(id)
+		FROM
+			user
+	`
+	row := s.db.QueryRow(sqlStatement)
+	err := row.Scan(
+		&userCount,
+	)
+	if err != sql.ErrNoRows {
+		checkAndPanic(err)
+	}
+	return userCount
+}
+
 // UpdateVisit updates a given visit, returns the rows affected. Caller must call Commit() to commit the
 // transaction
 func (s Storage) UpdateVisit(v updater.Visit) int64 {
