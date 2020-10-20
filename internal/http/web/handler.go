@@ -25,6 +25,8 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	// Initialize a map of endpoints whose body should not be logged out because it might contain passwords
 	dontLogBodyURLs := make(map[string]bool)
 
+	authRequiredURLs := make(map[string]bool)
+
 	router.GET("/initial-signup", getInitialSignup())
 	router.HEAD("/initial-signup", getInitialSignup())
 	router.POST("/initial-signup", postInitialSignup(a))
@@ -37,6 +39,7 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 
 	router.GET("/", getHome())
 	router.HEAD("/", getHome())
+	authRequiredURLs["/"] = true
 
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
@@ -45,9 +48,10 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 
 	// Add verbose output
 	var h http.Handler
+	h = authRequired(router, auth, authRequiredURLs)
 	if verbose {
 		// Wrap handler with verbose logger
-		h = verboseLogger(router, dontLogBodyURLs)
+		h = verboseLogger(h, dontLogBodyURLs)
 	} else {
 		// Just do the handler
 		h = router
@@ -80,6 +84,33 @@ func verboseLogger(handler http.Handler, dontLogBodyURLs map[string]bool) http.H
 			}
 			// Set a new body, which will simulate the same data we read:
 			r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		}
+
+		// Call next handler
+		handler.ServeHTTP(w, r)
+	})
+}
+
+func authRequired(handler http.Handler, a auther.Service, dontLogBodyURLs map[string]bool) http.Handler {
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, check := dontLogBodyURLs[r.URL.String()]; check {
+			log.Println("Checking rt cookie")
+			rememberTokenCookie, err := r.Cookie("rt")
+			if err != nil {
+				log.Println(err.Error())
+				// Redirect to sign in page
+				http.Redirect(w, r, "/signin", http.StatusFound)
+				return
+			}
+			// Check cookie and redirect to sign in page if err
+			err = a.CheckJWT(rememberTokenCookie.Value)
+			if err != nil {
+				log.Println(err.Error())
+				// Redirect to sign in page
+				http.Redirect(w, r, "/signin", http.StatusFound)
+				return
+			}
 		}
 
 		// Call next handler

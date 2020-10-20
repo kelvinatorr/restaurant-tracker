@@ -17,6 +17,7 @@ import (
 // Service provides authing operations.
 type Service interface {
 	SignIn(UserSignIn) (string, error)
+	CheckJWT(string) error
 	generateJWT(string, string) (string, error)
 }
 
@@ -79,6 +80,48 @@ func (s service) SignIn(u UserSignIn) (string, error) {
 	return jwt, err
 }
 
+// CheckJWT checks if a JWT is valid. First by checking that the signature matches and that the rememberToken is still
+// in the db for that user. If there is any problem an error is returned.
+func (s service) CheckJWT(jwt string) error {
+	var err error
+	// Split the string
+	jwtParts := strings.Split(jwt, ".")
+	if len(jwtParts) != 3 {
+		return fmt.Errorf("JWT has the wrong number of parts")
+	}
+	header := jwtParts[0]
+	payload := jwtParts[1]
+	signature := jwtParts[2]
+
+	// Regenerate the sig
+	regenSig := s.genJWTSignature(header, payload)
+
+	// Check that the signature matches what was passed in
+	if regenSig != signature {
+		return fmt.Errorf("JWT has the wrong signature")
+	}
+
+	pB, err := base64.RawURLEncoding.DecodeString(payload)
+	if err != nil {
+		return fmt.Errorf("JWT payload had a base64 decoding error")
+	}
+	var uJWT userJWT
+	err = json.Unmarshal(pB, &uJWT)
+	if err != nil {
+		return fmt.Errorf("JWT has the wrong payload format")
+	}
+	// Check the token is still valid
+	foundUser := s.r.GetUserAuthByEmail(strings.ToLower(uJWT.Email))
+	if foundUser.ID == 0 {
+		return fmt.Errorf("JWT has a non-existent user")
+	}
+	if foundUser.RememberToken != uJWT.RememberToken {
+		return fmt.Errorf("JWT has an invalid remember token")
+	}
+
+	return err
+}
+
 // HashPassword hashes a given password string using bcrypt with bcrypt DefaultCost
 func HashPassword(password string) (string, error) {
 	pwBytes := []byte(password)
@@ -111,7 +154,7 @@ func (s service) generateJWT(email string, rememberToken string) (string, error)
 	p := base64.RawURLEncoding.EncodeToString(uJWTB)
 
 	// hmac it up
-	sig := s.hash(h + "." + p)
+	sig := s.genJWTSignature(h, p)
 
 	return h + "." + p + "." + sig, nil
 }
@@ -121,6 +164,10 @@ func (s service) hash(str string) string {
 	s.hmac.Write([]byte(str))
 	b := s.hmac.Sum(nil)
 	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+func (s service) genJWTSignature(header string, payload string) string {
+	return s.hash(header + "." + payload)
 }
 
 func genRandomBytes(n int) ([]byte, error) {
