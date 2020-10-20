@@ -26,9 +26,9 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 
 	authRequiredURLs := make(map[string]bool)
 
-	router.GET("/initial-signup", getInitialSignup())
-	router.HEAD("/initial-signup", getInitialSignup())
-	router.POST("/initial-signup", postInitialSignup(a))
+	router.GET("/initial-signup", getInitialSignup(l))
+	router.HEAD("/initial-signup", getInitialSignup(l))
+	router.POST("/initial-signup", postUserAdd(a))
 	dontLogBodyURLs["/initial-signup"] = true
 
 	router.GET("/signin", getSignIn(l))
@@ -39,6 +39,13 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.GET("/", getHome())
 	router.HEAD("/", getHome())
 	authRequiredURLs["/"] = true
+
+	userAddPath := "/user/add"
+	router.GET(userAddPath, getUserAdd())
+	router.HEAD(userAddPath, getUserAdd())
+	router.POST(userAddPath, postUserAdd(a))
+	dontLogBodyURLs[userAddPath] = true
+	authRequiredURLs[userAddPath] = true
 
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
@@ -128,13 +135,25 @@ func parseForm(r *http.Request, dest interface{}) error {
 	return nil
 }
 
-func getInitialSignup() func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func getInitialSignup(l lister.Service) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		// If there already are users in the database then send them to the home page
+		userCount := l.GetUserCount()
+		if userCount > 0 {
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
 		w.Header().Set("Content-Type", "text/html")
-		v := newView("base", "../../web/template/initial-signup.html")
+		v := newView("base", "../../web/template/create-user.html")
 		data := struct {
-			Title string
-		}{"Initial Signup"}
+			Title  string
+			Header string
+			Text   string
+		}{
+			"Initial Signup",
+			"Initial Signup",
+			"Create your first user by entering an email address and password below.",
+		}
 		v.render(w, data)
 	}
 }
@@ -156,7 +175,7 @@ func getSignIn(l lister.Service) func(w http.ResponseWriter, r *http.Request, _ 
 	}
 }
 
-func postInitialSignup(a adder.Service) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func postUserAdd(a adder.Service) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		var u adder.User
 		if err := parseForm(r, &u); err != nil {
@@ -216,6 +235,23 @@ func getHome() func(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 		data := struct {
 			Title string
 		}{"Our Restaurant Tracker"}
+		v.render(w, data)
+	}
+}
+
+func getUserAdd() func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		w.Header().Set("Content-Type", "text/html")
+		v := newView("base", "../../web/template/create-user.html")
+		data := struct {
+			Title  string
+			Header string
+			Text   string
+		}{
+			"Add A New User",
+			"Add A New User",
+			"Add another user by adding the information below.",
+		}
 		v.render(w, data)
 	}
 }
