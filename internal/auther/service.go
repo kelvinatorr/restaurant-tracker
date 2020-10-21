@@ -19,6 +19,7 @@ type Service interface {
 	SignIn(UserSignIn) (string, error)
 	CheckJWT(string) error
 	generateJWT(string, string) (string, error)
+	GetCookiePayload(string) (UserJWT, error)
 }
 
 // Repository provides access to User repository.
@@ -84,11 +85,12 @@ func (s service) SignIn(u UserSignIn) (string, error) {
 // in the db for that user. If there is any problem an error is returned.
 func (s service) CheckJWT(jwt string) error {
 	var err error
-	// Split the string
-	jwtParts := strings.Split(jwt, ".")
-	if len(jwtParts) != 3 {
-		return fmt.Errorf("JWT has the wrong number of parts")
+
+	jwtParts, err := splitJWT(jwt)
+	if err != nil {
+		return err
 	}
+
 	header := jwtParts[0]
 	payload := jwtParts[1]
 	signature := jwtParts[2]
@@ -101,14 +103,10 @@ func (s service) CheckJWT(jwt string) error {
 		return fmt.Errorf("JWT has the wrong signature")
 	}
 
-	pB, err := base64.RawURLEncoding.DecodeString(payload)
+	var uJWT UserJWT
+	uJWT, err = decodeCookiePayload(payload)
 	if err != nil {
-		return fmt.Errorf("JWT payload had a base64 decoding error")
-	}
-	var uJWT userJWT
-	err = json.Unmarshal(pB, &uJWT)
-	if err != nil {
-		return fmt.Errorf("JWT has the wrong payload format")
+		return err
 	}
 	// Check the token is still valid
 	foundUser := s.r.GetUserAuthByEmail(strings.ToLower(uJWT.Email))
@@ -122,6 +120,22 @@ func (s service) CheckJWT(jwt string) error {
 	return err
 }
 
+func (s service) GetCookiePayload(jwt string) (UserJWT, error) {
+	var uJWT UserJWT
+
+	jwtParts, err := splitJWT(jwt)
+	if err != nil {
+		return uJWT, err
+	}
+
+	uJWT, err = decodeCookiePayload(jwtParts[1])
+	if err != nil {
+		return uJWT, err
+	}
+
+	return uJWT, nil
+}
+
 // HashPassword hashes a given password string using bcrypt with bcrypt DefaultCost
 func HashPassword(password string) (string, error) {
 	pwBytes := []byte(password)
@@ -131,6 +145,28 @@ func HashPassword(password string) (string, error) {
 		return "", err
 	}
 	return string(hashedBytes), nil
+}
+
+func decodeCookiePayload(payload string) (UserJWT, error) {
+	var uJWT UserJWT
+	pB, err := base64.RawURLEncoding.DecodeString(payload)
+	if err != nil {
+		return uJWT, fmt.Errorf("JWT payload had a base64 decoding error")
+	}
+	err = json.Unmarshal(pB, &uJWT)
+	if err != nil {
+		return uJWT, fmt.Errorf("JWT has the wrong payload format")
+	}
+	return uJWT, nil
+}
+
+func splitJWT(jwt string) ([]string, error) {
+	// Split the string
+	jwtParts := strings.Split(jwt, ".")
+	if len(jwtParts) != 3 {
+		return []string{}, fmt.Errorf("JWT has the wrong number of parts")
+	}
+	return jwtParts, nil
 }
 
 // generateJWT generates string tokens of rememberTokenBytes byte size
@@ -145,7 +181,7 @@ func (s service) generateJWT(email string, rememberToken string) (string, error)
 	h := base64.RawURLEncoding.EncodeToString(hB)
 
 	// make the payload
-	uJWTS := userJWT{Email: email, RememberToken: rememberToken}
+	uJWTS := UserJWT{Email: email, RememberToken: rememberToken}
 	uJWTB, err := json.Marshal(uJWTS)
 	if err != nil {
 		return "", err

@@ -11,7 +11,7 @@ type User struct {
 	RememberToken string
 }
 
-type userJWT struct {
+type UserJWT struct {
 	Email         string `json:"email"`
 	RememberToken string `json:"rememberToken"`
 }

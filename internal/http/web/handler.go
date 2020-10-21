@@ -2,10 +2,12 @@ package web
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/schema"
 	"github.com/julienschmidt/httprouter"
@@ -42,12 +44,18 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.HEAD("/", getHome())
 	authRequiredURLs["/"] = true
 
-	userAddPath := "/user/add"
+	userAddPath := "/users-add"
 	router.GET(userAddPath, getUserAdd())
 	router.HEAD(userAddPath, getUserAdd())
 	router.POST(userAddPath, postUserAdd(a))
 	dontLogBodyURLs[userAddPath] = true
 	authRequiredURLs[userAddPath] = true
+
+	userPath := "/users/:id"
+	router.GET(userPath, getUser(l, auth))
+	router.HEAD(userPath, getUser(l, auth))
+	router.POST(userPath, postUser())
+	authRequiredURLs[userPath] = true
 
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
@@ -255,5 +263,66 @@ func getUserAdd() func(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 			"Add another user by adding the information below.",
 		}
 		v.render(w, data)
+	}
+}
+
+func getUser(l lister.Service, auth auther.Service) func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		// get the route parameter
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid user ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		u := l.GetUserByID(int64(ID))
+		// Check that the user exists.
+		if u.ID == 0 {
+			http.Error(w, fmt.Sprintf("There is no user with id %s", p.ByName("id")), http.StatusBadRequest)
+			return
+		}
+
+		// Check that the signed in in user is not editing someone else.
+		// First get the cookie
+		rememberTokenCookie, err := r.Cookie("rt")
+		if err != nil {
+			log.Println(err.Error())
+			// Redirect to sign in page
+			http.Redirect(w, r, "/signin", http.StatusFound)
+			return
+		}
+		// Decode the payload (we already know it is valid because it was checked by the auth middleware)
+		signedInUser, err := auth.GetCookiePayload(rememberTokenCookie.Value)
+		if err != nil {
+			log.Println(err.Error())
+			http.Redirect(w, r, "/signin", http.StatusFound)
+			return
+		}
+		// Then compare that the email addresses are the same
+		if u.Email != signedInUser.Email {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		v := newView("base", "../../web/template/user.html")
+		data := struct {
+			Title  string
+			Header string
+			Text   string
+			User   lister.User
+		}{
+			fmt.Sprintf("Profile: %s %s", u.FirstName, u.LastName),
+			fmt.Sprintf("Profile: %s %s", u.FirstName, u.LastName),
+			"Edit your profile by changing the information below.",
+			u,
+		}
+		v.render(w, data)
+	}
+}
+
+func postUser() func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 }
