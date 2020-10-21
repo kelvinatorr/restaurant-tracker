@@ -26,15 +26,17 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 
 	authRequiredURLs := make(map[string]bool)
 
-	router.GET("/initial-signup", getInitialSignup(l))
-	router.HEAD("/initial-signup", getInitialSignup(l))
-	router.POST("/initial-signup", postUserAdd(a))
-	dontLogBodyURLs["/initial-signup"] = true
+	initialSignUpPath := "/initial-signup"
+	router.GET(initialSignUpPath, getInitialSignup(l))
+	router.HEAD(initialSignUpPath, getInitialSignup(l))
+	router.POST(initialSignUpPath, postUserAdd(a))
+	dontLogBodyURLs[initialSignUpPath] = true
 
-	router.GET("/signin", getSignIn(l))
-	router.HEAD("/signin", getSignIn(l))
-	router.POST("/signin", postSignIn(auth))
-	dontLogBodyURLs["/signin"] = true
+	signinPath := "/signin"
+	router.GET(signinPath, getSignIn(l))
+	router.HEAD(signinPath, getSignIn(l))
+	router.POST(signinPath, postSignIn(auth))
+	dontLogBodyURLs[signinPath] = true
 
 	router.GET("/", getHome())
 	router.HEAD("/", getHome())
