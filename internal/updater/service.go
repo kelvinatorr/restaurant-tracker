@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"time"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
@@ -15,6 +16,7 @@ import (
 type Service interface {
 	UpdateRestaurant(Restaurant) (int64, error)
 	UpdateVisit(Visit) (int64, error)
+	UpdateUser(User) (int64, error)
 }
 
 // Repository provides access to restaurant repository.
@@ -35,6 +37,8 @@ type Repository interface {
 	AddVisitUser(adder.VisitUser) int64
 	GetVisitUsersByVisitID(int64) []lister.VisitUser
 	RemoveVisitUser(int64) int64
+	GetUserBy(string, string) lister.User
+	UpdateUser(User) int64
 }
 
 type service struct {
@@ -173,6 +177,37 @@ func (s service) UpdateVisit(v Visit) (int64, error) {
 	s.r.Commit()
 
 	return visitRecordsAffected + visitUserRecordsAffected, nil
+}
+
+func (s service) UpdateUser(u User) (int64, error) {
+	// Check that all the properties have values
+	if u.FirstName == "" || u.LastName == "" {
+		return 0, errors.New("First name and last name are required")
+	}
+	if u.Email == "" {
+		return 0, errors.New("An email address is required")
+	}
+
+	// Check that the email is valid
+	// Good enough validation: https://www.regextester.com/99632
+	match, err := regexp.MatchString("[^@]+@[^\\.]+\\..+", u.Email)
+	if err != nil {
+		return 0, err
+	} else if !match {
+		return 0, errors.New("Invalid email address")
+	}
+	// Check that the email is not already in the database used by a different user
+	existingUser := s.r.GetUserBy("email", u.Email)
+	if existingUser.ID != 0 && existingUser.ID != u.ID {
+		return 0, errors.New("A user with this email address already exists")
+	}
+	s.r.Begin()
+	// Defer rollback just in case there is a problem.
+	defer s.r.Rollback()
+	// Update the user
+	recordsAffected := s.r.UpdateUser(u)
+	s.r.Commit()
+	return recordsAffected, nil
 }
 
 func checkRestaurantData(r Restaurant) error {

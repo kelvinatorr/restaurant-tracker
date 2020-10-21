@@ -52,9 +52,9 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	authRequiredURLs[userAddPath] = true
 
 	userPath := "/users/:id"
-	router.GET(userPath, getUser(l, auth))
-	router.HEAD(userPath, getUser(l, auth))
-	router.POST(userPath, postUser())
+	router.GET(userPath, handleUser(l, u, auth))
+	router.HEAD(userPath, handleUser(l, u, auth))
+	router.POST(userPath, handleUser(l, u, auth))
 	authRequiredURLs[userPath] = true
 
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
@@ -266,7 +266,7 @@ func getUserAdd() func(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 	}
 }
 
-func getUser(l lister.Service, auth auther.Service) func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func handleUser(l lister.Service, u updater.Service, auth auther.Service) func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		// get the route parameter
 		ID, err := strconv.Atoi(p.ByName("id"))
@@ -276,9 +276,9 @@ func getUser(l lister.Service, auth auther.Service) func(w http.ResponseWriter, 
 			return
 		}
 
-		u := l.GetUserByID(int64(ID))
+		user := l.GetUserByID(int64(ID))
 		// Check that the user exists.
-		if u.ID == 0 {
+		if user.ID == 0 {
 			http.Error(w, fmt.Sprintf("There is no user with id %s", p.ByName("id")), http.StatusBadRequest)
 			return
 		}
@@ -300,29 +300,53 @@ func getUser(l lister.Service, auth auther.Service) func(w http.ResponseWriter, 
 			return
 		}
 		// Then compare that the email addresses are the same
-		if u.Email != signedInUser.Email {
+		if user.Email != signedInUser.Email {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/html")
-		v := newView("base", "../../web/template/user.html")
-		data := struct {
-			Title  string
-			Header string
-			Text   string
-			User   lister.User
-		}{
-			fmt.Sprintf("Profile: %s %s", u.FirstName, u.LastName),
-			fmt.Sprintf("Profile: %s %s", u.FirstName, u.LastName),
-			"Edit your profile by changing the information below.",
-			u,
+		method := r.Method
+		if method == "GET" || method == "HEAD" {
+			getUser(w, r, user)
+		} else if method == "POST" {
+			putUser(w, r, user, u)
 		}
-		v.render(w, data)
 	}
 }
 
-func postUser() func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func getUser(w http.ResponseWriter, r *http.Request, user lister.User) {
+	w.Header().Set("Content-Type", "text/html")
+	v := newView("base", "../../web/template/user.html")
+	data := struct {
+		Title  string
+		Header string
+		Text   string
+		User   lister.User
+	}{
+		fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName),
+		fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName),
+		"Edit your profile by changing the information below.",
+		user,
 	}
+	v.render(w, data)
+}
+
+func putUser(w http.ResponseWriter, r *http.Request, user lister.User, u updater.Service) {
+	var userUpdate updater.User
+	if err := parseForm(r, &userUpdate); err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	userUpdate.ID = user.ID
+	recordsAffected, err := u.UpdateUser(userUpdate)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	log.Printf("Updated user with ID: %d. %d records affected\n", user.ID, recordsAffected)
+	// Redirect to homepage
+	http.Redirect(w, r, fmt.Sprintf("/users/%d", userUpdate.ID), http.StatusFound)
+
 }

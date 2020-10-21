@@ -734,6 +734,30 @@ func (s Storage) GetUserCount() int64 {
 	return userCount
 }
 
+// UpdateUser updates a given user, returns the rows affected. Caller must call Commit() to commit the transaction
+func (s Storage) UpdateUser(u updater.User) int64 {
+	sqlStatement := `
+		UPDATE
+			user
+		SET
+			first_name = $1,
+			last_name = $2,
+			email = $3
+		WHERE
+			id = $4
+	`
+	res, err := s.tx.Exec(sqlStatement,
+		u.FirstName,
+		u.LastName,
+		u.Email,
+		u.ID,
+	)
+	checkAndPanic(err)
+	rowsAffected, err := res.RowsAffected()
+	checkAndPanic(err)
+	return rowsAffected
+}
+
 // UpdateVisit updates a given visit, returns the rows affected. Caller must call Commit() to commit the
 // transaction
 func (s Storage) UpdateVisit(v updater.Visit) int64 {
