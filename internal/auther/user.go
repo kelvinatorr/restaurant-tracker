@@ -12,6 +12,6 @@ type User struct {
 }
 
 type UserJWT struct {
-	Email         string `json:"email"`
+	ID            int64  `json:"id"`
 	RememberToken string `json:"rememberToken"`
 }

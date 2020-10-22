@@ -300,7 +300,7 @@ func handleUser(l lister.Service, u updater.Service, auth auther.Service) func(w
 			return
 		}
 		// Then compare that the email addresses are the same
-		if user.Email != signedInUser.Email {
+		if user.ID != signedInUser.ID {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}

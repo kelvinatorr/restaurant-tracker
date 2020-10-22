@@ -715,6 +715,32 @@ func (s Storage) GetUserAuthByEmail(email string) auther.User {
 	return uh
 }
 
+// GetUserAuthByID returns the password and remember hashes of a given email. If the returned user has ID = 0 then it
+// is not in the db.
+func (s Storage) GetUserAuthByID(id int64) auther.User {
+	var uh auther.User
+	sqlStatement := `
+		SELECT
+			id,
+			password_hash,
+			COALESCE(remember_token, "")
+		FROM
+			user
+		WHERE
+			id = $1
+	`
+	row := s.db.QueryRow(sqlStatement, id)
+	err := row.Scan(
+		&uh.ID,
+		&uh.PasswordHash,
+		&uh.RememberToken,
+	)
+	if err != sql.ErrNoRows {
+		checkAndPanic(err)
+	}
+	return uh
+}
+
 // GetUserCount returns the number of users in the db.
 func (s Storage) GetUserCount() int64 {
 	var userCount int64

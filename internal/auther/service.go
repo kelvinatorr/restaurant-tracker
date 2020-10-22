@@ -18,7 +18,6 @@ import (
 type Service interface {
 	SignIn(UserSignIn) (string, error)
 	CheckJWT(string) error
-	generateJWT(string, string) (string, error)
 	GetCookiePayload(string) (UserJWT, error)
 }
 
@@ -28,6 +27,7 @@ type Repository interface {
 	Commit()
 	Rollback()
 	GetUserAuthByEmail(string) User
+	GetUserAuthByID(int64) User
 	UpdateUserRememberToken(User) int64
 }
 
@@ -75,7 +75,7 @@ func (s service) SignIn(u UserSignIn) (string, error) {
 	}
 
 	// Generate new jwt
-	jwt, err := s.generateJWT(u.Email, foundUser.RememberToken)
+	jwt, err := s.generateJWT(foundUser.ID, foundUser.RememberToken)
 
 	// Return the jwt
 	return jwt, err
@@ -109,7 +109,7 @@ func (s service) CheckJWT(jwt string) error {
 		return err
 	}
 	// Check the token is still valid
-	foundUser := s.r.GetUserAuthByEmail(strings.ToLower(uJWT.Email))
+	foundUser := s.r.GetUserAuthByID(uJWT.ID)
 	if foundUser.ID == 0 {
 		return fmt.Errorf("JWT has a non-existent user")
 	}
@@ -170,7 +170,7 @@ func splitJWT(jwt string) ([]string, error) {
 }
 
 // generateJWT generates string tokens of rememberTokenBytes byte size
-func (s service) generateJWT(email string, rememberToken string) (string, error) {
+func (s service) generateJWT(id int64, rememberToken string) (string, error) {
 	// Make the header
 	hS := header{Alg: "HS256", Typ: "JWT"}
 	hB, err := json.Marshal(hS)
@@ -181,7 +181,7 @@ func (s service) generateJWT(email string, rememberToken string) (string, error)
 	h := base64.RawURLEncoding.EncodeToString(hB)
 
 	// make the payload
-	uJWTS := UserJWT{Email: email, RememberToken: rememberToken}
+	uJWTS := UserJWT{ID: id, RememberToken: rememberToken}
 	uJWTB, err := json.Marshal(uJWTS)
 	if err != nil {
 		return "", err
