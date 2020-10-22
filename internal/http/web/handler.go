@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +19,13 @@ import (
 	"github.com/kelvinatorr/restaurant-tracker/internal/updater"
 )
 
+// Used for storing user data in the http Request Context
+type contextKey int
+
+const (
+	contextKeyUser contextKey = iota
+)
+
 // Handler sets the httprouter routes for the web package
 func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Service, auth auther.Service, verbose bool) http.Handler {
 
@@ -25,8 +33,6 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 
 	// Initialize a map of endpoints whose body should not be logged out because it might contain passwords
 	dontLogBodyURLs := make(map[string]bool)
-
-	authRequiredURLs := make(map[string]bool)
 
 	initialSignUpPath := "/initial-signup"
 	router.GET(initialSignUpPath, getInitialSignup(l))
@@ -40,22 +46,25 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.POST(signinPath, postSignIn(auth))
 	dontLogBodyURLs[signinPath] = true
 
-	router.GET("/", getHome())
-	router.HEAD("/", getHome())
-	authRequiredURLs["/"] = true
+	homePath := "/"
+	homeGETHandler := authRequired(getHome(), auth)
+	router.GET(homePath, homeGETHandler)
+	router.HEAD(homePath, homeGETHandler)
 
 	userAddPath := "/users-add"
-	router.GET(userAddPath, getUserAdd())
-	router.HEAD(userAddPath, getUserAdd())
-	router.POST(userAddPath, postUserAdd(a))
+	userAddGETHandler := authRequired(getUserAdd(), auth)
+	userAddPOSTHandler := authRequired(postUserAdd(a), auth)
+	router.GET(userAddPath, userAddGETHandler)
+	router.HEAD(userAddPath, userAddGETHandler)
+	router.POST(userAddPath, userAddPOSTHandler)
 	dontLogBodyURLs[userAddPath] = true
-	authRequiredURLs[userAddPath] = true
 
 	userPath := "/users/:id"
-	router.GET(userPath, handleUser(l, u, auth))
-	router.HEAD(userPath, handleUser(l, u, auth))
-	router.POST(userPath, handleUser(l, u, auth))
-	authRequiredURLs[userPath] = true
+	userGETHandler := authRequired(checkUser(getUser(), l, u, auth), auth)
+	userPOSTHandler := authRequired(checkUser(postUser(u), l, u, auth), auth)
+	router.GET(userPath, userGETHandler)
+	router.HEAD(userPath, userGETHandler)
+	router.POST(userPath, userPOSTHandler)
 
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
@@ -64,10 +73,10 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 
 	// Add verbose output
 	var h http.Handler
-	h = authRequired(router, auth, authRequiredURLs)
+	// h = authRequired(router, auth, authRequiredURLs)
 	if verbose {
 		// Wrap handler with verbose logger
-		h = verboseLogger(h, dontLogBodyURLs)
+		h = verboseLogger(router, dontLogBodyURLs)
 	} else {
 		// Just do the handler
 		h = router
@@ -107,31 +116,27 @@ func verboseLogger(handler http.Handler, dontLogBodyURLs map[string]bool) http.H
 	})
 }
 
-func authRequired(handler http.Handler, a auther.Service, dontLogBodyURLs map[string]bool) http.Handler {
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if _, check := dontLogBodyURLs[r.URL.String()]; check {
-			log.Println("Checking rt cookie")
-			rememberTokenCookie, err := r.Cookie("rt")
-			if err != nil {
-				log.Println(err.Error())
-				// Redirect to sign in page
-				http.Redirect(w, r, "/signin", http.StatusFound)
-				return
-			}
-			// Check cookie and redirect to sign in page if err
-			err = a.CheckJWT(rememberTokenCookie.Value)
-			if err != nil {
-				log.Println(err.Error())
-				// Redirect to sign in page
-				http.Redirect(w, r, "/signin", http.StatusFound)
-				return
-			}
+func authRequired(handler httprouter.Handle, auth auther.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		log.Println("Checking rt cookie")
+		rememberTokenCookie, err := r.Cookie("rt")
+		if err != nil {
+			log.Println(err.Error())
+			// Redirect to sign in page
+			http.Redirect(w, r, "/signin", http.StatusFound)
+			return
 		}
-
-		// Call next handler
-		handler.ServeHTTP(w, r)
-	})
+		// Check cookie and redirect to sign in page if err
+		err = auth.CheckJWT(rememberTokenCookie.Value)
+		if err != nil {
+			log.Println(err.Error())
+			// Redirect to sign in page
+			http.Redirect(w, r, "/signin", http.StatusFound)
+			return
+		}
+		// Call the next httprouter.Handle
+		handler(w, r, p)
+	}
 }
 
 func parseForm(r *http.Request, dest interface{}) error {
@@ -237,7 +242,7 @@ func postSignIn(a auther.Service) func(w http.ResponseWriter, r *http.Request, _
 	}
 }
 
-func getHome() func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func getHome() httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		w.Header().Set("Content-Type", "text/html")
 		v := newView("base", "../../web/template/index.html")
@@ -266,7 +271,7 @@ func getUserAdd() func(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 	}
 }
 
-func handleUser(l lister.Service, u updater.Service, auth auther.Service) func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func checkUser(handler httprouter.Handle, l lister.Service, u updater.Service, auth auther.Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		// get the route parameter
 		ID, err := strconv.Atoi(p.ByName("id"))
@@ -299,54 +304,77 @@ func handleUser(l lister.Service, u updater.Service, auth auther.Service) func(w
 			http.Redirect(w, r, "/signin", http.StatusFound)
 			return
 		}
-		// Then compare that the email addresses are the same
+		// Then compare that the ids are the same
 		if user.ID != signedInUser.ID {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		method := r.Method
-		if method == "GET" || method == "HEAD" {
-			getUser(w, r, user)
-		} else if method == "POST" {
-			putUser(w, r, user, u)
+		// Save the user to the context
+		ctx := r.Context()
+
+		ctx = context.WithValue(ctx, contextKeyUser, user)
+		// Get new http.Request with the new context
+		r = r.WithContext(ctx)
+
+		// Call the next httprouter.Handle
+		handler(w, r, p)
+	}
+}
+
+func getUser() httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		// Get the user from the context
+		user, ok := r.Context().Value(contextKeyUser).(lister.User)
+		if !ok {
+			log.Println("user is not type lister.User")
+			http.Error(w, "A server error occurred", http.StatusInternalServerError)
+			return
 		}
+
+		w.Header().Set("Content-Type", "text/html")
+		v := newView("base", "../../web/template/user.html")
+		data := struct {
+			Title  string
+			Header string
+			Text   string
+			User   lister.User
+		}{
+			fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName),
+			fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName),
+			"Edit your profile by changing the information below.",
+			user,
+		}
+		v.render(w, data)
 	}
 }
 
-func getUser(w http.ResponseWriter, r *http.Request, user lister.User) {
-	w.Header().Set("Content-Type", "text/html")
-	v := newView("base", "../../web/template/user.html")
-	data := struct {
-		Title  string
-		Header string
-		Text   string
-		User   lister.User
-	}{
-		fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName),
-		fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName),
-		"Edit your profile by changing the information below.",
-		user,
-	}
-	v.render(w, data)
-}
+func postUser(u updater.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		// Get the user from the context
+		user, ok := r.Context().Value(contextKeyUser).(lister.User)
+		if !ok {
+			log.Println("user is not type lister.User")
+			http.Error(w, "A server error occurred", http.StatusInternalServerError)
+			return
+		}
 
-func putUser(w http.ResponseWriter, r *http.Request, user lister.User, u updater.Service) {
-	var userUpdate updater.User
-	if err := parseForm(r, &userUpdate); err != nil {
-		log.Println(err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		var userUpdate updater.User
+		if err := parseForm(r, &userUpdate); err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		userUpdate.ID = user.ID
+		recordsAffected, err := u.UpdateUser(userUpdate)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		log.Printf("Updated user with ID: %d. %d records affected\n", user.ID, recordsAffected)
+		// Redirect to homepage
+		http.Redirect(w, r, fmt.Sprintf("/users/%d", userUpdate.ID), http.StatusFound)
 	}
-	userUpdate.ID = user.ID
-	recordsAffected, err := u.UpdateUser(userUpdate)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	log.Printf("Updated user with ID: %d. %d records affected\n", user.ID, recordsAffected)
-	// Redirect to homepage
-	http.Redirect(w, r, fmt.Sprintf("/users/%d", userUpdate.ID), http.StatusFound)
 
 }
