@@ -50,9 +50,8 @@ func (s service) SignIn(u UserSignIn) (string, error) {
 	}
 
 	// Check the password
-	if err = bcrypt.CompareHashAndPassword([]byte(foundUser.PasswordHash), []byte(u.Password)); err != nil {
-		// Don't return too much detail about the error.
-		err = fmt.Errorf("Incorrect password")
+	err = CheckPassword(foundUser.PasswordHash, u.Password)
+	if err != nil {
 		return "", err
 	}
 
