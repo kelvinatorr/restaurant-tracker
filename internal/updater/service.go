@@ -246,7 +246,6 @@ func (s service) UpdateUserPassword(u auther.UserChangePassword) (int64, error) 
 	if err != nil {
 		return 0, err
 	}
-	log.Println(passwordHash)
 
 	// Clear password so it isn't inadvertently logged
 	u.NewPassword = ""
