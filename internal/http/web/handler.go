@@ -75,6 +75,10 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.POST(changePasswordPath, changePasswordPOSTHandler)
 	dontLogBodyURLs[changePasswordPath] = true
 
+	signOutPath := "/sign-out"
+	signOutPOSTHandler := postSignOut()
+	router.POST(signOutPath, signOutPOSTHandler)
+
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
 		http.Error(w, "The server encountered an error processing your request.", http.StatusInternalServerError)
@@ -392,7 +396,7 @@ func postUser(u updater.Service) httprouter.Handle {
 			return
 		}
 		log.Printf("Updated user with ID: %d. %d records affected\n", user.ID, recordsAffected)
-		// Redirect to homepage
+		// Redirect to the same page
 		http.Redirect(w, r, fmt.Sprintf("/users/%d", userUpdate.ID), http.StatusFound)
 	}
 
@@ -441,7 +445,23 @@ func postChangePassword(u updater.Service) httprouter.Handle {
 			return
 		}
 		log.Printf("Updated password for user with ID: %d. %d records affected\n", user.ID, recordsAffected)
-		// Redirect to homepage
+		// Redirect to the same page
 		http.Redirect(w, r, fmt.Sprintf("/users/%d/change-password", uCP.ID), http.StatusFound)
+	}
+}
+
+func postSignOut() httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		// Remove their cookie value
+		cookie := http.Cookie{
+			Name:     "rt",
+			Value:    "",
+			HttpOnly: true,
+			MaxAge:   -1, // Expire immediately
+			SameSite: http.SameSiteLaxMode,
+		}
+
+		http.SetCookie(w, &cookie)
+		http.Redirect(w, r, "/signin", http.StatusFound)
 	}
 }
