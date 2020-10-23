@@ -66,6 +66,14 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.HEAD(userPath, userGETHandler)
 	router.POST(userPath, userPOSTHandler)
 
+	changePasswordPath := "/users/:id/change-password"
+	changePasswordGETHandler := authRequired(checkUser(getChangePassword(), l, u, auth), auth)
+	changePasswordPOSTHandler := authRequired(checkUser(postChangePassword(u), l, u, auth), auth)
+	router.GET(changePasswordPath, changePasswordGETHandler)
+	router.HEAD(changePasswordPath, changePasswordGETHandler)
+	router.POST(changePasswordPath, changePasswordPOSTHandler)
+	dontLogBodyURLs[changePasswordPath] = true
+
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
 		http.Error(w, "The server encountered an error processing your request.", http.StatusInternalServerError)
@@ -377,4 +385,52 @@ func postUser(u updater.Service) httprouter.Handle {
 		http.Redirect(w, r, fmt.Sprintf("/users/%d", userUpdate.ID), http.StatusFound)
 	}
 
+}
+
+func getChangePassword() httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+
+		w.Header().Set("Content-Type", "text/html")
+		v := newView("base", "../../web/template/change-password.html")
+		data := struct {
+			Title  string
+			Header string
+			Text   string
+		}{
+			"Change Password",
+			"Change Password",
+			"Change your password by entering your current password and new password below.",
+		}
+		v.render(w, data)
+	}
+}
+
+func postChangePassword(u updater.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		user, ok := r.Context().Value(contextKeyUser).(lister.User)
+		if !ok {
+			log.Println("user is not type lister.User")
+			http.Error(w, "A server error occurred", http.StatusInternalServerError)
+			return
+		}
+
+		var uCP auther.UserChangePassword
+		if err := parseForm(r, &uCP); err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		uCP.ID = user.ID
+
+		recordsAffected, err := u.UpdateUserPassword(uCP)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		log.Printf("Updated password for user with ID: %d. %d records affected\n", user.ID, recordsAffected)
+		// Redirect to homepage
+		http.Redirect(w, r, fmt.Sprintf("/users/%d/change-password", uCP.ID), http.StatusFound)
+	}
 }

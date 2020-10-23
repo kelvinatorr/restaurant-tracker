@@ -784,6 +784,27 @@ func (s Storage) UpdateUser(u updater.User) int64 {
 	return rowsAffected
 }
 
+// UpdateUserPassword updates the password of the user with the given id. Caller must call Commit() to commit the
+// transaction
+func (s Storage) UpdateUserPassword(id int64, newPasswordHash string) int64 {
+	sqlStatement := `
+		UPDATE
+			user
+		SET
+			password_hash = $1
+		WHERE
+			id = $2
+	`
+	res, err := s.tx.Exec(sqlStatement,
+		newPasswordHash,
+		id,
+	)
+	checkAndPanic(err)
+	rowsAffected, err := res.RowsAffected()
+	checkAndPanic(err)
+	return rowsAffected
+}
+
 // UpdateVisit updates a given visit, returns the rows affected. Caller must call Commit() to commit the
 // transaction
 func (s Storage) UpdateVisit(v updater.Visit) int64 {

@@ -15,3 +15,10 @@ type UserJWT struct {
 	ID            int64  `json:"id"`
 	RememberToken string `json:"rememberToken"`
 }
+
+type UserChangePassword struct {
+	ID int64
+	CurrentPassword string `schema:"currentPassword,required"`
+	NewPassword string `schema:"newPassword,required"`
+	RepeatNewPassword string `schema:"repeatNewPassword,required"`
+}

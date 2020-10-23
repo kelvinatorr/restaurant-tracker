@@ -136,6 +136,18 @@ func (s service) GetCookiePayload(jwt string) (UserJWT, error) {
 	return uJWT, nil
 }
 
+func CheckPassword(passwordHash string, submittedPassword string) error {
+	var err error
+
+	// Check the password
+	if err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(submittedPassword)); err != nil {
+		// Don't return too much detail about the error.
+		err = fmt.Errorf("Incorrect password")
+		return err
+	}
+	return nil
+}
+
 // HashPassword hashes a given password string using bcrypt with bcrypt DefaultCost
 func HashPassword(password string) (string, error) {
 	pwBytes := []byte(password)
