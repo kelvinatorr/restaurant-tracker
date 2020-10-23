@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/gorilla/schema"
@@ -96,27 +97,37 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 func verboseLogger(handler http.Handler, dontLogBodyURLs map[string]bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Received %s with URL: %s\n", r.Method, r.URL)
-		if _, check := dontLogBodyURLs[r.URL.String()]; (r.Method == "PUT" || r.Method == "POST") && !check {
-			log.Printf("With body:")
-			var body []byte
-			buf := make([]byte, 1024)
-			for {
-				bytesRead, err := r.Body.Read(buf)
+		if r.Method == "PUT" || r.Method == "POST" {
+			urlPath := r.URL.String()
+			if _, check := dontLogBodyURLs[urlPath]; !check {
+				// Don't log out the change-password path.
+				// TODO: Use dontLogBodyURLs and loop regex instead of a map, but this is good enough for now.
+				match, err := regexp.MatchString("/users/\\d/change-password", urlPath)
+				if !match {
+					log.Printf("With body:")
+					var body []byte
+					buf := make([]byte, 1024)
+					for {
+						bytesRead, err := r.Body.Read(buf)
 
-				body = append(body, buf[:bytesRead]...)
-				if err != nil && err != io.EOF {
+						body = append(body, buf[:bytesRead]...)
+						if err != nil && err != io.EOF {
+							log.Println(err)
+							break
+						}
+
+						log.Printf(string(buf[:bytesRead]))
+
+						if err == io.EOF {
+							break
+						}
+					}
+					// Set a new body, which will simulate the same data we read:
+					r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+				} else if err != nil {
 					log.Println(err)
-					break
-				}
-
-				log.Printf(string(buf[:bytesRead]))
-
-				if err == io.EOF {
-					break
 				}
 			}
-			// Set a new body, which will simulate the same data we read:
-			r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 		}
 
 		// Call next handler
