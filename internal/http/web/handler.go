@@ -41,11 +41,11 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.POST(initialSignUpPath, postUserAdd(a))
 	dontLogBodyURLs[initialSignUpPath] = true
 
-	signinPath := "/signin"
-	router.GET(signinPath, getSignIn(l))
-	router.HEAD(signinPath, getSignIn(l))
-	router.POST(signinPath, postSignIn(auth))
-	dontLogBodyURLs[signinPath] = true
+	signInPath := "/sign-in"
+	router.GET(signInPath, getSignIn(l))
+	router.HEAD(signInPath, getSignIn(l))
+	router.POST(signInPath, postSignIn(auth))
+	dontLogBodyURLs[signInPath] = true
 
 	homePath := "/"
 	homeGETHandler := authRequired(getHome(), auth)
@@ -146,7 +146,7 @@ func authRequired(handler httprouter.Handle, auth auther.Service) httprouter.Han
 		if err != nil {
 			log.Println(err.Error())
 			// Redirect to sign in page
-			http.Redirect(w, r, "/signin", http.StatusFound)
+			http.Redirect(w, r, "/sign-in", http.StatusFound)
 			return
 		}
 		// Check cookie and redirect to sign in page if err
@@ -154,7 +154,7 @@ func authRequired(handler httprouter.Handle, auth auther.Service) httprouter.Han
 		if err != nil {
 			log.Println(err.Error())
 			// Redirect to sign in page
-			http.Redirect(w, r, "/signin", http.StatusFound)
+			http.Redirect(w, r, "/sign-in", http.StatusFound)
 			return
 		}
 		// Call the next httprouter.Handle
@@ -205,7 +205,7 @@ func getSignIn(l lister.Service) func(w http.ResponseWriter, r *http.Request, _ 
 			return
 		}
 		w.Header().Set("Content-Type", "text/html")
-		v := newView("base", "../../web/template/signin.html")
+		v := newView("base", "../../web/template/sign-in.html")
 		data := struct {
 			Title string
 		}{"Sign In"}
@@ -317,14 +317,14 @@ func checkUser(handler httprouter.Handle, l lister.Service, u updater.Service, a
 		if err != nil {
 			log.Println(err.Error())
 			// Redirect to sign in page
-			http.Redirect(w, r, "/signin", http.StatusFound)
+			http.Redirect(w, r, "/sign-in", http.StatusFound)
 			return
 		}
 		// Decode the payload (we already know it is valid because it was checked by the auth middleware)
 		signedInUser, err := auth.GetCookiePayload(rememberTokenCookie.Value)
 		if err != nil {
 			log.Println(err.Error())
-			http.Redirect(w, r, "/signin", http.StatusFound)
+			http.Redirect(w, r, "/sign-in", http.StatusFound)
 			return
 		}
 		// Then compare that the ids are the same
@@ -462,6 +462,6 @@ func postSignOut() httprouter.Handle {
 		}
 
 		http.SetCookie(w, &cookie)
-		http.Redirect(w, r, "/signin", http.StatusFound)
+		http.Redirect(w, r, "/sign-in", http.StatusFound)
 	}
 }
