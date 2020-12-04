@@ -181,16 +181,21 @@ func getInitialSignup(l lister.Service) func(w http.ResponseWriter, r *http.Requ
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
-		w.Header().Set("Content-Type", "text/html")
 		v := newView("base", "../../web/template/create-user.html")
-		data := struct {
-			Title  string
-			Header string
-			Text   string
+		data := Data{}
+		data.Head = Head{"Initial Signup"}
+		data.Yield = struct {
+			Header    string
+			Text      string
+			FirstName string
+			LastName  string
+			Email     string
 		}{
 			"Initial Signup",
-			"Initial Signup",
 			"Create your first user by entering an email address and password below.",
+			"",
+			"",
+			"",
 		}
 		v.render(w, data)
 	}
@@ -214,15 +219,36 @@ func getSignIn(l lister.Service) func(w http.ResponseWriter, r *http.Request, _ 
 func postUserAdd(a adder.Service) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		var u adder.User
+
+		data := Data{}
+		data.Head = Head{Title: "Initial Signup"}
+		v := newView("base", "../../web/template/create-user.html")
+
 		if err := parseForm(r, &u); err != nil {
 			log.Println(err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			data.Alert = Alert{Message: AlertErrorMsgGeneric}
+			v.render(w, data)
 			return
 		}
 		newUserID, err := a.AddUser(u)
 		if err != nil {
 			log.Println(err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			data.Alert = Alert{Message: err.Error()}
+			// Add the data that was submitted for convenience
+			data.Yield = struct {
+				Header    string
+				Text      string
+				FirstName string
+				LastName  string
+				Email     string
+			}{
+				"Initial Signup",
+				"Create your first user by entering an email address and password below.",
+				u.FirstName,
+				u.LastName,
+				u.Email,
+			}
+			v.render(w, data)
 			return
 		}
 		log.Printf("New user created with ID: %d\n", newUserID)
