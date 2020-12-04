@@ -206,7 +206,7 @@ func getSignIn(l lister.Service) func(w http.ResponseWriter, r *http.Request, _ 
 		}
 		v := newView("base", "../../web/template/sign-in.html")
 		data := Data{}
-		data.Header = Header{Title: "Sign In"}
+		data.Head = Head{Title: "Sign In"}
 		v.render(w, data)
 	}
 }
@@ -235,18 +235,18 @@ func postSignIn(a auther.Service) func(w http.ResponseWriter, r *http.Request, _
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		var u auther.UserSignIn
 		data := Data{}
-		data.Header = Header{Title: "Sign In"}
+		data.Head = Head{Title: "Sign In"}
 
 		if err := parseForm(r, &u); err != nil {
 			log.Println(err)
-			data.Alert = &Alert{Message: AlertErrorMsgGeneric}
+			data.Alert = Alert{Message: AlertErrorMsgGeneric}
 			return
 		}
 		jwt, err := a.SignIn(u)
 		if err != nil {
 			log.Println(err)
 			v := newView("base", "../../web/template/sign-in.html")
-			data.Alert = &Alert{Message: err.Error()}
+			data.Alert = Alert{Message: err.Error()}
 			// Add the email that was submitted for convenience
 			data.Yield = struct{ Email string }{u.Email}
 			v.render(w, data)
@@ -275,9 +275,8 @@ func getHome() httprouter.Handle {
 		w.Header().Set("Content-Type", "text/html")
 		v := newView("base", "../../web/template/index.html")
 		// TODO: Pull in Site Name from the database.
-		data := struct {
-			Title string
-		}{"Our Restaurant Tracker"}
+		data := Data{}
+		data.Head = Head{"Our Restaurant Tracker"}
 		v.render(w, data)
 	}
 }

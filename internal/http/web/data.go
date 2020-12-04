@@ -8,13 +8,13 @@ const (
 
 // Data is structure that views expect data to be in
 type Data struct {
-	Header Header
-	Alert  *Alert
-	Yield  interface{}
+	Head
+	Alert Alert
+	Yield interface{}
 }
 
-// Header is the structure for the header part of the templates
-type Header struct {
+// Head is the structure for the header part of the templates
+type Head struct {
 	Title string
 }
 
