@@ -204,11 +204,9 @@ func getSignIn(l lister.Service) func(w http.ResponseWriter, r *http.Request, _ 
 			http.Redirect(w, r, "/initial-signup", http.StatusFound)
 			return
 		}
-		w.Header().Set("Content-Type", "text/html")
 		v := newView("base", "../../web/template/sign-in.html")
-		data := struct {
-			Title string
-		}{"Sign In"}
+		data := Data{}
+		data.Header = Header{Title: "Sign In"}
 		v.render(w, data)
 	}
 }
@@ -236,15 +234,22 @@ func postUserAdd(a adder.Service) func(w http.ResponseWriter, r *http.Request, _
 func postSignIn(a auther.Service) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		var u auther.UserSignIn
+		data := Data{}
+		data.Header = Header{Title: "Sign In"}
+
 		if err := parseForm(r, &u); err != nil {
 			log.Println(err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			data.Alert = &Alert{Message: AlertErrorMsgGeneric}
 			return
 		}
 		jwt, err := a.SignIn(u)
 		if err != nil {
 			log.Println(err)
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			v := newView("base", "../../web/template/sign-in.html")
+			data.Alert = &Alert{Message: err.Error()}
+			// Add the email that was submitted for convenience
+			data.Yield = struct{ Email string }{u.Email}
+			v.render(w, data)
 			return
 		}
 
