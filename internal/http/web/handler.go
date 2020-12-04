@@ -260,18 +260,20 @@ func postUserAdd(a adder.Service) func(w http.ResponseWriter, r *http.Request, _
 func postSignIn(a auther.Service) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		var u auther.UserSignIn
+
 		data := Data{}
 		data.Head = Head{Title: "Sign In"}
+		v := newView("base", "../../web/template/sign-in.html")
 
 		if err := parseForm(r, &u); err != nil {
 			log.Println(err)
 			data.Alert = Alert{Message: AlertErrorMsgGeneric}
+			v.render(w, data)
 			return
 		}
 		jwt, err := a.SignIn(u)
 		if err != nil {
 			log.Println(err)
-			v := newView("base", "../../web/template/sign-in.html")
 			data.Alert = Alert{Message: err.Error()}
 			// Add the email that was submitted for convenience
 			data.Yield = struct{ Email string }{u.Email}
