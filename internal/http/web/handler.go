@@ -311,16 +311,21 @@ func getHome() httprouter.Handle {
 
 func getUserAdd() func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		w.Header().Set("Content-Type", "text/html")
 		v := newView("base", "../../web/template/create-user.html")
-		data := struct {
-			Title  string
-			Header string
-			Text   string
+		data := Data{}
+		data.Head = Head{"Add A New User"}
+		data.Yield = struct {
+			Header    string
+			Text      string
+			FirstName string
+			LastName  string
+			Email     string
 		}{
 			"Add A New User",
-			"Add A New User",
 			"Add another user by adding the information below.",
+			"",
+			"",
+			"",
 		}
 		v.render(w, data)
 	}
