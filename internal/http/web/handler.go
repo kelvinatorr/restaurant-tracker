@@ -38,7 +38,8 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	initialSignUpPath := "/initial-signup"
 	router.GET(initialSignUpPath, getInitialSignup(l))
 	router.HEAD(initialSignUpPath, getInitialSignup(l))
-	router.POST(initialSignUpPath, postUserAdd(a))
+	router.POST(initialSignUpPath, postUserAdd(a, "Initial Signup",
+		"Create your first user by entering an email address and password below."))
 	dontLogBodyURLs[initialSignUpPath] = true
 
 	signInPath := "/sign-in"
@@ -54,7 +55,8 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 
 	userAddPath := "/users-add"
 	userAddGETHandler := authRequired(getUserAdd(), auth)
-	userAddPOSTHandler := authRequired(postUserAdd(a), auth)
+	userAddPOSTHandler := authRequired(postUserAdd(a, "Add A New User",
+		"Add another user by adding the information below."), auth)
 	router.GET(userAddPath, userAddGETHandler)
 	router.HEAD(userAddPath, userAddGETHandler)
 	router.POST(userAddPath, userAddPOSTHandler)
@@ -216,12 +218,12 @@ func getSignIn(l lister.Service) func(w http.ResponseWriter, r *http.Request, _ 
 	}
 }
 
-func postUserAdd(a adder.Service) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func postUserAdd(a adder.Service, header string, text string) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		var u adder.User
 
 		data := Data{}
-		data.Head = Head{Title: "Initial Signup"}
+		data.Head = Head{Title: header}
 		v := newView("base", "../../web/template/create-user.html")
 
 		if err := parseForm(r, &u); err != nil {
@@ -242,8 +244,8 @@ func postUserAdd(a adder.Service) func(w http.ResponseWriter, r *http.Request, _
 				LastName  string
 				Email     string
 			}{
-				"Initial Signup",
-				"Create your first user by entering an email address and password below.",
+				header,
+				text,
 				u.FirstName,
 				u.LastName,
 				u.Email,
