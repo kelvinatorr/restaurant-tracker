@@ -228,8 +228,7 @@ func postUserAdd(a adder.Service, header string, text string) func(w http.Respon
 
 		if err := parseForm(r, &u); err != nil {
 			log.Println(err)
-			data.Alert = Alert{Message: AlertErrorMsgGeneric}
-			v.render(w, data)
+			http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
 			return
 		}
 		newUserID, err := a.AddUser(u)
@@ -269,8 +268,7 @@ func postSignIn(a auther.Service) func(w http.ResponseWriter, r *http.Request, _
 
 		if err := parseForm(r, &u); err != nil {
 			log.Println(err)
-			data.Alert = Alert{Message: AlertErrorMsgGeneric}
-			v.render(w, data)
+			http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
 			return
 		}
 		jwt, err := a.SignIn(u)
