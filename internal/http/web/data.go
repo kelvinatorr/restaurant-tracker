@@ -1,11 +1,5 @@
 package web
 
-const (
-	// AlertErrorMsgGeneric is displayed when any random error
-	// is encountered by our backend.
-	AlertErrorMsgGeneric = "Sorry; something went wrong."
-)
-
 // Data is structure that views expect data to be in
 type Data struct {
 	Head

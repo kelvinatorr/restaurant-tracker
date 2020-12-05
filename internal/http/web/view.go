@@ -5,6 +5,13 @@ import (
 	"net/http"
 )
 
+const (
+	// AlertErrorMsgGeneric is displayed when any random error
+	// is encountered by our backend.
+	AlertErrorMsgGeneric = "Sorry; something went wrong."
+	AlertFormParseErrorGeneric = "Sorry; there was a problem parsing your form."
+)
+
 func newView(layout string, files ...string) *view {
 	commonFiles := []string{"../../web/template/common/base.html", "../../web/template/alert.html"}
 	files = append(files, commonFiles...)

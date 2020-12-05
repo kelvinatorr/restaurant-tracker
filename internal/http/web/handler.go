@@ -392,19 +392,20 @@ func getUser() httprouter.Handle {
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/html")
 		v := newView("base", "../../web/template/user.html")
-		data := struct {
-			Title  string
+
+		data := Data{}
+		data.Head = Head{fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName)}
+		data.Yield = struct {
 			Header string
 			Text   string
 			User   lister.User
 		}{
 			fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName),
-			fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName),
 			"Edit your profile by changing the information below.",
 			user,
 		}
+
 		v.render(w, data)
 	}
 }
@@ -415,25 +416,40 @@ func postUser(u updater.Service) httprouter.Handle {
 		user, ok := r.Context().Value(contextKeyUser).(lister.User)
 		if !ok {
 			log.Println("user is not type lister.User")
-			http.Error(w, "A server error occurred", http.StatusInternalServerError)
+			http.Error(w, AlertErrorMsgGeneric, http.StatusInternalServerError)
 			return
 		}
 
 		var userUpdate updater.User
 		if err := parseForm(r, &userUpdate); err != nil {
 			log.Println(err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
 			return
 		}
 		userUpdate.ID = user.ID
 		recordsAffected, err := u.UpdateUser(userUpdate)
 		if err != nil {
 			log.Println(err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			v := newView("base", "../../web/template/user.html")
+			data := Data{}
+			data.Head = Head{fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName)}
+			// Show the user the error.
+			data.Alert = Alert{err.Error()}
+			// Fill in the form again for convenience
+			data.Yield = struct {
+				Header string
+				Text   string
+				User   updater.User
+			}{
+				fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName),
+				"Edit your profile by changing the information below.",
+				userUpdate,
+			}
+			v.render(w, data)
 			return
 		}
 		log.Printf("Updated user with ID: %d. %d records affected\n", user.ID, recordsAffected)
-		// Redirect to the same page
+		// Redirect to the same page which will show the changed values.
 		http.Redirect(w, r, fmt.Sprintf("/users/%d", userUpdate.ID), http.StatusFound)
 	}
 
