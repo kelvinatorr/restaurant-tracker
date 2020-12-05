@@ -458,15 +458,15 @@ func postUser(u updater.Service) httprouter.Handle {
 func getChangePassword() httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
-		w.Header().Set("Content-Type", "text/html")
 		v := newView("base", "../../web/template/change-password.html")
-		data := struct {
-			Title  string
+
+		data := Data{}
+		data.Head = Head{"Change Password"}
+		data.Yield = struct {
 			Header string
 			Text   string
 		}{
-			"Change Password",
-			"Change Password",
+			"ChangePassword",
 			"Change your password by entering your current password and new password below.",
 		}
 		v.render(w, data)
@@ -478,28 +478,45 @@ func postChangePassword(u updater.Service) httprouter.Handle {
 		user, ok := r.Context().Value(contextKeyUser).(lister.User)
 		if !ok {
 			log.Println("user is not type lister.User")
-			http.Error(w, "A server error occurred", http.StatusInternalServerError)
+			http.Error(w, AlertErrorMsgGeneric, http.StatusInternalServerError)
 			return
 		}
 
 		var uCP auther.UserChangePassword
 		if err := parseForm(r, &uCP); err != nil {
 			log.Println(err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, AlertFormParseErrorGeneric, http.StatusBadRequest)
 			return
 		}
 
 		uCP.ID = user.ID
 
 		recordsAffected, err := u.UpdateUserPassword(uCP)
+
+		v := newView("base", "../../web/template/change-password.html")
+
+		data := Data{}
+		data.Head = Head{"Change Password"}
+		data.Yield = struct {
+			Header string
+			Text   string
+		}{
+			"ChangePassword",
+			"Change your password by entering your current password and new password below.",
+		}
 		if err != nil {
 			log.Println(err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
+
+			// Show the user the error.
+			data.Alert = Alert{err.Error()}
+			v.render(w, data)
 			return
 		}
 		log.Printf("Updated password for user with ID: %d. %d records affected\n", user.ID, recordsAffected)
-		// Redirect to the same page
-		http.Redirect(w, r, fmt.Sprintf("/users/%d/change-password", uCP.ID), http.StatusFound)
+
+		// Display success alert
+		data.Alert = Alert{"Success! Your password has been changed."}
+		v.render(w, data)
 	}
 }
 
