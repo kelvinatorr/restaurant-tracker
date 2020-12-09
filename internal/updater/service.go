@@ -4,17 +4,21 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"time"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
+	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
 )
 
 // Service provides listing operations.
 type Service interface {
 	UpdateRestaurant(Restaurant) (int64, error)
 	UpdateVisit(Visit) (int64, error)
+	UpdateUser(User) (int64, error)
+	UpdateUserPassword(auther.UserChangePassword) (int64, error)
 }
 
 // Repository provides access to restaurant repository.
@@ -35,6 +39,10 @@ type Repository interface {
 	AddVisitUser(adder.VisitUser) int64
 	GetVisitUsersByVisitID(int64) []lister.VisitUser
 	RemoveVisitUser(int64) int64
+	GetUserBy(string, string) lister.User
+	UpdateUser(User) int64
+	UpdateUserPassword(int64, string) int64
+	GetUserAuthByID(int64) auther.User
 }
 
 type service struct {
@@ -173,6 +181,84 @@ func (s service) UpdateVisit(v Visit) (int64, error) {
 	s.r.Commit()
 
 	return visitRecordsAffected + visitUserRecordsAffected, nil
+}
+
+func (s service) UpdateUser(u User) (int64, error) {
+	// Check that all the properties have values
+	if u.FirstName == "" || u.LastName == "" {
+		return 0, errors.New("First name and last name are required")
+	}
+	if u.Email == "" {
+		return 0, errors.New("An email address is required")
+	}
+
+	// Check that the email is valid
+	// Good enough validation: https://www.regextester.com/99632
+	match, err := regexp.MatchString("[^@]+@[^\\.]+\\..+", u.Email)
+	if err != nil {
+		return 0, err
+	} else if !match {
+		return 0, errors.New("Invalid email address")
+	}
+	// Check that the email is not already in the database used by a different user
+	existingUser := s.r.GetUserBy("email", u.Email)
+	if existingUser.ID != 0 && existingUser.ID != u.ID {
+		return 0, errors.New("A user with this email address already exists")
+	}
+	s.r.Begin()
+	// Defer rollback just in case there is a problem.
+	defer s.r.Rollback()
+	// Update the user
+	recordsAffected := s.r.UpdateUser(u)
+	s.r.Commit()
+	return recordsAffected, nil
+}
+
+func (s service) UpdateUserPassword(u auther.UserChangePassword) (int64, error) {
+	// Check that the fields are populated
+	if u.CurrentPassword == "" || u.NewPassword == "" || u.RepeatNewPassword == "" {
+		return 0, errors.New("All the fields are required")
+	}
+	// Check that the new password and repeat password matches
+	if u.NewPassword != u.RepeatNewPassword {
+		return 0, errors.New("Passwords don't match")
+	}
+
+	// Check that the new password is not the same as the current password
+	if u.NewPassword == u.CurrentPassword {
+		return 0, errors.New("You can't set your password to be what you think your current one already is")
+	}
+
+	// Check that the current password is correct using the auther service
+	// Check this id exists
+	foundUser := s.r.GetUserAuthByID(u.ID)
+	if foundUser.ID == 0 {
+		return 0, errors.New("There is no user with this id")
+	}
+
+	err := auther.CheckPassword(foundUser.PasswordHash, u.CurrentPassword)
+	if err != nil {
+		return 0, errors.New("Wrong current password")
+	}
+
+	// Hash password using the auther service
+	passwordHash, err := auther.HashPassword(u.NewPassword)
+	if err != nil {
+		return 0, err
+	}
+
+	// Clear password so it isn't inadvertently logged
+	u.NewPassword = ""
+	u.RepeatNewPassword = ""
+
+	// Update the user's password
+	s.r.Begin()
+	// Defer rollback just in case there is a problem.
+	defer s.r.Rollback()
+	recordsAffected := s.r.UpdateUserPassword(u.ID, passwordHash)
+	s.r.Commit()
+
+	return recordsAffected, nil
 }
 
 func checkRestaurantData(r Restaurant) error {

@@ -22,5 +22,6 @@
 
 # Built binaries
 cmd/api-server/api-server
+cmd/web-server/web-server
 
 insert-initial.sql

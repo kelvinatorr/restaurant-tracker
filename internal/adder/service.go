@@ -4,7 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
+	"strings"
 
+	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
 )
 
@@ -21,6 +24,7 @@ func (m *ErrDuplicate) Error() string {
 type Service interface {
 	AddRestaurant(Restaurant) (int64, error)
 	AddVisit(Visit) (int64, error)
+	AddUser(User) (int64, error)
 }
 
 // Repository provides access to restaurant repository.
@@ -40,6 +44,8 @@ type Repository interface {
 	AddVisitUser(VisitUser) int64
 	GetRestaurant(int64) lister.Restaurant
 	GetUser(int64) lister.User
+	GetUserBy(string, string) lister.User
+	AddUser(User) int64
 }
 
 type service struct {
@@ -135,6 +141,65 @@ func checkRestaurantData(r Restaurant) error {
 	// Check that Cuisine is not null
 	if r.Cuisine == "" {
 		return errors.New("You must provide a cuisine")
+	}
+
+	return nil
+}
+
+func (s *service) AddUser(u User) (int64, error) {
+	if err := checkUserData(u); err != nil {
+		return 0, err
+	}
+	// Lower case it to normalize it.
+	u.Email = strings.ToLower(u.Email)
+	// Check email is not duplicate
+	if existingUser := s.r.GetUserBy("email", u.Email); existingUser.ID != 0 {
+		return 0, errors.New("This user already exists")
+	}
+
+	// Hash password using the auther service
+	passwordHash, err := auther.HashPassword(u.Password)
+	if err != nil {
+		return 0, err
+	}
+	u.PasswordHash = passwordHash
+	// Clear password so it isn't inadvertently logged
+	u.Password = ""
+
+	// Add the user
+	s.r.Begin()
+	// Defer rollback just in case there is a problem.
+	defer s.r.Rollback()
+	newUserID := s.r.AddUser(u)
+	s.r.Commit()
+
+	return newUserID, nil
+}
+
+func checkUserData(u User) error {
+	// Check all fields are not empty
+	if u.FirstName == "" || u.LastName == "" {
+		return errors.New("First name and last name are required")
+	}
+	if u.Email == "" {
+		return errors.New("An email address is required")
+	}
+	if u.Password == "" || u.RepeatPassword == "" {
+		return errors.New("A password and repeatPassword are required")
+	}
+
+	// Check passwords are the same
+	if u.Password != u.RepeatPassword {
+		return errors.New("Passwords do not match")
+	}
+
+	// Check email is valid
+	// Good enough validation: https://www.regextester.com/99632
+	match, err := regexp.MatchString("[^@]+@[^\\.]+\\..+", u.Email)
+	if err != nil {
+		return err
+	} else if !match {
+		return errors.New("Invalid email address")
 	}
 
 	return nil

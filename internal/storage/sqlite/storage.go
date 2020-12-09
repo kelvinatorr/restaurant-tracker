@@ -6,6 +6,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
+
 	"github.com/kelvinatorr/restaurant-tracker/internal/remover"
 	"github.com/kelvinatorr/restaurant-tracker/internal/updater"
 
@@ -659,6 +661,150 @@ func (s Storage) GetUser(id int64) lister.User {
 	return u
 }
 
+// GetUserBy queries the user table for a given user by field and value. Do not pass field arguments from untrusted
+// sources. If the returned user has ID = 0 then it is not in the db.
+func (s Storage) GetUserBy(field string, value string) lister.User {
+	var u lister.User
+	sqlStatement := `
+		SELECT 
+			id,
+			first_name,
+			last_name,
+			email
+		FROM
+			user
+		WHERE
+			%s = $1
+	`
+	row := s.db.QueryRow(fmt.Sprintf(sqlStatement, field), value)
+	err := row.Scan(
+		&u.ID,
+		&u.FirstName,
+		&u.LastName,
+		&u.Email,
+	)
+	if err != sql.ErrNoRows {
+		checkAndPanic(err)
+	}
+	return u
+}
+
+// GetUserAuthByEmail returns the password and remember hashes of a given email. If the returned user has ID = 0 then it
+// is not in the db.
+func (s Storage) GetUserAuthByEmail(email string) auther.User {
+	var uh auther.User
+	sqlStatement := `
+		SELECT
+			id,
+			password_hash,
+			COALESCE(remember_token, "")
+		FROM
+			user
+		WHERE
+			email = $1
+	`
+	row := s.db.QueryRow(sqlStatement, email)
+	err := row.Scan(
+		&uh.ID,
+		&uh.PasswordHash,
+		&uh.RememberToken,
+	)
+	if err != sql.ErrNoRows {
+		checkAndPanic(err)
+	}
+	return uh
+}
+
+// GetUserAuthByID returns the password and remember hashes of a given email. If the returned user has ID = 0 then it
+// is not in the db.
+func (s Storage) GetUserAuthByID(id int64) auther.User {
+	var uh auther.User
+	sqlStatement := `
+		SELECT
+			id,
+			password_hash,
+			COALESCE(remember_token, "")
+		FROM
+			user
+		WHERE
+			id = $1
+	`
+	row := s.db.QueryRow(sqlStatement, id)
+	err := row.Scan(
+		&uh.ID,
+		&uh.PasswordHash,
+		&uh.RememberToken,
+	)
+	if err != sql.ErrNoRows {
+		checkAndPanic(err)
+	}
+	return uh
+}
+
+// GetUserCount returns the number of users in the db.
+func (s Storage) GetUserCount() int64 {
+	var userCount int64
+	sqlStatement := `
+		SELECT 
+			count(id)
+		FROM
+			user
+	`
+	row := s.db.QueryRow(sqlStatement)
+	err := row.Scan(
+		&userCount,
+	)
+	if err != sql.ErrNoRows {
+		checkAndPanic(err)
+	}
+	return userCount
+}
+
+// UpdateUser updates a given user, returns the rows affected. Caller must call Commit() to commit the transaction
+func (s Storage) UpdateUser(u updater.User) int64 {
+	sqlStatement := `
+		UPDATE
+			user
+		SET
+			first_name = $1,
+			last_name = $2,
+			email = $3
+		WHERE
+			id = $4
+	`
+	res, err := s.tx.Exec(sqlStatement,
+		u.FirstName,
+		u.LastName,
+		u.Email,
+		u.ID,
+	)
+	checkAndPanic(err)
+	rowsAffected, err := res.RowsAffected()
+	checkAndPanic(err)
+	return rowsAffected
+}
+
+// UpdateUserPassword updates the password of the user with the given id. Caller must call Commit() to commit the
+// transaction
+func (s Storage) UpdateUserPassword(id int64, newPasswordHash string) int64 {
+	sqlStatement := `
+		UPDATE
+			user
+		SET
+			password_hash = $1
+		WHERE
+			id = $2
+	`
+	res, err := s.tx.Exec(sqlStatement,
+		newPasswordHash,
+		id,
+	)
+	checkAndPanic(err)
+	rowsAffected, err := res.RowsAffected()
+	checkAndPanic(err)
+	return rowsAffected
+}
+
 // UpdateVisit updates a given visit, returns the rows affected. Caller must call Commit() to commit the
 // transaction
 func (s Storage) UpdateVisit(v updater.Visit) int64 {
@@ -723,6 +869,61 @@ func (s Storage) RemoveVisit(visitID int64) int64 {
 // transaction
 func (s Storage) RemoveVisitUser(visitUserID int64) int64 {
 	return s.removeRow("visit_user", visitUserID)
+}
+
+// AddUser adds a given user to the database and returns the new user id. Caller must call Commit() to commit the
+// transaction.
+func (s Storage) AddUser(u adder.User) int64 {
+	// We use case when to allow inserting nulls in the database
+	sqlStatement := `
+		INSERT INTO 
+			user(
+				first_name,
+				last_name,
+				email,
+				password_hash
+			)
+		VALUES
+			(
+				$1,
+				$2,
+				$3,
+				$4
+			)
+	`
+	res, err := s.tx.Exec(sqlStatement,
+		u.FirstName,
+		u.LastName,
+		u.Email,
+		u.PasswordHash,
+	)
+	checkAndPanic(err)
+	lastID, err := res.LastInsertId()
+	checkAndPanic(err)
+	return lastID
+}
+
+// UpdateUserRememberToken updates a user's remember_hash and then returns the number of rows affected. Caller must call
+// Commit() to commit the transaction.
+func (s Storage) UpdateUserRememberToken(u auther.User) int64 {
+	// We use case when to allow updating to nulls in the database
+	sqlStatement := `
+		UPDATE
+			user
+		SET
+			remember_token = $1
+		WHERE
+			id = $2
+	`
+
+	res, err := s.tx.Exec(sqlStatement,
+		u.RememberToken,
+		u.ID,
+	)
+	checkAndPanic(err)
+	rowsAffected, err := res.RowsAffected()
+	checkAndPanic(err)
+	return rowsAffected
 }
 
 func checkAndPanic(err error) {

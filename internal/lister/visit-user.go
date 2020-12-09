@@ -1,8 +1,8 @@
 package lister
 
 type VisitUser struct {
-	ID     int64  `json:"id"`
-	User   User   `json:"user"`
+	ID     int64 `json:"id"`
+	User   User  `json:"user"`
 	Rating int64 `json:"rating"`
 }
 

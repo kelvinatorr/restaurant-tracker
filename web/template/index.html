@@ -1,0 +1,10 @@
+{{define "head"}}
+<title>{{.Title}}</title>
+{{end}}
+
+{{define "yield"}}
+<h1>Home Page</h1>
+<form method="POST" action="/sign-out">
+    <input type="submit" value="Sign Out" />
+</form>
+{{end}}
