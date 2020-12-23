@@ -1,14 +1,16 @@
 package web
 
 import (
+	"bytes"
 	"html/template"
+	"io"
 	"net/http"
 )
 
 const (
 	// AlertErrorMsgGeneric is displayed when any random error
 	// is encountered by our backend.
-	AlertErrorMsgGeneric = "Sorry; something went wrong."
+	AlertErrorMsgGeneric       = "Sorry; something went wrong."
 	AlertFormParseErrorGeneric = "Sorry; there was a problem parsing your form."
 )
 
@@ -31,7 +33,7 @@ type view struct {
 	Layout   string
 }
 
-func (v *view) render(w http.ResponseWriter, data interface{}) error {
+func (v *view) render(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "text/html")
 	switch data.(type) {
 	case Data:
@@ -41,5 +43,13 @@ func (v *view) render(w http.ResponseWriter, data interface{}) error {
 			Yield: data,
 		}
 	}
-	return v.Template.ExecuteTemplate(w, v.Layout, data)
+	// Execute the template into a buffer 1st to see if there was a problem. This prevents rendering a incomplete
+	// template to the user.
+	var buf bytes.Buffer
+	err := v.Template.ExecuteTemplate(&buf, v.Layout, data)
+	if err != nil {
+		http.Error(w, "There was a problem rendering the html template", http.StatusInternalServerError)
+		return
+	}
+	io.Copy(w, &buf)
 }
