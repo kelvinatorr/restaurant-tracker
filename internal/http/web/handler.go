@@ -49,7 +49,7 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	dontLogBodyURLs[signInPath] = true
 
 	homePath := "/"
-	homeGETHandler := authRequired(getHome(), auth)
+	homeGETHandler := authRequired(getHome(l), auth)
 	router.GET(homePath, homeGETHandler)
 	router.HEAD(homePath, homeGETHandler)
 
@@ -298,13 +298,21 @@ func postSignIn(a auther.Service) func(w http.ResponseWriter, r *http.Request, _
 	}
 }
 
-func getHome() httprouter.Handle {
+func getHome(s lister.Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		w.Header().Set("Content-Type", "text/html")
 		v := newView("base", "../../web/template/index.html")
 		// TODO: Pull in Site Name from the database.
+
 		data := Data{}
 		data.Head = Head{"Our Restaurant Tracker"}
+		// Get all restaurants
+		restaurants := s.GetRestaurants()
+		data.Yield = struct {
+			Restaurants []lister.Restaurant
+		}{
+			restaurants,
+		}
 		v.render(w, data)
 	}
 }

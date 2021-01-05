@@ -1,5 +1,10 @@
 {{define "head"}}
 <title>{{.Title}}</title>
+<style>
+    table, th, td {
+        border: 1px solid black;
+    }
+</style>
 {{end}}
 
 {{define "yield"}}
@@ -7,4 +12,48 @@
 <form method="POST" action="/sign-out">
     <input type="submit" value="Sign Out" />
 </form>
+<br/>
+<div>
+    <div>
+        <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Cuisine</th>
+                <th>City</th>
+                <th>State</th>
+                <th>Note</th>
+                <!-- <th>Last Visit</th> -->
+                <th>User's Average Rating</th>
+                <th>Average Rating</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{range .Restaurants}}
+              <tr>
+                <td>{{.Name}}</td>
+                <td>{{.Cuisine}}</td>
+                <td>{{.CityState.Name}}</td>
+                <td>{{.CityState.State}}</td>
+                <td>{{.Note}}</td>
+                <!-- <td>Last Visit</td> -->
+                <td>
+                    {{range .AvgUserRatings}}
+                    <p>
+                      {{.FirstName}} {{.LastName}}: 
+                      {{if .AvgRating}}
+                      {{.AvgRating}}
+                      {{else}}
+                      null
+                      {{end}}
+                    </p>
+                    {{end}}
+                </td>
+                <td>{{.AvgRating}}</td>
+              </tr>
+              {{end}}
+            </tbody>
+          </table>
+    </div>
+</div>
 {{end}}

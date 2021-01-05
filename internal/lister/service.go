@@ -33,6 +33,8 @@ type Repository interface {
 	GetVisitsByRestaurantID(int64) []Visit
 	GetUserCount() int64
 	GetUser(int64) User
+	GetRestaurantAvgRating(int64) float32
+	GetRestaurantAvgRatingByUser(int64) []AvgUserRating
 }
 
 type service struct {
@@ -51,7 +53,14 @@ func (s service) GetRestaurant(id int64) (Restaurant, error) {
 
 // GetRestaurants returns all the restaurants in the storage
 func (s service) GetRestaurants() []Restaurant {
-	return s.r.GetRestaurants()
+	rs := s.r.GetRestaurants()
+	// Get ratings for each restaurant
+	for i, r := range rs {
+		rs[i].AvgUserRatings = s.r.GetRestaurantAvgRatingByUser(r.ID)
+		// Get the average rating overall
+		rs[i].AvgRating = s.r.GetRestaurantAvgRating(r.ID)
+	}
+	return rs
 }
 
 // GetVisit returns a visit with the given id

@@ -543,7 +543,7 @@ func (s Storage) GetVisitUsersByVisitID(visitID int64) []lister.VisitUser {
 	sqlStatement := `
 		SELECT
 			vu.id,			
-			COALESCE(vu.rating, "") as rating,
+			COALESCE(vu.rating, 0) as rating,
 			vu.user_id,
 			u.first_name,
 			u.last_name
@@ -924,6 +924,66 @@ func (s Storage) UpdateUserRememberToken(u auther.User) int64 {
 	rowsAffected, err := res.RowsAffected()
 	checkAndPanic(err)
 	return rowsAffected
+}
+
+// GetRestaurantAvgRating gets a given restaurant's average rating over all users. If the returned value is 0 then the
+// restaurant has no ratings.
+func (s Storage) GetRestaurantAvgRating(restaurantID int64) float32 {
+	var avgRating float32
+	sqlStatement := `
+		SELECT
+			coalesce(avg(rating), 0) as avg_rating
+		FROM
+			visit_user as vu
+			left join visit as v on v.id = vu.visit_id
+		WHERE
+			v.restaurant_id = $1
+	`
+	row := s.db.QueryRow(sqlStatement, restaurantID)
+	err := row.Scan(&avgRating)
+	if err != sql.ErrNoRows {
+		checkAndPanic(err)
+	}
+	return avgRating
+}
+
+// GetRestaurantAvgRatingByUser gets a given restaurants average rating group by user. If the returned value for a user
+// is 0 then the restaurant has no ratings for that user.
+func (s Storage) GetRestaurantAvgRatingByUser(restaurantID int64) []lister.AvgUserRating {
+	var allRatings []lister.AvgUserRating
+	var ar lister.AvgUserRating
+	sqlStatement := `
+		SELECT
+			user_id,
+			u.first_name,
+			u.last_name,
+			coalesce(avg(rating), 0) as avg_rating
+		FROM
+			visit_user as vu
+			left join visit as v on v.id = vu.visit_id
+			left join user as u on u.id = vu.user_id
+		WHERE
+			v.restaurant_id = $1
+		GROUP BY
+			u.first_name,
+			u.last_name
+	`
+	dbRows, err := s.db.Query(sqlStatement, restaurantID)
+	checkAndPanic(err)
+	defer dbRows.Close()
+	for dbRows.Next() {
+		err = dbRows.Scan(
+			&ar.ID,
+			&ar.FirstName,
+			&ar.LastName,
+			&ar.AvgRating,
+		)
+		checkAndPanic(err)
+		allRatings = append(allRatings, ar)
+	}
+	err = dbRows.Err()
+	checkAndPanic(err)
+	return allRatings
 }
 
 func checkAndPanic(err error) {
