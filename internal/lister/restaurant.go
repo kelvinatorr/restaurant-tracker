@@ -1,18 +1,19 @@
 package lister
 
 type Restaurant struct {
-	ID             int64           `json:"id"`
-	Name           string          `json:"name"`
-	Cuisine        string          `json:"cuisine"`
-	Note           string          `json:"note"`
-	Address        string          `json:"address"`
-	CityState      cityState       `json:"city_state"`
-	Zipcode        string          `json:"zipcode"`
-	Latitude       float32         `json:"latitude"`
-	Longitude      float32         `json:"longitude"`
-	GmapsPlace     gmapsPlace      `json:"gmaps_place"`
-	AvgRating      float32         `json:"avg_rating"`
-	AvgUserRatings []AvgUserRating `json:"avg_user_ratings"`
+	ID                int64           `json:"id"`
+	Name              string          `json:"name"`
+	Cuisine           string          `json:"cuisine"`
+	Note              string          `json:"note"`
+	Address           string          `json:"address"`
+	CityState         cityState       `json:"city_state"`
+	Zipcode           string          `json:"zipcode"`
+	Latitude          float32         `json:"latitude"`
+	Longitude         float32         `json:"longitude"`
+	GmapsPlace        gmapsPlace      `json:"gmaps_place"`
+	AvgRating         float32         `json:"avg_rating"`
+	AvgUserRatings    []AvgUserRating `json:"avg_user_ratings"`
+	LastVisitDatetime string          `json:"last_visit_datetime"`
 }
 
 type cityState struct {

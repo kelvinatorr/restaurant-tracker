@@ -238,11 +238,12 @@ func generateRestaurantSQL() string {
 			res.id,
     		res.name,
     		cuisine,
-    		note,
+    		res.note,
     		COALESCE(address, "") as address,
     		COALESCE(zipcode, "") as zipcode,
     		COALESCE(latitude, 0) as latitude,
 			COALESCE(longitude, 0) as longitude,
+			COALESCE(last_visits.last_visit, "") as last_visit_datetime,
 			city.id as city_id,
 			city.name as city_name,
 			city.state as state_name,
@@ -257,11 +258,20 @@ func generateRestaurantSQL() string {
 			COALESCE(url, "") as url,
 			COALESCE(user_ratings_total, 0) as user_ratings_total,
 			COALESCE(utc_offset, 0) as utc_offset,
-			COALESCE(website, "") as website
+			COALESCE(website, "") as website			
 		FROM
 			restaurant as res
 			inner join city on city.id = res.city_id
 			left join gmaps_place as gp on gp.restaurant_id = res.id
+			left join (
+				SELECT
+					restaurant_id,
+					max(visit_datetime) as last_visit
+				FROM
+					visit
+				GROUP by
+					restaurant_id
+			) as last_visits on last_visits.restaurant_id = res.id
 	`
 
 	return sql
@@ -297,6 +307,7 @@ func fillRestaurant(row scanner, r *lister.Restaurant) error {
 		&r.Zipcode,
 		&r.Latitude,
 		&r.Longitude,
+		&r.LastVisitDatetime,
 		&r.CityState.ID,
 		&r.CityState.Name,
 		&r.CityState.State,
