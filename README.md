@@ -38,7 +38,7 @@ You can follow logs by running `docker logs -f restaurant-tracker-0` when the co
 1. Pull down all the dependencies.
     ```
     cd cmd/api-server
-    go build ./..
+    go get ./...
     ```
 2. The build and run the api-server
     ```
