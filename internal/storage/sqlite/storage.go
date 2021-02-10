@@ -258,7 +258,8 @@ func generateRestaurantSQL() string {
 			COALESCE(url, "") as url,
 			COALESCE(user_ratings_total, 0) as user_ratings_total,
 			COALESCE(utc_offset, 0) as utc_offset,
-			COALESCE(website, "") as website			
+			COALESCE(website, "") as website,
+			COALESCE(ratings.avg_rating, 0) as avg_rating
 		FROM
 			restaurant as res
 			inner join city on city.id = res.city_id
@@ -269,9 +270,19 @@ func generateRestaurantSQL() string {
 					max(visit_datetime) as last_visit
 				FROM
 					visit
-				GROUP by
+				GROUP BY
 					restaurant_id
 			) as last_visits on last_visits.restaurant_id = res.id
+			left join (
+				SELECT
+					v.restaurant_id,
+					avg(rating) as avg_rating
+				FROM
+					visit_user as vu
+					left join visit as v on v.id = vu.visit_id
+				GROUP BY
+					v.restaurant_id
+			) as ratings on ratings.restaurant_id = res.id
 	`
 
 	return sql
@@ -323,6 +334,7 @@ func fillRestaurant(row scanner, r *lister.Restaurant) error {
 		&r.GmapsPlace.UserRatingsTotal,
 		&r.GmapsPlace.UTCOffset,
 		&r.GmapsPlace.Website,
+		&r.AvgRating,
 	)
 }
 
@@ -935,27 +947,6 @@ func (s Storage) UpdateUserRememberToken(u auther.User) int64 {
 	rowsAffected, err := res.RowsAffected()
 	checkAndPanic(err)
 	return rowsAffected
-}
-
-// GetRestaurantAvgRating gets a given restaurant's average rating over all users. If the returned value is 0 then the
-// restaurant has no ratings.
-func (s Storage) GetRestaurantAvgRating(restaurantID int64) float32 {
-	var avgRating float32
-	sqlStatement := `
-		SELECT
-			coalesce(avg(rating), 0) as avg_rating
-		FROM
-			visit_user as vu
-			left join visit as v on v.id = vu.visit_id
-		WHERE
-			v.restaurant_id = $1
-	`
-	row := s.db.QueryRow(sqlStatement, restaurantID)
-	err := row.Scan(&avgRating)
-	if err != sql.ErrNoRows {
-		checkAndPanic(err)
-	}
-	return avgRating
 }
 
 // GetRestaurantAvgRatingByUser gets a given restaurants average rating group by user. If the returned value for a user

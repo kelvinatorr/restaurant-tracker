@@ -33,7 +33,6 @@ type Repository interface {
 	GetVisitsByRestaurantID(int64) []Visit
 	GetUserCount() int64
 	GetUser(int64) User
-	GetRestaurantAvgRating(int64) float32
 	GetRestaurantAvgRatingByUser(int64) []AvgUserRating
 }
 
@@ -57,8 +56,6 @@ func (s service) GetRestaurants() []Restaurant {
 	// Get ratings for each restaurant
 	for i, r := range rs {
 		rs[i].AvgUserRatings = s.r.GetRestaurantAvgRatingByUser(r.ID)
-		// Get the average rating overall
-		rs[i].AvgRating = s.r.GetRestaurantAvgRating(r.ID)
 	}
 	return rs
 }
