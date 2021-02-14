@@ -43,3 +43,14 @@ type AvgUserRating struct {
 	LastName  string  `json:"last_name"`
 	AvgRating float32 `json:"avg_rating"`
 }
+
+func getAllowedRestaurantFields() map[string]string {
+	var restaurantFields map[string]string = make(map[string]string)
+	restaurantFields["name"] = "res.name"
+	restaurantFields["cuisine"] = "cuisine"
+	restaurantFields["city"] = "city_name"
+	restaurantFields["state"] = "state_name"
+	restaurantFields["last_visit"] = "last_visit_datetime"
+	restaurantFields["avg_rating"] = "avg_rating"
+	return restaurantFields
+}

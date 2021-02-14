@@ -304,10 +304,17 @@ func getHome(s lister.Service) httprouter.Handle {
 		v := newView("base", "../../web/template/index.html")
 		// TODO: Pull in Site Name from the database.
 
+		// get the query parameters parameter
+		queryParams := r.URL.Query()
+
 		data := Data{}
 		data.Head = Head{"Our Restaurant Tracker"}
 		// Get all restaurants
-		restaurants := s.GetRestaurants()
+		restaurants, err := s.GetRestaurants(queryParams)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		data.Yield = struct {
 			Restaurants []lister.Restaurant
 		}{

@@ -338,6 +338,15 @@ func fillRestaurant(row scanner, r *lister.Restaurant) error {
 	)
 }
 
+func addSortOps(sqlStatement string, sortOp lister.SortOperation, last bool) string {
+	formatString := "%s %s"
+	if !last {
+		formatString = formatString + ","
+	}
+	sqlStatement = sqlStatement + fmt.Sprintf(formatString, sortOp.Field, sortOp.Direction) + "\n"
+	return sqlStatement
+}
+
 func fillVisit(row scanner, v *lister.Visit) error {
 	return row.Scan(
 		&v.ID,
@@ -366,11 +375,23 @@ func (s Storage) GetRestaurant(id int64) lister.Restaurant {
 }
 
 // GetRestaurants queries the restaurant table for all restaurants.
-func (s Storage) GetRestaurants() []lister.Restaurant {
+func (s Storage) GetRestaurants(sortOps []lister.SortOperation) []lister.Restaurant {
 	var allResturants []lister.Restaurant
 	var r lister.Restaurant
 	// Generate the get sql statement without the where clause.
 	sqlStatement := generateRestaurantSQL()
+
+	nSortOps := len(sortOps)
+	if nSortOps > 0 {
+		sqlStatement = sqlStatement + `
+			ORDER BY
+		`
+		// add sort statements
+		for i, so := range sortOps {
+			sqlStatement = addSortOps(sqlStatement, so, i == nSortOps-1)
+		}
+	}
+
 	dbRows, err := s.db.Query(sqlStatement)
 	checkAndPanic(err)
 	defer dbRows.Close()

@@ -2,6 +2,7 @@ package lister
 
 import (
 	"fmt"
+	"net/url"
 )
 
 // ErrDoesNotExist is used when a resturant does not exist in the repository
@@ -16,7 +17,7 @@ func (m *ErrDoesNotExist) Error() string {
 // Service provides listing operations.
 type Service interface {
 	GetRestaurant(int64) (Restaurant, error)
-	GetRestaurants() []Restaurant
+	GetRestaurants(url.Values) ([]Restaurant, error)
 	GetVisit(int64) (Visit, error)
 	GetVisitsByRestaurantID(int64) []Visit
 	GetUserCount() int64
@@ -27,7 +28,7 @@ type Service interface {
 type Repository interface {
 	// GetRestaurant gets a given restaurant to the repository.
 	GetRestaurant(int64) Restaurant
-	GetRestaurants() []Restaurant
+	GetRestaurants([]SortOperation) []Restaurant
 	GetVisit(int64) Visit
 	GetVisitUsersByVisitID(int64) []VisitUser
 	GetVisitsByRestaurantID(int64) []Visit
@@ -51,13 +52,19 @@ func (s service) GetRestaurant(id int64) (Restaurant, error) {
 }
 
 // GetRestaurants returns all the restaurants in the storage
-func (s service) GetRestaurants() []Restaurant {
-	rs := s.r.GetRestaurants()
+func (s service) GetRestaurants(qp url.Values) ([]Restaurant, error) {
+	var rs []Restaurant
+	sops, err := checkSort("restaurant", qp)
+	if err != nil {
+		return rs, err
+	}
+
+	rs = s.r.GetRestaurants(sops)
 	// Get ratings for each restaurant
 	for i, r := range rs {
 		rs[i].AvgUserRatings = s.r.GetRestaurantAvgRatingByUser(r.ID)
 	}
-	return rs
+	return rs, nil
 }
 
 // GetVisit returns a visit with the given id
