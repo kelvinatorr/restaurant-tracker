@@ -3,6 +3,7 @@ package lister
 import (
 	"fmt"
 	"net/url"
+	"time"
 )
 
 // ErrDoesNotExist is used when a resturant does not exist in the repository
@@ -63,6 +64,17 @@ func (s service) GetRestaurants(qp url.Values) ([]Restaurant, error) {
 	// Get ratings for each restaurant
 	for i, r := range rs {
 		rs[i].AvgUserRatings = s.r.GetRestaurantAvgRatingByUser(r.ID)
+		var lastVisitHumanDate string = ""
+		if r.LastVisitDatetime != "" {
+			lastVisitDate, err := time.Parse(time.RFC3339, r.LastVisitDatetime)
+			if err != nil {
+				return rs, err
+			}
+			lastVisitHumanDate = lastVisitDate.Format("January 2, 2006")
+		}
+		// Add search value property
+		rs[i].SearchValue = fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s", r.Name, r.Cuisine, r.CityState.Name, r.CityState.State,
+			r.Note, r.LastVisitDatetime, lastVisitHumanDate)
 	}
 	return rs, nil
 }

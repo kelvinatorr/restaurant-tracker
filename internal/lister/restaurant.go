@@ -14,6 +14,7 @@ type Restaurant struct {
 	AvgRating         float32         `json:"avg_rating"`
 	AvgUserRatings    []AvgUserRating `json:"avg_user_ratings"`
 	LastVisitDatetime string          `json:"last_visit_datetime"`
+	SearchValue       string          `json:"search_value"`
 }
 
 type cityState struct {

@@ -4,6 +4,10 @@
     table, th, td {
         border: 1px solid black;
     }
+
+    .display-none {
+      display: none;
+    }
 </style>
 {{end}}
 
@@ -13,11 +17,25 @@
     <input type="submit" value="Sign Out" />
 </form>
 <br/>
+<form>
+  <div>
+    <label for="searchInput">Search</label>
+    <input id="searchInput" type="text" placeholder="Search" />    
+  </div>
+  <div>
+    <label for="ignoreCase">Ignore Case</label>
+    <input type="checkbox" id="ignoreCase" name="ignore case">    
+  </div>  
+</form>
+<br/>
 <div>
     <div>
-        <table>
+        <table id="restaurantTable">
             <thead>
               <tr>
+                <th class="display-none">
+                  Search Value
+                </th>
                 <th>
                   <a class="column-sort" href="/?sort[name]=asc">
                     Name
@@ -58,7 +76,8 @@
             </thead>
             <tbody>
               {{range .Restaurants}}
-              <tr>
+              <tr class="restaurant-row">
+                <td class="search-value display-none">{{.SearchValue}}</td>
                 <td>{{.Name}}</td>
                 <td>{{.Cuisine}}</td>
                 <td>{{.CityState.Name}}</td>
@@ -93,7 +112,64 @@
 {{define "script"}}
 <script>
   (function() {
+    const searchInput = document.getElementById('searchInput');
+    const searchIgnoreCase = document.getElementById("ignoreCase");
+    
     setSortParams();
+    setSearchParam();
+
+    searchInput.addEventListener('keyup', debounce(searchTable, 250));
+    searchIgnoreCase.addEventListener('change', searchTable);
+
+    function setSearchParam() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const searchParam = urlParams.get('search');
+      if (searchParam) {
+        searchInput.value = searchParam;
+        searchTable();
+      }
+    }
+
+    function searchTable(e) {
+      const searchTerm = searchInput.value      
+
+      const ignoreCase = searchIgnoreCase.checked
+
+      const searchTermRex = new RegExp(searchTerm, ignoreCase ? 'i' : '');
+
+      // Get all the rows of the table
+      const restaurantRows = document.querySelectorAll('#restaurantTable > tbody > .restaurant-row');
+      // toggle the class for display none for each
+      restaurantRows.forEach((e) => {
+        const searchValue = e.querySelector('.search-value').innerHTML;
+        if (!searchTermRex.test(searchValue)) {
+          e.classList.add('display-none');
+        } else {
+          e.classList.remove('display-none');
+        }
+      });
+
+      // Get the current url
+      let url = new URL(window.location.href);
+      url.searchParams.set('search', searchTerm);
+      // Add the param to the url
+      window.history.replaceState('', '', url)
+    }
+
+    function debounce(func, wait, immediate) {
+      var timeout;
+      return function() {
+        var context = this, args = arguments;
+        var later = function() {
+          timeout = null;
+          if (!immediate) func.apply(context, args);
+        };
+        var callNow = immediate && !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+        if (callNow) func.apply(context, args);
+      };
+    };
 
     function setSortParams() {
       // get the url parameters

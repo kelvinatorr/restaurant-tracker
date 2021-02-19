@@ -312,7 +312,8 @@ func getHome(s lister.Service) httprouter.Handle {
 		// Get all restaurants
 		restaurants, err := s.GetRestaurants(queryParams)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			log.Println(err.Error())
+			http.Error(w, "There was a problem processing your request", http.StatusBadRequest)
 			return
 		}
 		data.Yield = struct {
