@@ -16,10 +16,10 @@ func getAllowedDirections() map[string]bool {
 	return map[string]bool{"asc": true, "desc": true}
 }
 
-func getAllowedFields(object string) (map[string]string, error) {
+func (s service) getAllowedSortFields(object string) (map[string]string, error) {
 	switch object {
 	case "restaurant":
-		return getAllowedRestaurantFields(), nil
+		return s.r.RestaurantSortFields(), nil
 	default:
 		return make(map[string]string), fmt.Errorf("Unknown sort object %s", object)
 	}
@@ -27,7 +27,7 @@ func getAllowedFields(object string) (map[string]string, error) {
 }
 
 // checkSort checks that the sort params from the user are valid and prevents sql injections
-func checkSort(object string, sortRequested url.Values) ([]SortOperation, error) {
+func (s service) checkSort(object string, sortRequested url.Values) ([]SortOperation, error) {
 
 	var result []SortOperation
 
@@ -36,7 +36,7 @@ func checkSort(object string, sortRequested url.Values) ([]SortOperation, error)
 		return result, nil
 	}
 
-	allowedSortFields, err := getAllowedFields(object)
+	allowedSortFields, err := s.getAllowedSortFields(object)
 	if err != nil {
 		return result, err
 	}

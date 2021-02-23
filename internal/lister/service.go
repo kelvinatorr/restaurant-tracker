@@ -11,6 +11,12 @@ type ErrDoesNotExist struct {
 	msg string
 }
 
+// Field is a repository field
+type Field struct {
+	Name string
+	Type string
+}
+
 func (m *ErrDoesNotExist) Error() string {
 	return m.msg
 }
@@ -29,13 +35,15 @@ type Service interface {
 type Repository interface {
 	// GetRestaurant gets a given restaurant to the repository.
 	GetRestaurant(int64) Restaurant
-	GetRestaurants([]SortOperation) []Restaurant
+	GetRestaurants([]SortOperation, []FilterOperation) []Restaurant
 	GetVisit(int64) Visit
 	GetVisitUsersByVisitID(int64) []VisitUser
 	GetVisitsByRestaurantID(int64) []Visit
 	GetUserCount() int64
 	GetUser(int64) User
 	GetRestaurantAvgRatingByUser(int64) []AvgUserRating
+	RestaurantSortFields() map[string]string
+	RestaurantFilterFields() map[string]Field
 }
 
 type service struct {
@@ -55,12 +63,17 @@ func (s service) GetRestaurant(id int64) (Restaurant, error) {
 // GetRestaurants returns all the restaurants in the storage
 func (s service) GetRestaurants(qp url.Values) ([]Restaurant, error) {
 	var rs []Restaurant
-	sops, err := checkSort("restaurant", qp)
+	sops, err := s.checkSort("restaurant", qp)
 	if err != nil {
 		return rs, err
 	}
 
-	rs = s.r.GetRestaurants(sops)
+	fops, err := s.checkFilter("restaurant", qp)
+	if err != nil {
+		return rs, err
+	}
+
+	rs = s.r.GetRestaurants(sops, fops)
 	// Get ratings for each restaurant
 	for i, r := range rs {
 		rs[i].AvgUserRatings = s.r.GetRestaurantAvgRatingByUser(r.ID)

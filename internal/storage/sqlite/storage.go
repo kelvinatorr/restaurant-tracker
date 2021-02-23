@@ -347,6 +347,17 @@ func addSortOps(sqlStatement string, sortOp lister.SortOperation, last bool) str
 	return sqlStatement
 }
 
+func addFilterOps(sqlStatement string, filterOp lister.FilterOperation, first bool) string {
+	formatString := "%s %s CAST('%s' as %s)"
+	if !first {
+		formatString = "AND " + formatString
+	}
+
+	sqlStatement = sqlStatement + fmt.Sprintf(formatString, filterOp.Field, filterOp.Operator, filterOp.Value, filterOp.FieldType)
+	sqlStatement = sqlStatement + "\n"
+	return sqlStatement
+}
+
 func fillVisit(row scanner, v *lister.Visit) error {
 	return row.Scan(
 		&v.ID,
@@ -375,11 +386,22 @@ func (s Storage) GetRestaurant(id int64) lister.Restaurant {
 }
 
 // GetRestaurants queries the restaurant table for all restaurants.
-func (s Storage) GetRestaurants(sortOps []lister.SortOperation) []lister.Restaurant {
+func (s Storage) GetRestaurants(sortOps []lister.SortOperation, filterOps []lister.FilterOperation) []lister.Restaurant {
 	var allResturants []lister.Restaurant
 	var r lister.Restaurant
 	// Generate the get sql statement without the where clause.
 	sqlStatement := generateRestaurantSQL()
+
+	nFilterOps := len(filterOps)
+	if nFilterOps > 0 {
+		sqlStatement = sqlStatement + `
+			WHERE
+		`
+		// add filter statements
+		for i, so := range filterOps {
+			sqlStatement = addFilterOps(sqlStatement, so, i == 0)
+		}
+	}
 
 	nSortOps := len(sortOps)
 	if nSortOps > 0 {
