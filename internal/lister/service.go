@@ -29,6 +29,7 @@ type Service interface {
 	GetVisitsByRestaurantID(int64) []Visit
 	GetUserCount() int64
 	GetUserByID(int64) User
+	GetFilterOptions() FilterOptions
 }
 
 // Repository provides access to restaurant repository.
@@ -42,6 +43,7 @@ type Repository interface {
 	GetUserCount() int64
 	GetUser(int64) User
 	GetRestaurantAvgRatingByUser(int64) []AvgUserRating
+	GetDistinct(string, string) []string
 	RestaurantSortFields() map[string]string
 	RestaurantFilterFields() map[string]Field
 }
@@ -122,6 +124,15 @@ func (s service) GetUserCount() int64 {
 // GetUserByID returns the User for a given id
 func (s service) GetUserByID(id int64) User {
 	return s.r.GetUser(id)
+}
+
+// GetFilterOptions returns a Filter
+func (s service) GetFilterOptions() FilterOptions {
+	return FilterOptions{
+		Cuisine: s.r.GetDistinct("cuisine", "restaurant"),
+		City:    s.r.GetDistinct("name", "city"),
+		State:   s.r.GetDistinct("state", "city"),
+	}
 }
 
 // NewService returns a new lister.service

@@ -1031,6 +1031,33 @@ func (s Storage) GetRestaurantAvgRatingByUser(restaurantID int64) []lister.AvgUs
 	return allRatings
 }
 
+// GetDistinct returns a list of distinct values for a given column from a given table
+func (s Storage) GetDistinct(columnName string, tableName string) []string {
+	var distinctValues []string
+	sqlStatement := `
+		SELECT
+			distinct %s
+		FROM
+			%s
+		ORDER BY
+			%s asc
+	`
+	// Never pass tableName from user input!
+	sqlStatement = fmt.Sprintf(sqlStatement, columnName, tableName, columnName)
+	dbRows, err := s.db.Query(sqlStatement)
+	checkAndPanic(err)
+	defer dbRows.Close()
+	for dbRows.Next() {
+		var val string
+		err = dbRows.Scan(&val)
+		checkAndPanic(err)
+		distinctValues = append(distinctValues, val)
+	}
+	err = dbRows.Err()
+	checkAndPanic(err)
+	return distinctValues
+}
+
 func checkAndPanic(err error) {
 	if err != nil {
 		log.Panicln(err)

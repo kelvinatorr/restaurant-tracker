@@ -19,6 +19,12 @@ type FilterOperation struct {
 	Value     string
 }
 
+type Filter struct {
+	Cuisine string `schema:"cuisine"`
+	City    string `schema:"city"`
+	State   string `schema:"state"`
+}
+
 func getAllowedOperators() map[string]string {
 	return map[string]string{"eq": "=", "lt": "<", "gt": ">", "lteq": "<=", "gteq": ">="}
 }

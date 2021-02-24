@@ -81,6 +81,10 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	signOutPOSTHandler := postSignOut()
 	router.POST(signOutPath, signOutPOSTHandler)
 
+	filterPath := "/filter"
+	filterGETHandler := authRequired(getFilter(l), auth)
+	router.GET(filterPath, filterGETHandler)
+
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
 		http.Error(w, "The server encountered an error processing your request.", http.StatusInternalServerError)
@@ -549,5 +553,29 @@ func postSignOut() httprouter.Handle {
 
 		http.SetCookie(w, &cookie)
 		http.Redirect(w, r, "/sign-in", http.StatusFound)
+	}
+}
+
+func getFilter(s lister.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		// TODO read the query params to fill up the form
+
+		v := newView("base", "../../web/template/filter.html")
+
+		data := Data{}
+		data.Head = Head{"Filter Restaurants"}
+		// Get all filters
+		filterOptions := s.GetFilterOptions()
+
+		data.Yield = struct {
+			Header        string
+			Text          string
+			FilterOptions lister.FilterOptions
+		}{
+			"Filter Restaurants",
+			"Filter the restaurant table by selecting options below.",
+			filterOptions,
+		}
+		v.render(w, data)
 	}
 }

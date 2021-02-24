@@ -1,0 +1,68 @@
+{{define "head"}}
+<title>{{.Title}}</title>
+{{end}}
+
+{{define "yield"}}
+<h1>{{.Header}}</h1>
+<p>
+    {{.Text}}
+</p>
+<form id="filterForm">
+    <div class="form-label-group">
+        <label for="cuisineSelect">Cuisine</label>
+        <select name="cuisine" id="cuisineSelect" class="filter-field" data-operator="eq">
+            <option value=""></option>
+            {{range .FilterOptions.Cuisine}}
+            <option value="{{.}}">{{.}}</option>
+            {{end}}
+        </select>
+    </div>
+    <div class="form-label-group">
+        <label for="citySelect">City</label>
+        <select name="city" id="citySelect" class="filter-field" data-operator="eq">
+            <option value=""></option>
+            {{range .FilterOptions.City}}
+            <option value="{{.}}">{{.}}</option>
+            {{end}}
+        </select>
+    </div>
+    <div class="form-label-group">
+        <label for="stateSelect">State</label>
+        <select name="state" id="stateSelect" class="filter-field" data-operator="eq">
+            <option value=""></option>
+            {{range .FilterOptions.State}}
+            <option value="{{.}}">{{.}}</option>
+            {{end}}
+        </select>
+    </div>
+    <button class="btn btn-lg btn-primary btn-block" type="submit">Apply</button>
+</form>
+
+{{end}}
+
+{{define "script"}}
+<script>
+    (function() {
+        const baseURL = window.location.origin;
+        
+        const filterForm = document.getElementById('filterForm');
+        filterForm.addEventListener('submit', submitHandler);
+
+        function submitHandler(e) {
+            e.preventDefault();
+            
+            let destUrl = new URL('/', baseURL);            
+
+            const filterFormFields = document.querySelectorAll('#filterForm > div > .filter-field');
+            filterFormFields.forEach((e) => {
+                const key = `filter[${e.name}|${e.dataset.operator}]`
+                destUrl.searchParams.set(key, e.value);
+            });
+            
+            // Go to the formed url
+            window.location.href =  destUrl;
+        }
+
+    })();
+</script>
+{{end}}
