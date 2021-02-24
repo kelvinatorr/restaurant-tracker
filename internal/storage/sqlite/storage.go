@@ -348,12 +348,23 @@ func addSortOps(sqlStatement string, sortOp lister.SortOperation, last bool) str
 }
 
 func addFilterOps(sqlStatement string, filterOp lister.FilterOperation, first bool) string {
-	formatString := "%s %s CAST('%s' as %s)"
+	var formatString string
+	if filterOp.Operator == "is" {
+		formatString = "%s %s %s"
+	} else {
+		formatString = "%s %s CAST('%s' as %s)"
+	}
+
 	if !first {
 		formatString = "AND " + formatString
 	}
 
-	sqlStatement = sqlStatement + fmt.Sprintf(formatString, filterOp.Field, filterOp.Operator, filterOp.Value, filterOp.FieldType)
+	if filterOp.Operator == "is" {
+		sqlStatement = sqlStatement + fmt.Sprintf(formatString, filterOp.Field, filterOp.Operator, filterOp.Value)
+	} else {
+		sqlStatement = sqlStatement + fmt.Sprintf(formatString, filterOp.Field, filterOp.Operator, filterOp.Value, filterOp.FieldType)
+	}
+
 	sqlStatement = sqlStatement + "\n"
 	return sqlStatement
 }

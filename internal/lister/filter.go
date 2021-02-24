@@ -26,7 +26,14 @@ type Filter struct {
 }
 
 func getAllowedOperators() map[string]string {
-	return map[string]string{"eq": "=", "lt": "<", "gt": ">", "lteq": "<=", "gteq": ">="}
+	return map[string]string{
+		"eq":   "=",
+		"lt":   "<",
+		"gt":   ">",
+		"lteq": "<=",
+		"gteq": ">=",
+		"is":   "is",
+	}
 }
 
 func (s service) getAllowedFilterFields(object string) (map[string]Field, error) {

@@ -19,7 +19,7 @@ func (s Storage) RestaurantFilterFields() map[string]lister.Field {
 	restaurantFields["cuisine"] = lister.Field{Name: "cuisine", Type: "TEXT"}
 	restaurantFields["city"] = lister.Field{Name: "city_name", Type: "TEXT"}
 	restaurantFields["state"] = lister.Field{Name: "state_name", Type: "TEXT"}
-	restaurantFields["last_visit"] = lister.Field{Name: "last_visit_datetime", Type: "TEXT"}
+	restaurantFields["last_visit"] = lister.Field{Name: "last_visits.last_visit", Type: "TEXT"}
 	restaurantFields["avg_rating"] = lister.Field{Name: "avg_rating", Type: "REAL"}
 	return restaurantFields
 }

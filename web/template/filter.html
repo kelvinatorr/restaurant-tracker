@@ -11,7 +11,7 @@
     <div class="form-label-group">
         <label for="cuisineSelect">Cuisine</label>
         <select name="cuisine" id="cuisineSelect" class="filter-field" data-operator="eq">
-            <option value=""></option>
+            <option value="">Any</option>
             {{range .FilterOptions.Cuisine}}
             <option value="{{.}}">{{.}}</option>
             {{end}}
@@ -20,7 +20,7 @@
     <div class="form-label-group">
         <label for="citySelect">City</label>
         <select name="city" id="citySelect" class="filter-field" data-operator="eq">
-            <option value=""></option>
+            <option value="">Any</option>
             {{range .FilterOptions.City}}
             <option value="{{.}}">{{.}}</option>
             {{end}}
@@ -29,10 +29,18 @@
     <div class="form-label-group">
         <label for="stateSelect">State</label>
         <select name="state" id="stateSelect" class="filter-field" data-operator="eq">
-            <option value=""></option>
+            <option value="">Any</option>
             {{range .FilterOptions.State}}
             <option value="{{.}}">{{.}}</option>
             {{end}}
+        </select>
+    </div>
+    <div class="form-label-group">
+        <label for="visitedSelect">Visited</label>
+        <select name="last_visit" id="visitedSelect" class="filter-field" data-operator="is">
+            <option value="">Any</option>
+            <option value="NOT NULL">True</option>
+            <option value="NULL">False</option>
         </select>
     </div>
     <button class="btn btn-lg btn-primary btn-block" type="submit">Apply</button>
@@ -44,7 +52,7 @@
 <script>
     (function() {
         const baseURL = window.location.origin;
-        
+
         const filterForm = document.getElementById('filterForm');
         filterForm.addEventListener('submit', submitHandler);
 
@@ -55,6 +63,10 @@
 
             const filterFormFields = document.querySelectorAll('#filterForm > div > .filter-field');
             filterFormFields.forEach((e) => {
+                if (e.value === '') {
+                    // skip it.
+                    return;
+                }
                 const key = `filter[${e.name}|${e.dataset.operator}]`
                 destUrl.searchParams.set(key, e.value);
             });
