@@ -558,23 +558,40 @@ func postSignOut() httprouter.Handle {
 
 func getFilter(s lister.Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		// TODO read the query params to fill up the form
+		// Read the query params to fill up the form
+		queryParams := r.URL.Query()
 
 		v := newView("base", "../../web/template/filter.html")
 
 		data := Data{}
 		data.Head = Head{"Filter Restaurants"}
-		// Get all filters
-		filterOptions := s.GetFilterOptions()
+		// Get all select filters
+		filterOptions := s.GetFilterOptions(queryParams)
+
+		lastVisit := s.GetFilterParam("last_visit", queryParams).Value
+
+		avgRatingFilterOp := s.GetFilterParam("avg_rating", queryParams)
+
+		avgRating := struct {
+			Operator string
+			Value    string
+		}{Operator: avgRatingFilterOp.Operator, Value: avgRatingFilterOp.Value}
 
 		data.Yield = struct {
 			Header        string
 			Text          string
 			FilterOptions lister.FilterOptions
+			LastVisit     string
+			AvgRating     struct {
+				Operator string
+				Value    string
+			}
 		}{
 			"Filter Restaurants",
 			"Filter the restaurant table by selecting options below.",
 			filterOptions,
+			lastVisit,
+			avgRating,
 		}
 		v.render(w, data)
 	}

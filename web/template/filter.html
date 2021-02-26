@@ -13,7 +13,7 @@
         <select name="cuisine" id="cuisineSelect" class="filter-field" data-operator="eq">
             <option value="">Any</option>
             {{range .FilterOptions.Cuisine}}
-            <option value="{{.}}">{{.}}</option>
+            <option {{if .Selected}} selected {{end}} value="{{.Value}}">{{.Value}}</option>
             {{end}}
         </select>
     </div>
@@ -22,7 +22,7 @@
         <select name="city" id="citySelect" class="filter-field" data-operator="eq">
             <option value="">Any</option>
             {{range .FilterOptions.City}}
-            <option value="{{.}}">{{.}}</option>
+            <option {{if .Selected}} selected {{end}} value="{{.Value}}">{{.Value}}</option>
             {{end}}
         </select>
     </div>
@@ -31,16 +31,16 @@
         <select name="state" id="stateSelect" class="filter-field" data-operator="eq">
             <option value="">Any</option>
             {{range .FilterOptions.State}}
-            <option value="{{.}}">{{.}}</option>
+            <option {{if .Selected}} selected {{end}} value="{{.Value}}">{{.Value}}</option>
             {{end}}
         </select>
     </div>
     <div class="form-label-group">
         <label for="visitedSelect">Visited</label>
         <select name="last_visit" id="visitedSelect" class="filter-field" data-operator="is">
-            <option value="">Any</option>
-            <option value="NOT NULL">True</option>
-            <option value="NULL">False</option>
+            <option {{if eq .LastVisit ""}} selected {{end}} value="">Any</option>
+            <option {{if eq .LastVisit "NOT NULL"}} selected {{end}} value="NOT NULL">True</option>
+            <option {{if eq .LastVisit "NULL"}} selected {{end}} value="NULL">False</option>
         </select>
     </div>
     <div class="form-label-group">
@@ -48,13 +48,13 @@
             <legend>Average Rating</legend>
             <label for="avgRatingOpSelect">Operator</label>
             <select name="last_visit" id="avgRatingOpSelect">
-                <option value="lt">Less Than</option>
-                <option value="lteq">Less Than Or Equal To</option>
-                <option value="gt">Greater Than</option>
-                <option value="gteq">Greater Than Or Equal To</option>
+                <option {{if eq .AvgRating.Operator "lt"}} selected {{end}} value="lt">Less Than</option>
+                <option {{if eq .AvgRating.Operator "lteq"}} selected {{end}} value="lteq">Less Than Or Equal To</option>
+                <option {{if eq .AvgRating.Operator "gt"}} selected {{end}} value="gt">Greater Than</option>
+                <option {{if eq .AvgRating.Operator "gteq"}} selected {{end}} value="gteq">Greater Than Or Equal To</option>
             </select>
             <label for="avgRatingInput">Value</label>
-            <input type="number" name="avg_rating" id="avgRatingInput" min=1 max=5 step=1/>
+            <input type="number" name="avg_rating" id="avgRatingInput" value={{.AvgRating.Value}} min=1 max=5 step=1/>
         </fieldset>        
     </div>
     <button class="btn btn-lg btn-primary btn-block" type="submit">Apply</button>

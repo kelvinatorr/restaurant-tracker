@@ -29,7 +29,8 @@ type Service interface {
 	GetVisitsByRestaurantID(int64) []Visit
 	GetUserCount() int64
 	GetUserByID(int64) User
-	GetFilterOptions() FilterOptions
+	GetFilterOptions(url.Values) FilterOptions
+	GetFilterParam(string, url.Values) FilterOperation
 }
 
 // Repository provides access to restaurant repository.
@@ -127,12 +128,21 @@ func (s service) GetUserByID(id int64) User {
 }
 
 // GetFilterOptions returns a Filter
-func (s service) GetFilterOptions() FilterOptions {
+func (s service) GetFilterOptions(qp url.Values) FilterOptions {
 	return FilterOptions{
-		Cuisine: s.r.GetDistinct("cuisine", "restaurant"),
-		City:    s.r.GetDistinct("name", "city"),
-		State:   s.r.GetDistinct("state", "city"),
+		Cuisine: generateFilterOptions(s.r.GetDistinct("cuisine", "restaurant"), s.GetFilterParam("cuisine", qp).Value),
+		City:    generateFilterOptions(s.r.GetDistinct("name", "city"), s.GetFilterParam("city", qp).Value),
+		State:   generateFilterOptions(s.r.GetDistinct("state", "city"), s.GetFilterParam("state", qp).Value),
 	}
+}
+
+func generateFilterOptions(distinctSlice []string, selectedValue string) []FilterOption {
+	var cuisine []FilterOption
+	for _, o := range distinctSlice {
+		selected := o == selectedValue
+		cuisine = append(cuisine, FilterOption{Value: o, Selected: selected})
+	}
+	return cuisine
 }
 
 // NewService returns a new lister.service
