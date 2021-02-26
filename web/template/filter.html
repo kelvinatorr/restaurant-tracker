@@ -43,6 +43,20 @@
             <option value="NULL">False</option>
         </select>
     </div>
+    <div class="form-label-group">
+        <fieldset>
+            <legend>Average Rating</legend>
+            <label for="avgRatingOpSelect">Operator</label>
+            <select name="last_visit" id="avgRatingOpSelect">
+                <option value="lt">Less Than</option>
+                <option value="lteq">Less Than Or Equal To</option>
+                <option value="gt">Greater Than</option>
+                <option value="gteq">Greater Than Or Equal To</option>
+            </select>
+            <label for="avgRatingInput">Value</label>
+            <input type="number" name="avg_rating" id="avgRatingInput" min=1 max=5 step=1/>
+        </fieldset>        
+    </div>
     <button class="btn btn-lg btn-primary btn-block" type="submit">Apply</button>
 </form>
 
@@ -70,6 +84,14 @@
                 const key = `filter[${e.name}|${e.dataset.operator}]`
                 destUrl.searchParams.set(key, e.value);
             });
+
+            // Handle Average Rating
+            const avgRatingInput = document.getElementById('avgRatingInput');
+            if (avgRatingInput.value !== "") {
+                const avgRatingOpSelect = document.getElementById('avgRatingOpSelect');
+                const key = `filter[${avgRatingInput.name}|${avgRatingOpSelect.value}]`
+                destUrl.searchParams.set(key, avgRatingInput.value);
+            }
             
             // Go to the formed url
             window.location.href =  destUrl;
