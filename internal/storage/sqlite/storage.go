@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
@@ -347,22 +348,22 @@ func addSortOps(sqlStatement string, sortOp lister.SortOperation, last bool) str
 	return sqlStatement
 }
 
-func addFilterOps(sqlStatement string, filterOp lister.FilterOperation, first bool) string {
+func addFilterOps(sqlStatement string, filterOp lister.FilterOperation, idx int) string {
 	var formatString string
 	if filterOp.Operator == "is" {
-		formatString = "%s %s %s"
+		formatString = "%s %s $%s"
 	} else {
-		formatString = "%s %s CAST('%s' as %s)"
+		formatString = "%s %s CAST($%s as %s)"
 	}
 
-	if !first {
+	if idx != 0 {
 		formatString = "AND " + formatString
 	}
 
 	if filterOp.Operator == "is" {
-		sqlStatement = sqlStatement + fmt.Sprintf(formatString, filterOp.Field, filterOp.Operator, filterOp.Value)
+		sqlStatement = sqlStatement + fmt.Sprintf(formatString, filterOp.Field, filterOp.Operator, strconv.Itoa(idx))
 	} else {
-		sqlStatement = sqlStatement + fmt.Sprintf(formatString, filterOp.Field, filterOp.Operator, filterOp.Value, filterOp.FieldType)
+		sqlStatement = sqlStatement + fmt.Sprintf(formatString, filterOp.Field, filterOp.Operator, strconv.Itoa(idx), filterOp.FieldType)
 	}
 
 	sqlStatement = sqlStatement + "\n"
@@ -403,14 +404,16 @@ func (s Storage) GetRestaurants(sortOps []lister.SortOperation, filterOps []list
 	// Generate the get sql statement without the where clause.
 	sqlStatement := generateRestaurantSQL()
 
+	var filterValues []interface{}
 	nFilterOps := len(filterOps)
 	if nFilterOps > 0 {
 		sqlStatement = sqlStatement + `
 			WHERE
 		`
 		// add filter statements
-		for i, so := range filterOps {
-			sqlStatement = addFilterOps(sqlStatement, so, i == 0)
+		for i, fo := range filterOps {
+			sqlStatement = addFilterOps(sqlStatement, fo, i)
+			filterValues = append(filterValues, fo.Value)
 		}
 	}
 
@@ -425,7 +428,7 @@ func (s Storage) GetRestaurants(sortOps []lister.SortOperation, filterOps []list
 		}
 	}
 
-	dbRows, err := s.db.Query(sqlStatement)
+	dbRows, err := s.db.Query(sqlStatement, filterValues...)
 	checkAndPanic(err)
 	defer dbRows.Close()
 	for dbRows.Next() {
