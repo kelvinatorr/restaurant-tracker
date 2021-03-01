@@ -28,7 +28,7 @@
   </div>  
 </form>
 <br/>
-<a href="/filter">Filter</a>
+<a id="filterLink" href="/filter">Filter</a>
 <br/>
 <div>
     <div>
@@ -119,9 +119,27 @@
     
     setSortParams();
     setSearchParam();
+    setFilterParams();
 
     searchInput.addEventListener('keyup', debounce(searchTable, 250));
     searchIgnoreCase.addEventListener('change', searchTable);
+
+    // Take all the filters in the current url and then add it to the link
+    function setFilterParams() {      
+      const urlSearchParams = new URLSearchParams(window.location.search);
+      const filterLink = document.getElementById('filterLink');
+
+      let linkURL = new URL(filterLink.href);
+
+      for(var pair of urlSearchParams.entries()) {
+        const key = pair[0];
+        const value = pair[1];
+        if (key.substring(0, 6) === 'filter') {
+          linkURL.searchParams.set(key, value);
+        }
+      }
+      filterLink.href = linkURL;
+    }
 
     function setSearchParam() {
       const urlParams = new URLSearchParams(window.location.search);
