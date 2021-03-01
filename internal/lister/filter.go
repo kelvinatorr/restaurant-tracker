@@ -32,6 +32,7 @@ func getAllowedOperators() map[string]string {
 		"lteq": "<=",
 		"gteq": ">=",
 		"is":   "is",
+		"isnt": "is not",
 	}
 }
 

@@ -38,9 +38,9 @@
     <div class="form-label-group">
         <label for="visitedSelect">Visited</label>
         <select name="last_visit" id="visitedSelect" class="filter-field" data-operator="is">
-            <option {{if eq .LastVisit ""}} selected {{end}} value="">Any</option>
-            <option {{if eq .LastVisit "NOT NULL"}} selected {{end}} value="NOT NULL">True</option>
-            <option {{if eq .LastVisit "NULL"}} selected {{end}} value="NULL">False</option>
+            <option {{if eq .LastVisitOp ""}} selected {{end}} value="">Any</option>
+            <option {{if eq .LastVisitOp "isnt"}} selected {{end}} value="True">True</option>
+            <option {{if eq .LastVisitOp "is"}} selected {{end}} value="False">False</option>
         </select>
     </div>
     <div class="form-label-group">
@@ -81,8 +81,16 @@
                     // skip it.
                     return;
                 }
-                const key = `filter[${e.name}|${e.dataset.operator}]`
-                destUrl.searchParams.set(key, e.value);
+                let operator = e.dataset.operator;
+                let value = e.value;
+                if (e.id === 'visitedSelect') {
+                    if (value === 'True') {
+                        operator = 'isnt'
+                    }
+                    value = "NULL";
+                }
+                const key = `filter[${e.name}|${operator}]`
+                destUrl.searchParams.set(key, value);
             });
 
             // Handle Average Rating

@@ -568,7 +568,7 @@ func getFilter(s lister.Service) httprouter.Handle {
 		// Get all select filters
 		filterOptions := s.GetFilterOptions(queryParams)
 
-		lastVisit := s.GetFilterParam("last_visit", queryParams).Value
+		lastVisitOp := s.GetFilterParam("last_visit", queryParams).Operator
 
 		avgRatingFilterOp := s.GetFilterParam("avg_rating", queryParams)
 
@@ -581,7 +581,7 @@ func getFilter(s lister.Service) httprouter.Handle {
 			Header        string
 			Text          string
 			FilterOptions lister.FilterOptions
-			LastVisit     string
+			LastVisitOp   string
 			AvgRating     struct {
 				Operator string
 				Value    string
@@ -590,7 +590,7 @@ func getFilter(s lister.Service) httprouter.Handle {
 			"Filter Restaurants",
 			"Filter the restaurant table by selecting options below.",
 			filterOptions,
-			lastVisit,
+			lastVisitOp,
 			avgRating,
 		}
 		v.render(w, data)

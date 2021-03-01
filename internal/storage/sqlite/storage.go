@@ -350,7 +350,7 @@ func addSortOps(sqlStatement string, sortOp lister.SortOperation, last bool) str
 
 func addFilterOps(sqlStatement string, filterOp lister.FilterOperation, idx int) string {
 	var formatString string
-	if filterOp.Operator == "is" {
+	if filterOp.Operator == "is" || filterOp.Operator == "is not" {
 		formatString = "%s %s $%s"
 	} else {
 		formatString = "%s %s CAST($%s as %s)"
@@ -360,7 +360,7 @@ func addFilterOps(sqlStatement string, filterOp lister.FilterOperation, idx int)
 		formatString = "AND " + formatString
 	}
 
-	if filterOp.Operator == "is" {
+	if filterOp.Operator == "is" || filterOp.Operator == "is not" {
 		sqlStatement = sqlStatement + fmt.Sprintf(formatString, filterOp.Field, filterOp.Operator, strconv.Itoa(idx))
 	} else {
 		sqlStatement = sqlStatement + fmt.Sprintf(formatString, filterOp.Field, filterOp.Operator, strconv.Itoa(idx), filterOp.FieldType)
@@ -413,7 +413,11 @@ func (s Storage) GetRestaurants(sortOps []lister.SortOperation, filterOps []list
 		// add filter statements
 		for i, fo := range filterOps {
 			sqlStatement = addFilterOps(sqlStatement, fo, i)
-			filterValues = append(filterValues, fo.Value)
+			var fv interface{} = fo.Value
+			if fv == "NULL" {
+				fv = nil
+			}
+			filterValues = append(filterValues, fv)
 		}
 	}
 
