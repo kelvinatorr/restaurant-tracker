@@ -200,7 +200,7 @@
         let cs = columnSorts[i];
         let linkURL =  new URL(cs.href);
         for(const e of linkURL.searchParams.entries()) {
-          let key = e[0];
+          const key = e[0];
           // skip query params on the a tag that are not related to sort
           if (key.substring(0, 4) != 'sort') {
             continue;
@@ -218,6 +218,15 @@
               linkURL.searchParams.set(key, 'asc');
               break;
           }
+        }
+        // Get all the filter params and add it to the link url
+        for (const e  of urlParams.entries()) {
+          const key = e[0];
+          const val = e[1];
+          if (key.substring(0, 6) !== 'filter') {
+            continue;
+          }
+          linkURL.searchParams.set(key, val);
         }
         // reset the url
         cs.href = linkURL;
