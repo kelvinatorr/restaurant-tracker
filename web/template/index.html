@@ -29,6 +29,7 @@
 </form>
 <br/>
 <a id="filterLink" href="/filter">Filter</a>
+<a id="clearFilterLink" class="display-none" href="/">Clear Filter</a>
 <br/>
 <div>
     <div>
@@ -116,15 +117,29 @@
   (function() {
     const searchInput = document.getElementById('searchInput');
     const searchIgnoreCase = document.getElementById("ignoreCase");
+    const clearFilterLink = document.getElementById('clearFilterLink');
     
     setSortParams();
     setSearchParam();
+    toggleClearFilterVisibility();
     setFilterParams();
 
     searchInput.addEventListener('keyup', debounce(searchTable, 250));
     searchIgnoreCase.addEventListener('change', searchTable);
 
-    // Take all the filters in the current url and then add it to the link
+    // If the url search parms contain a filter, show the clear filter link, otherwise keep it hidden
+    function toggleClearFilterVisibility() {
+      const urlParams = new URLSearchParams(window.location.search);
+      for(var key of urlParams.keys()) {
+        if (key.substring(0, 6) === 'filter') {
+          clearFilterLink.classList.remove('display-none');
+          return;
+        }
+      }
+      clearFilterLink.classList.add('display-none');
+    }    
+
+    // Take all the filters in the current url and then add it to the filter page link
     function setFilterParams() {      
       const urlSearchParams = new URLSearchParams(window.location.search);
       const filterLink = document.getElementById('filterLink');
@@ -141,6 +156,7 @@
       filterLink.href = linkURL;
     }
 
+    // Take the search query parameter if any and apply it to the table
     function setSearchParam() {
       const urlParams = new URLSearchParams(window.location.search);
       const searchParam = urlParams.get('search');
