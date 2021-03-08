@@ -85,6 +85,10 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	filterGETHandler := authRequired(getFilter(l), auth)
 	router.GET(filterPath, filterGETHandler)
 
+	restaurantPath := "/restaurants/:id"
+	restaurantGETHandler := authRequired(getRestaurant(l), auth)
+	router.GET(restaurantPath, restaurantGETHandler)
+
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
 		http.Error(w, "The server encountered an error processing your request.", http.StatusInternalServerError)
@@ -592,6 +596,41 @@ func getFilter(s lister.Service) httprouter.Handle {
 			filterOptions,
 			lastVisitOp,
 			avgRating,
+		}
+		v.render(w, data)
+	}
+}
+
+func getRestaurant(s lister.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		// get the route parameter
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		v := newView("base", "../../web/template/restaurant.html")
+
+		data := Data{}
+
+		// Get the restaurant requested
+		restaurant, err := s.GetRestaurant(int64(ID))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		data.Head = Head{"Filter Restaurants"}
+		data.Yield = struct {
+			Header     string
+			Text       string
+			Restaurant lister.Restaurant
+		}{
+			restaurant.Name,
+			"Edit this restuarant's details below",
+			restaurant,
 		}
 		v.render(w, data)
 	}

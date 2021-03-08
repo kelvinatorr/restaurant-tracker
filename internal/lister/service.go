@@ -60,6 +60,15 @@ func (s service) GetRestaurant(id int64) (Restaurant, error) {
 	if r.ID == 0 {
 		err = &ErrDoesNotExist{fmt.Sprintf("No restaurant with id: %d", id)}
 	}
+
+	if r.LastVisitDatetime != "" {
+		lastVisitDate, err := time.Parse(time.RFC3339, r.LastVisitDatetime)
+		if err != nil {
+			return r, err
+		}
+		r.LastVisitDatetime = lastVisitDate.Format("2006-01-02")
+	}
+
 	return r, err
 }
 
