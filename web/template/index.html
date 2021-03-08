@@ -81,7 +81,9 @@
               {{range .Restaurants}}
               <tr class="restaurant-row">
                 <td class="search-value display-none">{{.SearchValue}}</td>
-                <td>{{.Name}}</td>
+                <td>
+                  <a href="/restaurants/{{.ID}}">{{.Name}}</a>
+                </td>
                 <td>{{.Cuisine}}</td>
                 <td>{{.CityState.Name}}</td>
                 <td>{{.CityState.State}}</td>
