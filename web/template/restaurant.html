@@ -1,0 +1,158 @@
+{{define "head"}}
+<title>{{.Title}}</title>
+{{end}}
+
+{{define "yield"}}
+<h1>{{.Header}}</h1>
+<p>
+    {{.Text}}
+</p>
+<p>
+    <a href="/">Add Visit</a>
+</p>
+<form method="POST">
+    <div class="form-label-group">
+        <input type="hidden" name="id" id="idInput" disabled value="{{.Restaurant.ID}}" />
+    </div>
+
+    <div class="form-label-group">
+        <label for="nameInput">Name</label>
+        <input type="text" name="name" id="nameInput" value="{{.Restaurant.Name}}" />
+    </div>
+    <div class="form-label-group">
+        <label for="cuisineInput">Cuisine</label>
+        <input type="text" name="name" id="cuisineInput" value="{{.Restaurant.Cuisine}}" />
+    </div>
+    <div class="form-label-group">
+        <label for="cityInput">City</label>
+        <input type="text" name="city" id="cityInput" value="{{.Restaurant.CityState.Name}}" />
+    </div>
+    <div class="form-label-group">
+        <label for="stateInput">State</label>
+        <input type="text" name="state" id="stateInput" value="{{.Restaurant.CityState.State}}" />
+    </div>
+    <div class="form-label-group">
+        <label for="noteText">Note</label>
+        <textarea name="note" id="noteText">{{.Restaurant.Note}}</textarea>
+    </div>
+
+    <div class="form-label-group">
+        <label for="lastVisitInput">Last Visit</label>
+        <input type="date" id="lastVisitInput" disabled value="{{.Restaurant.LastVisitDatetime}}" />
+    </div>
+
+    <div>
+        <a href="/">View Visits</a>
+    </div>
+
+    <br/>
+    <div class="form-label-group">        
+        <fieldset>
+            <legend>Google Maps Data</legend>
+            {{if ne .Restaurant.GmapsPlace.ID 0}}
+            <div>
+                <input type="hidden" name="gmapsPlaceID" id="gmapsPlaceIDInput" disabled
+                    value="{{.Restaurant.GmapsPlace.ID}}" />
+            </div>
+
+            <div>
+                <input type="hidden" name="placeID" id="placeIDInput" disabled
+                    value="{{.Restaurant.GmapsPlace.PlaceID}}" />
+            </div>
+
+            <div>
+                <label for="mapsURLLink">Maps URL</label>
+                <a href="{{.Restaurant.GmapsPlace.URL}}" id="mapsURLLink">{{.Restaurant.GmapsPlace.URL}}</a>
+            </div>
+
+            <div>
+                <label for="addressInput">Address</label>
+                <input type="text" name="address" id="addressInput" disabled value="{{.Restaurant.Address}}"/>
+            </div>
+            
+            <div>
+                <label for="zipCodeInput">ZipCode</label>
+                <input type="tel" name="zipCode" id="zipCodeInput" disabled value="{{.Restaurant.Zipcode}}"/>
+            </div>
+
+            <div>
+                <label for="gmapsNameInput">Google Maps Name</label>
+                <input type="text" name="gmapsName" id="gmapsNameInput" disabled value="{{.Restaurant.GmapsPlace.Name}}"/>
+            </div>           
+
+            <div>
+                <label for="websitelink">Website</label>
+                <a href="{{.Restaurant.GmapsPlace.Website}}" id="websitelink">{{.Restaurant.GmapsPlace.Website}}</a>
+            </div>
+
+            <div>
+                <label for="phoneInput">Phone Number</label>
+                <input type="tel" name="phone" id="phoneInput" disabled value="{{.Restaurant.GmapsPlace.FormattedPhoneNumber}}"/>
+            </div>            
+
+            <div>
+                <label for="gmapsRatingInput">Google Maps Rating</label>
+                <input type="number" name="gmapsRating" id="gmapsRatingInput" disabled 
+                    value="{{.Restaurant.GmapsPlace.Rating}}"/>
+            </div>
+
+            <div>
+                <label for="nUserRatingsInput">Number of User Ratings</label>
+                <input type="number" name="nUserRatings" id="nUserRatingsInput" disabled 
+                    value="{{.Restaurant.GmapsPlace.UserRatingsTotal}}"/>
+            </div>
+
+            <div>
+                <label for="priceLevelInput">Price Level</label>
+                <input type="number" name="priceLevel" id="priceLevelInput" disabled 
+                    value="{{.Restaurant.GmapsPlace.PriceLevel}}"/>
+            </div>
+            
+            <div>
+                <label for="businessStatusInput">Business Status</label>
+                <input type="text" name="businessStatus" id="businessStatusInput" disabled 
+                    value="{{.Restaurant.GmapsPlace.BusinessStatus}}"/>
+            </div>                        
+
+            <div>
+                <label for="latitudeInput">Latitude</label>
+                <input type="text" name="latitude" id="latitudeInput" disabled value="{{.Restaurant.Latitude}}"/>
+            </div>
+            
+            <div>
+                <label for="longitudeInput">Longitude</label>
+                <input type="text" name="longitude" id="longitudeInput" disabled value="{{.Restaurant.Longitude}}"/>
+            </div>
+
+            <div>
+                <label for="utcOffsetInput">UTC Offset</label>
+                <input type="number" name="utcOffset" id="utcOffsetInput" disabled 
+                    value="{{.Restaurant.GmapsPlace.UTCOffset}}"/>
+            </div>
+
+            <div>
+                <button type="button" id="refreshGmapsDataBtn">Refresh Data</button>
+            </div>
+
+            <div>
+                <button type="button" id="deleteGmapsDataBtn">Delete Data</button>
+            </div>
+            {{end}}
+
+            {{if eq .Restaurant.GmapsPlace.ID 0}}
+            <div>
+                <button type="button" id="getGmapsDataBtn">Get Data</button>
+            </div>
+            {{end}}
+            
+        </fieldset>
+        
+    </div>
+    <br/>
+    <button class="btn btn-lg btn-primary btn-block" type="submit">Save</button>
+</form>
+
+{{end}}
+
+{{define "script"}}
+{{end}}
