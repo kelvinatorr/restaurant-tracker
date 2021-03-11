@@ -131,17 +131,33 @@
             </div>
 
             <div>
-                <button type="button" id="refreshGmapsDataBtn">Refresh Data</button>
+                <button type="button" id="refreshGmapsDataBtn" {{if not .HaveGmapsKey}} disabled {{end}}>
+                    Refresh Data
+                </button>
+                {{if not .HaveGmapsKey}} 
+                    <span>
+                        No Google Maps API Key
+                    </span>
+                {{end}}
             </div>
 
             <div>
-                <button type="button" id="deleteGmapsDataBtn">Delete Data</button>
+                <button type="button" id="deleteGmapsDataBtn">
+                    Delete Data
+                </button>
             </div>
             {{end}}
 
             {{if eq .Restaurant.GmapsPlace.ID 0}}
             <div>
-                <button type="button" id="getGmapsDataBtn">Get Data</button>
+                <button type="button" id="getGmapsDataBtn" {{if not .HaveGmapsKey}} disabled {{end}}>
+                    Get Data
+                </button>
+                {{if not .HaveGmapsKey}} 
+                    <span>
+                        No Google Maps API Key
+                    </span>
+                {{end}}        
             </div>
             {{end}}
             

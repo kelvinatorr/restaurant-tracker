@@ -88,7 +88,7 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.GET(filterPath, filterGETHandler)
 
 	restaurantPath := "/restaurants/:id"
-	restaurantGETHandler := authRequired(getRestaurant(l), auth)
+	restaurantGETHandler := authRequired(getRestaurant(l, m), auth)
 	router.GET(restaurantPath, restaurantGETHandler)
 
 	mapPlaceSearchPath := "/maps/place-search"
@@ -607,7 +607,7 @@ func getFilter(s lister.Service) httprouter.Handle {
 	}
 }
 
-func getRestaurant(s lister.Service) httprouter.Handle {
+func getRestaurant(s lister.Service, m mapper.Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		// get the route parameter
 		ID, err := strconv.Atoi(p.ByName("id"))
@@ -628,15 +628,19 @@ func getRestaurant(s lister.Service) httprouter.Handle {
 			return
 		}
 
+		haveGmapsKey := m.HaveGmapsKey()
+
 		data.Head = Head{"Filter Restaurants"}
 		data.Yield = struct {
-			Header     string
-			Text       string
-			Restaurant lister.Restaurant
+			Header       string
+			Text         string
+			Restaurant   lister.Restaurant
+			HaveGmapsKey bool
 		}{
 			restaurant.Name,
 			"Edit this restuarant's details below",
 			restaurant,
+			haveGmapsKey,
 		}
 		v.render(w, data)
 	}
