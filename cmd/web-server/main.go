@@ -10,6 +10,7 @@ import (
 	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
 	"github.com/kelvinatorr/restaurant-tracker/internal/http/web"
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
+	"github.com/kelvinatorr/restaurant-tracker/internal/mapper"
 	"github.com/kelvinatorr/restaurant-tracker/internal/remover"
 	"github.com/kelvinatorr/restaurant-tracker/internal/storage/sqlite"
 	"github.com/kelvinatorr/restaurant-tracker/internal/updater"
@@ -30,6 +31,11 @@ func main() {
 		log.Fatalln("No SECRETKEY environment variable set.")
 	}
 
+	gmapsKey := os.Getenv("GMAPSKEY")
+	if gmapsKey == "" {
+		log.Println("GMAPSKEY not set. Google Maps functionality will be disabled")
+	}
+
 	log.Printf("Connecting to database: %s\n", dbPath)
 	s, err := sqlite.NewStorage(dbPath)
 	if err != nil {
@@ -42,10 +48,11 @@ func main() {
 	var update updater.Service = updater.NewService(&s)
 	var remove remover.Service = remover.NewService(&s)
 	var auth auther.Service = auther.NewService(&s, secretKey)
+	var m mapper.Service = mapper.NewService(gmapsKey)
 
 	// http endpoints to receive data
 	// set up the HTTP server
-	router := web.Handler(list, add, update, remove, auth, verbose)
+	router := web.Handler(list, add, update, remove, auth, m, verbose)
 
 	log.Println("The restaurant tracker web server is starting on: http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", router))

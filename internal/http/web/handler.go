@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,6 +17,7 @@ import (
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
 	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
+	"github.com/kelvinatorr/restaurant-tracker/internal/mapper"
 	"github.com/kelvinatorr/restaurant-tracker/internal/remover"
 	"github.com/kelvinatorr/restaurant-tracker/internal/updater"
 )
@@ -28,7 +30,7 @@ const (
 )
 
 // Handler sets the httprouter routes for the web package
-func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Service, auth auther.Service, verbose bool) http.Handler {
+func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Service, auth auther.Service, m mapper.Service, verbose bool) http.Handler {
 
 	router := httprouter.New()
 
@@ -88,6 +90,10 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	restaurantPath := "/restaurants/:id"
 	restaurantGETHandler := authRequired(getRestaurant(l), auth)
 	router.GET(restaurantPath, restaurantGETHandler)
+
+	mapPlaceSearchPath := "/maps/place-search"
+	mapPlaceSearchGETHandler := authRequired(getPlaceSearch(m), auth)
+	router.GET(mapPlaceSearchPath, mapPlaceSearchGETHandler)
 
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
@@ -633,5 +639,30 @@ func getRestaurant(s lister.Service) httprouter.Handle {
 			restaurant,
 		}
 		v.render(w, data)
+	}
+}
+
+func getPlaceSearch(m mapper.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		if !m.HaveGmapsKey() {
+			http.Error(w, "No Google Maps Key", http.StatusPaymentRequired)
+			return
+		}
+
+		queryParams := r.URL.Query()
+		searchTerm := queryParams.Get("searchTerm")
+		if searchTerm == "" {
+			http.Error(w, "A ?searchTerm query parameter is required", http.StatusBadRequest)
+			return
+		}
+
+		candidates, err := m.PlaceSearch(searchTerm)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(candidates)
 	}
 }
