@@ -1,5 +1,22 @@
 {{define "head"}}
 <title>{{.Title}}</title>
+<style>
+    .hidden-visually {
+        border: 0;
+        clip: rect(0, 0, 0, 0);
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        padding: 0;
+        position: absolute;
+        white-space: nowrap;
+        width: 1px;
+    }
+
+    .inline-block {
+        display: inline-block;
+    }
+</style>
 {{end}}
 
 {{define "yield"}}
@@ -150,14 +167,24 @@
 
             {{if eq .Restaurant.GmapsPlace.ID 0}}
             <div>
+                <label for="addSearchTermInput">Additional Search Terms (Optional)</label>
+                <input type="text" name="addSearchTerm" id="addSearchTermInput" />
+            </div>
+            <div id="gmapsSearchDataContainer">
+                
+            </div>
+            <div>
                 <button type="button" id="getGmapsDataBtn" {{if not .HaveGmapsKey}} disabled {{end}}>
                     Get Data
                 </button>
                 {{if not .HaveGmapsKey}} 
-                    <span>
-                        No Google Maps API Key
-                    </span>
-                {{end}}        
+                <span>
+                    No Google Maps API Key
+                </span>
+                {{end}}
+                <span id="gmapsErrorText">
+
+                </span>
             </div>
             {{end}}
             
@@ -168,7 +195,101 @@
     <button class="btn btn-lg btn-primary btn-block" type="submit">Save</button>
 </form>
 
+<template id="gmapsSearchDataDiv">
+    <div>                    
+        <label>
+            <input type="radio" name="gmapsData" value="" />
+            <span class="hidden-visually">                
+            </span>
+            <div class="inline-block" aria-hidden="true">
+                <h3>
+                    <a target="_blank"></a>
+                </h3>
+                <p></p>
+            </div>                        
+        </label>
+    </div>
+</template>
 {{end}}
 
 {{define "script"}}
+<script>
+    (function() {
+        const baseURL = window.location.origin;
+        const getGmapsDataBtn = document.getElementById('getGmapsDataBtn');
+        getGmapsDataBtn.addEventListener('click', getGmapsData);        
+
+        function getGmapsData() {
+            // Disable to prevent multiple clicks
+            getGmapsDataBtn.disabled = true;
+            let errorMsg = ''
+            const gmapsErrorText = document.getElementById('gmapsErrorText');
+            gmapsErrorText.textContent = errorMsg;
+
+            // Form the url
+            let url = new URL('/maps/place-search', baseURL);
+            const nameInput = document.getElementById('nameInput');
+            const cityInput = document.getElementById('cityInput');
+            const stateInput = document.getElementById('stateInput');
+            const addSearchTermInput = document.getElementById('addSearchTermInput');
+            const searchTerm = `${nameInput.value} ${cityInput.value} ${stateInput.value} ${addSearchTermInput.value}`.trim();            
+            if (searchTerm === '') {
+                errorMsg = 'We need at least a name before getting Google Maps data.';
+                gmapsErrorText.textContent = errorMsg;
+                return;
+            }
+
+            url.searchParams.set('searchTerm', searchTerm);
+            // Make the query
+            fetch(url).then(resp => {
+                if(!resp.ok) {
+                    throw new Error(`The server responded with ${resp.status}: ${resp.statusText}`);
+                }
+                return resp.json();
+            }).then(data => {
+                if (data.length > 0) {
+                    // Display the results
+                    makeDataDivHTML(data);
+                } else {
+                    gmapsErrorText.textContent = `No results for: ${searchTerm}`;
+                }                
+            }).catch(err => {
+                console.log(err);
+                gmapsErrorText.textContent = err;
+            });
+
+            // Enable button again.
+            getGmapsDataBtn.disabled = false;
+        }
+
+        function makeDataDivHTML(data) {
+            const gmapsSearchDataContainer = document.getElementById('gmapsSearchDataContainer');
+            const gmapsSearchDataDiv = document.getElementById('gmapsSearchDataDiv');
+            const frag = new DocumentFragment();
+            let nameURL = new URL('https://www.google.com/maps/search/');
+            nameURL.searchParams.set('api', 1);
+            data.forEach(e => {
+                const clonedDiv = gmapsSearchDataDiv.content.cloneNode(true);
+                const input = clonedDiv.querySelectorAll('input')[0];
+                const span =  clonedDiv.querySelectorAll('span')[0];
+                const nameLink = clonedDiv.querySelectorAll('h3>a')[0];
+                const p = clonedDiv.querySelectorAll('p')[0];
+                input.value = e.place_id;
+                span.textContent = `${e.name}: ${e.formatted_address}`;                
+                nameURL.searchParams.set('query', e.name);
+                nameURL.searchParams.set('query_place_id', e.place_id);
+                nameLink.textContent = e.name;
+                nameLink.href = nameURL;
+                p.textContent = e.formatted_address;
+                frag.appendChild(clonedDiv);
+            });
+            // Remove any old results
+            while(gmapsSearchDataContainer.lastChild) {
+                gmapsSearchDataContainer.lastChild.remove();
+            }
+            gmapsSearchDataContainer.appendChild(frag);
+        }
+
+    })();
+</script>
 {{end}}
