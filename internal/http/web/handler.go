@@ -86,14 +86,17 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	filterPath := "/filter"
 	filterGETHandler := authRequired(getFilter(l), auth)
 	router.GET(filterPath, filterGETHandler)
+	router.HEAD(filterPath, filterGETHandler)
 
 	restaurantPath := "/restaurants/:id"
 	restaurantGETHandler := authRequired(getRestaurant(l, m), auth)
 	router.GET(restaurantPath, restaurantGETHandler)
+	router.HEAD(restaurantPath, restaurantGETHandler)
 
 	mapPlaceSearchPath := "/maps/place-search"
 	mapPlaceSearchGETHandler := authRequired(getPlaceSearch(m), auth)
 	router.GET(mapPlaceSearchPath, mapPlaceSearchGETHandler)
+	router.HEAD(mapPlaceSearchPath, mapPlaceSearchGETHandler)
 
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
