@@ -148,6 +148,12 @@
             </div>
 
             <div>
+                <label for="lastUpdated">Last Updated</label>
+                <input type="date" name="gmapsPlace.lastUpdated" id="lastUpdated" readonly 
+                    value="{{.Restaurant.GmapsPlace.LastUpdated}}"/>
+            </div>
+
+            <div>
                 <button type="button" id="refreshGmapsDataBtn" {{if not .HaveGmapsKey}} disabled {{end}}>
                     Refresh Data
                 </button>
