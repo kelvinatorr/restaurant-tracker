@@ -29,24 +29,24 @@
 </p>
 <form method="POST">
     <div class="form-label-group">
-        <input type="hidden" name="id" id="idInput" disabled value="{{.Restaurant.ID}}" />
+        <input type="hidden" name="id" id="idInput" value="{{.Restaurant.ID}}" />
     </div>
 
     <div class="form-label-group">
         <label for="nameInput">Name</label>
-        <input type="text" name="name" id="nameInput" value="{{.Restaurant.Name}}" />
+        <input type="text" name="name" id="nameInput" value="{{.Restaurant.Name}}" required />
     </div>
     <div class="form-label-group">
         <label for="cuisineInput">Cuisine</label>
-        <input type="text" name="name" id="cuisineInput" value="{{.Restaurant.Cuisine}}" />
+        <input type="text" name="cuisine" id="cuisineInput" value="{{.Restaurant.Cuisine}}" required />
     </div>
     <div class="form-label-group">
         <label for="cityInput">City</label>
-        <input type="text" name="city" id="cityInput" value="{{.Restaurant.CityState.Name}}" />
+        <input type="text" name="cityState.city" id="cityInput" value="{{.Restaurant.CityState.Name}}" required />
     </div>
     <div class="form-label-group">
         <label for="stateInput">State</label>
-        <input type="text" name="state" id="stateInput" value="{{.Restaurant.CityState.State}}" />
+        <input type="text" name="cityState.state" id="stateInput" value="{{.Restaurant.CityState.State}}" required />
     </div>
     <div class="form-label-group">
         <label for="noteText">Note</label>
@@ -55,7 +55,7 @@
 
     <div class="form-label-group">
         <label for="lastVisitInput">Last Visit</label>
-        <input type="date" id="lastVisitInput" disabled value="{{.Restaurant.LastVisitDatetime}}" />
+        <input type="date" name="lastVisit" id="lastVisitInput" readonly value="{{.Restaurant.LastVisitDatetime}}" />
     </div>
 
     <div>
@@ -68,82 +68,89 @@
             <legend>Google Maps Data</legend>
             {{if ne .Restaurant.GmapsPlace.ID 0}}
             <div>
-                <input type="hidden" name="gmapsPlaceID" id="gmapsPlaceIDInput" disabled
+                <input type="hidden" name="gmapsPlace.gmapsPlaceID" id="gmapsPlaceIDInput" readonly
                     value="{{.Restaurant.GmapsPlace.ID}}" />
             </div>
 
             <div>
-                <input type="hidden" name="placeID" id="placeIDInput" disabled
+                <input type="hidden" name="gmapsPlace.placeID" id="placeIDInput" readonly
+                    value="{{.Restaurant.GmapsPlace.PlaceID}}" />
+            </div>
+
+            <div>
+                <input type="hidden" name="gmapsPlace.placeID" id="restaurantIDInput" readonly
                     value="{{.Restaurant.GmapsPlace.PlaceID}}" />
             </div>
 
             <div>
                 <label for="mapsURLLink">Maps URL</label>
                 <a href="{{.Restaurant.GmapsPlace.URL}}" id="mapsURLLink">{{.Restaurant.GmapsPlace.URL}}</a>
+                <input type="hidden" name="gmapsPlace.url" readonly value="{{.Restaurant.GmapsPlace.URL}}" />
             </div>
 
             <div>
                 <label for="addressInput">Address</label>
-                <input type="text" name="address" id="addressInput" disabled value="{{.Restaurant.Address}}"/>
+                <input type="text" name="address" id="addressInput" readonly value="{{.Restaurant.Address}}"/>
             </div>
             
             <div>
                 <label for="zipCodeInput">ZipCode</label>
-                <input type="tel" name="zipCode" id="zipCodeInput" disabled value="{{.Restaurant.Zipcode}}"/>
+                <input type="tel" name="zipCode" id="zipCodeInput" readonly value="{{.Restaurant.Zipcode}}"/>
             </div>
 
             <div>
                 <label for="gmapsNameInput">Google Maps Name</label>
-                <input type="text" name="gmapsName" id="gmapsNameInput" disabled value="{{.Restaurant.GmapsPlace.Name}}"/>
+                <input type="text" name="gmapsPlace.gmapsName" id="gmapsNameInput" readonly value="{{.Restaurant.GmapsPlace.Name}}"/>
             </div>           
 
             <div>
                 <label for="websitelink">Website</label>
                 <a href="{{.Restaurant.GmapsPlace.Website}}" id="websitelink">{{.Restaurant.GmapsPlace.Website}}</a>
+                <input type="hidden" name="gmapsPlace.website" readonly value="{{.Restaurant.GmapsPlace.Website}}" />
             </div>
 
             <div>
                 <label for="phoneInput">Phone Number</label>
-                <input type="tel" name="phone" id="phoneInput" disabled value="{{.Restaurant.GmapsPlace.FormattedPhoneNumber}}"/>
+                <input type="tel" name="gmapsPlace.phone" id="phoneInput" readonly value="{{.Restaurant.GmapsPlace.FormattedPhoneNumber}}"/>
             </div>            
 
             <div>
                 <label for="gmapsRatingInput">Google Maps Rating</label>
-                <input type="number" name="gmapsRating" id="gmapsRatingInput" disabled 
+                <input type="number" name="gmapsPlace.gmapsRating" id="gmapsRatingInput" readonly 
                     value="{{.Restaurant.GmapsPlace.Rating}}"/>
             </div>
 
             <div>
                 <label for="nUserRatingsInput">Number of User Ratings</label>
-                <input type="number" name="nUserRatings" id="nUserRatingsInput" disabled 
+                <input type="number" name="gmapsPlace.nUserRatings" id="nUserRatingsInput" readonly 
                     value="{{.Restaurant.GmapsPlace.UserRatingsTotal}}"/>
             </div>
 
             <div>
                 <label for="priceLevelInput">Price Level</label>
-                <input type="number" name="priceLevel" id="priceLevelInput" disabled 
+                <input type="number" name="gmapsPlace.priceLevel" id="priceLevelInput" readonly 
                     value="{{.Restaurant.GmapsPlace.PriceLevel}}"/>
             </div>
             
             <div>
                 <label for="businessStatusInput">Business Status</label>
-                <input type="text" name="businessStatus" id="businessStatusInput" disabled 
+                <input type="text" name="gmapsPlace.businessStatus" id="businessStatusInput" readonly 
                     value="{{.Restaurant.GmapsPlace.BusinessStatus}}"/>
             </div>                        
 
             <div>
                 <label for="latitudeInput">Latitude</label>
-                <input type="text" name="latitude" id="latitudeInput" disabled value="{{.Restaurant.Latitude}}"/>
+                <input type="text" name="latitude" id="latitudeInput" readonly value="{{.Restaurant.Latitude}}"/>
             </div>
             
             <div>
                 <label for="longitudeInput">Longitude</label>
-                <input type="text" name="longitude" id="longitudeInput" disabled value="{{.Restaurant.Longitude}}"/>
+                <input type="text" name="longitude" id="longitudeInput" readonly value="{{.Restaurant.Longitude}}"/>
             </div>
 
             <div>
                 <label for="utcOffsetInput">UTC Offset</label>
-                <input type="number" name="utcOffset" id="utcOffsetInput" disabled 
+                <input type="number" name="gmapsPlace.utcOffset" id="utcOffsetInput" readonly 
                     value="{{.Restaurant.GmapsPlace.UTCOffset}}"/>
             </div>
 
@@ -174,7 +181,7 @@
             {{if eq .Restaurant.GmapsPlace.ID 0}}
             <div>
                 <label for="addSearchTermInput">Additional Search Terms (Optional)</label>
-                <input type="text" name="addSearchTerm" id="addSearchTermInput" />
+                <input type="text" id="addSearchTermInput" />
             </div>
             <div id="gmapsSearchDataContainer">
                 
@@ -204,7 +211,7 @@
 <template id="gmapsSearchDataDiv">
     <div>                    
         <label>
-            <input type="radio" name="gmapsData" value="" />
+            <input type="radio" name="gmapsPlace.placeID" value="" />
             <span class="hidden-visually">                
             </span>
             <div class="inline-block" aria-hidden="true">

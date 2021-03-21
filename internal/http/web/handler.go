@@ -90,8 +90,10 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 
 	restaurantPath := "/restaurants/:id"
 	restaurantGETHandler := authRequired(getRestaurant(l, m), auth)
+	restaurantPOSTHandler := authRequired(postRestaurant(u, m), auth)
 	router.GET(restaurantPath, restaurantGETHandler)
 	router.HEAD(restaurantPath, restaurantGETHandler)
+	router.POST(restaurantPath, restaurantPOSTHandler)
 
 	mapPlaceSearchPath := "/maps/place-search"
 	mapPlaceSearchGETHandler := authRequired(getPlaceSearch(m), auth)
@@ -671,5 +673,43 @@ func getPlaceSearch(m mapper.Service) httprouter.Handle {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(candidates)
+	}
+}
+
+func postRestaurant(u updater.Service, m mapper.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		var resUpdate updater.Restaurant
+		if err := parseForm(r, &resUpdate); err != nil {
+			log.Println(err)
+			http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
+			return
+		}
+
+		recordsAffected, err := u.UpdateRestaurant(resUpdate)
+		if err != nil {
+			log.Println(err)
+			v := newView("base", "../../web/template/restaurant.html")
+			data := Data{}
+			data.Head = Head{resUpdate.Name}
+			// Show the user the error.
+			data.Alert = Alert{err.Error()}
+			// Fill in the form again for convenience
+			data.Yield = struct {
+				Header       string
+				Text         string
+				Restaurant   updater.Restaurant
+				HaveGmapsKey bool
+			}{
+				resUpdate.Name,
+				"Edit this restuarant's details below",
+				resUpdate,
+				m.HaveGmapsKey(),
+			}
+			v.render(w, data)
+			return
+		}
+		log.Printf("Updated restaurant with ID: %d. %d records affected\n", resUpdate.ID, recordsAffected)
+		// Redirect to the same page which will show the changed values.
+		http.Redirect(w, r, fmt.Sprintf("/restaurants/%d", resUpdate.ID), http.StatusFound)
 	}
 }

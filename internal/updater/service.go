@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
+	"github.com/kelvinatorr/restaurant-tracker/internal/mapper"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
 	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
@@ -45,8 +46,13 @@ type Repository interface {
 	GetUserAuthByID(int64) auther.User
 }
 
+type Map interface {
+	PlaceDetails(string) (mapper.PlaceDetail, error)
+}
+
 type service struct {
 	r Repository
+	m Map
 }
 
 func (s service) UpdateRestaurant(r Restaurant) (int64, error) {
@@ -68,30 +74,37 @@ func (s service) UpdateRestaurant(r Restaurant) (int64, error) {
 	log.Println(fmt.Sprintf("%s, %s has cityID %d", r.CityState.Name, r.CityState.State, cityID))
 	// Add the city id to the restaurant object
 	r.CityID = cityID
-	// Update the restaurant.
-	recordsAffected := s.r.UpdateRestaurant(r)
-	if recordsAffected == 0 {
-		// Rollback should occur because of the defer.
-		return 0, fmt.Errorf("Restaurant id: %d was not found", r.ID)
-	}
 
 	// This restaurant did not have a GmapsPlace, but now has 1, so we insert it and get the id back.
 	if r.GmapsPlace.ID == 0 && r.GmapsPlace.PlaceID != "" {
+		// Get the Place Details for this PlaceID
+		pd, err := s.m.PlaceDetails(r.GmapsPlace.PlaceID)
+		if err != nil {
+			log.Println(err)
+		}
+		// Update the values in the restaurant struct.
+		// TODO: move these fields to the gmaps struct
+		r.Latitude = pd.Result.Geometry.Location.Lat
+		r.Longitude = pd.Result.Geometry.Location.Lng
+		r.Zipcode = pd.Result.ZipCode
+		r.Address = pd.Result.Address
+
 		log.Printf("Inserting new GmapsPlace with PlaceID %s\n", r.GmapsPlace.PlaceID)
 		// Create a new GmapsPlace for adding
 		newGmapsPlace := adder.GmapsPlace{
-			PlaceID:              r.GmapsPlace.PlaceID,
-			BusinessStatus:       r.GmapsPlace.BusinessStatus,
-			FormattedPhoneNumber: r.GmapsPlace.FormattedPhoneNumber,
-			Name:                 r.GmapsPlace.Name,
-			PriceLevel:           r.GmapsPlace.PriceLevel,
-			Rating:               r.GmapsPlace.Rating,
-			URL:                  r.GmapsPlace.URL,
-			UserRatingsTotal:     r.GmapsPlace.UserRatingsTotal,
-			UTCOffset:            r.GmapsPlace.UTCOffset,
-			Website:              r.GmapsPlace.Website,
+			PlaceID:              pd.Result.PlaceID,
+			BusinessStatus:       pd.Result.BusinessStatus,
+			FormattedPhoneNumber: pd.Result.FormattedPhoneNumber,
+			Name:                 pd.Result.Name,
+			PriceLevel:           pd.Result.PriceLevel,
+			Rating:               pd.Result.Rating,
+			URL:                  pd.Result.URL,
+			UserRatingsTotal:     pd.Result.UserRatingsTotal,
+			UTCOffset:            pd.Result.UTCOffset,
+			Website:              pd.Result.Website,
 			RestaurantID:         r.ID,
 		}
+		// No need to set LastUpdated because it has a default to current timestamp in the repository
 		// Add the GmapsPlace
 		s.r.AddGmapsPlace(newGmapsPlace)
 	} else if r.GmapsPlace.ID != 0 {
@@ -99,10 +112,19 @@ func (s service) UpdateRestaurant(r Restaurant) (int64, error) {
 		log.Printf("Updating GmapsPlace id: %d.\n", r.GmapsPlace.ID)
 		// Timestamp this update.
 		r.GmapsPlace.LastUpdated = time.Now().Format("2006-01-02T15:04:05Z")
+		// Make the gmaps foreign key the restaurant id
+		r.GmapsPlace.RestaurantID = r.ID
 		gmapsPlaceRecordsAffected := s.r.UpdateGmapsPlace(r.GmapsPlace)
 		log.Printf("%d GmapsPlace records affected.\n", gmapsPlaceRecordsAffected)
 	} else {
 		log.Printf("Restaurant id: %d has no GmapsPlace record and update data has no GmapsPlace data.", r.ID)
+	}
+
+	// Update the restaurant.
+	recordsAffected := s.r.UpdateRestaurant(r)
+	if recordsAffected == 0 {
+		// Rollback should occur because of the defer.
+		return 0, fmt.Errorf("Restaurant id: %d was not found", r.ID)
 	}
 
 	s.r.Commit()
@@ -285,6 +307,6 @@ func checkRestaurantData(r Restaurant) error {
 }
 
 // NewService returns a new updater.service
-func NewService(r Repository) Service {
-	return service{r}
+func NewService(r Repository, m Map) Service {
+	return service{r, m}
 }
