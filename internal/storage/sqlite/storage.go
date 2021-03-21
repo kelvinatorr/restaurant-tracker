@@ -512,24 +512,22 @@ func (s Storage) UpdateGmapsPlace(gp updater.GmapsPlace) int64 {
 		UPDATE
 			gmaps_place
 		SET
-			last_updated = CASE WHEN $1 == "" THEN NULL ELSE $1 END,
-			place_id = $2,
-			business_status = CASE WHEN $3 == "" THEN NULL ELSE $3 END,
-			formatted_phone_number = CASE WHEN $4 == "" THEN NULL ELSE $4 END,
-			name = $5,
-			price_level = CASE WHEN $6 == 0 THEN NULL ELSE $6 END,
-			rating = CASE WHEN $7 == 0 THEN NULL ELSE $7 END,
-			url = CASE WHEN $8 == "" THEN NULL ELSE $8 END,
-			user_ratings_total = CASE WHEN $9 == 0 THEN NULL ELSE $9 END,
-			utc_offset = CASE WHEN $10 == 0 THEN NULL ELSE $10 END,
-			website = CASE WHEN $11 == "" THEN NULL ELSE $11 END,
-			restaurant_id = $12
+			place_id = $1,
+			business_status = CASE WHEN $2 == "" THEN NULL ELSE $2 END,
+			formatted_phone_number = CASE WHEN $3 == "" THEN NULL ELSE $3 END,
+			name = $4,
+			price_level = CASE WHEN $5 == 0 THEN NULL ELSE $5 END,
+			rating = CASE WHEN $6 == 0 THEN NULL ELSE $6 END,
+			url = CASE WHEN $7 == "" THEN NULL ELSE $7 END,
+			user_ratings_total = CASE WHEN $8 == 0 THEN NULL ELSE $8 END,
+			utc_offset = CASE WHEN $9 == 0 THEN NULL ELSE $9 END,
+			website = CASE WHEN $10 == "" THEN NULL ELSE $10 END,
+			restaurant_id = $11
 		WHERE
-			id = $13
+			id = $12
 	`
 
 	res, err := s.tx.Exec(sqlStatement,
-		gp.LastUpdated,
 		gp.PlaceID,
 		gp.BusinessStatus,
 		gp.FormattedPhoneNumber,

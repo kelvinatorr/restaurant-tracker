@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"time"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
 	"github.com/kelvinatorr/restaurant-tracker/internal/mapper"
@@ -110,8 +109,6 @@ func (s service) UpdateRestaurant(r Restaurant) (int64, error) {
 	} else if r.GmapsPlace.ID != 0 {
 		// This restaurant already has a GmapsPlace Record so we just update it.
 		log.Printf("Updating GmapsPlace id: %d.\n", r.GmapsPlace.ID)
-		// Timestamp this update.
-		r.GmapsPlace.LastUpdated = time.Now().Format("2006-01-02T15:04:05Z")
 		// Make the gmaps foreign key the restaurant id
 		r.GmapsPlace.RestaurantID = r.ID
 		gmapsPlaceRecordsAffected := s.r.UpdateGmapsPlace(r.GmapsPlace)
