@@ -635,7 +635,7 @@ func getRestaurant(s lister.Service, m mapper.Service) httprouter.Handle {
 
 		haveGmapsKey := m.HaveGmapsKey()
 
-		data.Head = Head{"Filter Restaurants"}
+		data.Head = Head{restaurant.Name}
 		data.Yield = struct {
 			Header       string
 			Text         string
