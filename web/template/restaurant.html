@@ -260,12 +260,9 @@
             });      
         }
 
-        function getGmapsData() {
-            // Disable to prevent multiple clicks
-            getGmapsDataBtn.disabled = true;
-            let errorMsg = ''
-            const gmapsErrorText = document.getElementById('gmapsErrorText');
-            gmapsErrorText.textContent = errorMsg;
+        function getGmapsData(e) {
+            // Disable to prevent multiple clicks            
+            const gmapsErrorText = disableBtnClearErr(e.target, 'gmapsErrorText');
 
             // Form the url
             let url = new URL('/maps/place-search', baseURL);
@@ -297,10 +294,10 @@
             }).catch(err => {
                 console.log(err);
                 gmapsErrorText.textContent = err;
-            });
-
-            // Enable button again.
-            getGmapsDataBtn.disabled = false;
+            }).finally(() => {
+                // Enable button again.
+                getGmapsDataBtn.disabled = false;
+            });            
         }
 
         function makeDataDivHTML(data) {
