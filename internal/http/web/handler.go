@@ -100,6 +100,10 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.GET(mapPlaceSearchPath, mapPlaceSearchGETHandler)
 	router.HEAD(mapPlaceSearchPath, mapPlaceSearchGETHandler)
 
+	mapPlacePath := "/maps/place/:id"
+	mapPlaceDELETEHandler := authRequired(deletePlace(r), auth)
+	router.DELETE(mapPlacePath, mapPlaceDELETEHandler)
+
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
 		http.Error(w, "The server encountered an error processing your request.", http.StatusInternalServerError)
@@ -711,5 +715,30 @@ func postRestaurant(u updater.Service, m mapper.Service) httprouter.Handle {
 		log.Printf("Updated restaurant with ID: %d. %d records affected\n", resUpdate.ID, recordsAffected)
 		// Redirect to the same page which will show the changed values.
 		http.Redirect(w, r, fmt.Sprintf("/restaurants/%d", resUpdate.ID), http.StatusFound)
+	}
+}
+
+func deletePlace(s remover.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		// get the route parameter
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid Gmaps Place ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		log.Printf("Removing Gmaps Place ID: %d\n", ID)
+		recordsAffected := s.RemoveGmapsPlace(int64(ID))
+		log.Printf("Number of records affected %d", recordsAffected)
+
+		rm := struct {
+			Message string
+		}{
+			Message: fmt.Sprintf("Gmaps Place ID: %d removed", ID),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(rm)
 	}
 }

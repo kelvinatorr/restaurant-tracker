@@ -559,6 +559,10 @@ func (s Storage) RemoveCity(cityID int64) int64 {
 	return s.removeRow("city", cityID)
 }
 
+func (s Storage) RemoveGmapsPlace(gmapsID int64) int64 {
+	return s.removeRow("gmaps_place", gmapsID)
+}
+
 func (s Storage) removeRow(tableName string, rowID int64) int64 {
 	sqlStatement := `
 		DELETE FROM

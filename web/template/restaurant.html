@@ -78,11 +78,6 @@
             </div>
 
             <div>
-                <input type="hidden" name="gmapsPlace.placeID" id="restaurantIDInput" readonly
-                    value="{{.Restaurant.GmapsPlace.PlaceID}}" />
-            </div>
-
-            <div>
                 <label for="mapsURLLink">Maps URL</label>
                 <a href="{{.Restaurant.GmapsPlace.URL}}" id="mapsURLLink">{{.Restaurant.GmapsPlace.URL}}</a>
                 <input type="hidden" name="gmapsPlace.url" readonly value="{{.Restaurant.GmapsPlace.URL}}" />
@@ -175,6 +170,8 @@
                 <button type="button" id="deleteGmapsDataBtn">
                     Delete Data
                 </button>
+                <span id="gmapsDeleteErrorText">
+                </span>
             </div>
             {{end}}
 
@@ -230,7 +227,38 @@
     (function() {
         const baseURL = window.location.origin;
         const getGmapsDataBtn = document.getElementById('getGmapsDataBtn');
-        getGmapsDataBtn.addEventListener('click', getGmapsData);        
+        if (getGmapsDataBtn) {
+            getGmapsDataBtn.addEventListener('click', getGmapsData);
+        }
+        
+
+        const deleteGmapsDataBtn = document.getElementById('deleteGmapsDataBtn');
+        if (deleteGmapsDataBtn) {
+            deleteGmapsDataBtn.addEventListener('click', deleteGmapsData);
+        }
+        
+
+        function deleteGmapsData(e) {
+            // Disable to prevent multiple clicks
+            const errorText = disableBtnClearErr(e.target, 'gmapsDeleteErrorText');
+
+            const gmapsPlaceID = document.getElementById('gmapsPlaceIDInput').value;
+            const url = new URL(`/maps/place/${gmapsPlaceID}`, baseURL);
+            fetch(url, {method: 'DELETE'}).then(resp => {
+                if(!resp.ok) {
+                    throw new Error(`The server responded with ${resp.status}: ${resp.statusText}`);
+                }
+                return resp.json();
+            }).then(() => {
+                // Reload the page
+                window.location.reload();
+            }).catch(err => {
+                console.log(err);
+                errorText.textContent = err;
+            }).finally(() => {
+                deleteGmapsDataBtn.disabled = false;
+            });      
+        }
 
         function getGmapsData() {
             // Disable to prevent multiple clicks
@@ -301,6 +329,13 @@
                 gmapsSearchDataContainer.lastChild.remove();
             }
             gmapsSearchDataContainer.appendChild(frag);
+        }
+
+        function disableBtnClearErr(buttonElement, errorTextID) {
+            buttonElement.disabled = true;
+            const errorText = document.getElementById(errorTextID);
+            errorText.textContent = '';
+            return errorText
         }
 
     })();
