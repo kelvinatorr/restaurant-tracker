@@ -100,6 +100,11 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.GET(mapPlaceSearchPath, mapPlaceSearchGETHandler)
 	router.HEAD(mapPlaceSearchPath, mapPlaceSearchGETHandler)
 
+	mapPlaceRefreshPath := "/maps/place-refresh/:placeID"
+	mapPlaceRefreshGETHandler := authRequired(getPlaceRefresh(m), auth)
+	router.GET(mapPlaceRefreshPath, mapPlaceRefreshGETHandler)
+	router.HEAD(mapPlaceRefreshPath, mapPlaceRefreshGETHandler)
+
 	mapPlacePath := "/maps/place/:id"
 	mapPlaceDELETEHandler := authRequired(deletePlace(r), auth)
 	router.DELETE(mapPlacePath, mapPlaceDELETEHandler)
@@ -740,5 +745,53 @@ func deletePlace(s remover.Service) httprouter.Handle {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(rm)
+	}
+}
+
+func getPlaceRefresh(m mapper.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		if !m.HaveGmapsKey() {
+			http.Error(w, "No Google Maps Key", http.StatusPaymentRequired)
+			return
+		}
+
+		placeID := p.ByName("placeID")
+
+		placeDetails, err := m.PlaceDetails(placeID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		pd := struct {
+			PlaceID              string  `json:"placeID"`
+			BusinessStatus       string  `json:"businessStatus"`
+			FormattedPhoneNumber string  `json:"formattedPhoneNumber"`
+			Name                 string  `json:"name"`
+			PriceLevel           int     `json:"priceLevel"`
+			Rating               float32 `json:"rating"`
+			URL                  string  `json:"url"`
+			UserRatingsTotal     int     `json:"userRatingsTotal"`
+			UTCOffset            int     `json:"utcOffset"`
+			Website              string  `json:"website"`
+			Address              string  `json:"address"`
+			ZipCode              string  `json:"zipCode"`
+		}{
+			PlaceID:              placeDetails.Result.PlaceID,
+			BusinessStatus:       placeDetails.Result.BusinessStatus,
+			FormattedPhoneNumber: placeDetails.Result.FormattedPhoneNumber,
+			Name:                 placeDetails.Result.Name,
+			PriceLevel:           placeDetails.Result.PriceLevel,
+			Rating:               placeDetails.Result.Rating,
+			URL:                  placeDetails.Result.URL,
+			UserRatingsTotal:     placeDetails.Result.UserRatingsTotal,
+			UTCOffset:            placeDetails.Result.UTCOffset,
+			Website:              placeDetails.Result.Website,
+			Address:              placeDetails.Result.Address,
+			ZipCode:              placeDetails.Result.ZipCode,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(pd)
 	}
 }

@@ -80,7 +80,7 @@
             <div>
                 <label for="mapsURLLink">Maps URL</label>
                 <a href="{{.Restaurant.GmapsPlace.URL}}" id="mapsURLLink">{{.Restaurant.GmapsPlace.URL}}</a>
-                <input type="hidden" name="gmapsPlace.url" readonly value="{{.Restaurant.GmapsPlace.URL}}" />
+                <input type="hidden" name="gmapsPlace.url" id="mapsURLInput" readonly value="{{.Restaurant.GmapsPlace.URL}}" />
             </div>
 
             <div>
@@ -99,9 +99,9 @@
             </div>           
 
             <div>
-                <label for="websitelink">Website</label>
-                <a href="{{.Restaurant.GmapsPlace.Website}}" id="websitelink">{{.Restaurant.GmapsPlace.Website}}</a>
-                <input type="hidden" name="gmapsPlace.website" readonly value="{{.Restaurant.GmapsPlace.Website}}" />
+                <label for="websiteLink">Website</label>
+                <a href="{{.Restaurant.GmapsPlace.Website}}" id="websiteLink">{{.Restaurant.GmapsPlace.Website}}</a>
+                <input type="hidden" name="gmapsPlace.website" id="websiteInput" readonly value="{{.Restaurant.GmapsPlace.Website}}" />
             </div>
 
             <div>
@@ -160,10 +160,12 @@
                     Refresh Data
                 </button>
                 {{if not .HaveGmapsKey}} 
-                    <span>
-                        No Google Maps API Key
-                    </span>
+                <span>
+                    No Google Maps API Key
+                </span>
                 {{end}}
+                <span id="gmapsRefreshErrorText">
+                </span>
             </div>
 
             <div>
@@ -229,12 +231,59 @@
         const getGmapsDataBtn = document.getElementById('getGmapsDataBtn');
         if (getGmapsDataBtn) {
             getGmapsDataBtn.addEventListener('click', getGmapsData);
-        }
-        
+        }        
 
         const deleteGmapsDataBtn = document.getElementById('deleteGmapsDataBtn');
         if (deleteGmapsDataBtn) {
             deleteGmapsDataBtn.addEventListener('click', deleteGmapsData);
+        }
+
+        const refreshGmapsDataBtn = document.getElementById('refreshGmapsDataBtn');
+        if (refreshGmapsDataBtn) {
+            refreshGmapsDataBtn.addEventListener('click', refreshGmapsData);
+        }
+
+        function refreshGmapsData(e) {
+            const errorText = disableBtnClearErr(e.target, 'gmapsRefreshErrorText');
+
+            const placeID = document.getElementById('placeIDInput').value;
+            const url = new URL(`/maps/place-refresh/${placeID}`, baseURL);
+            fetch(url).then(resp => {
+                if(!resp.ok) {
+                    throw new Error(`The server responded with ${resp.status}: ${resp.statusText}`);
+                }
+                return resp.json();
+            }).then(data => {
+                displayGmapsData(data);
+                // update last updated
+                document.getElementById('lastUpdated').value = new Date().toISOString().substr(0, 10);
+            }).catch(err => {
+                console.log(err);
+                errorText.textContent = err;
+            }).finally(() => {
+                e.target.disabled = false;
+            });
+        }
+
+        function displayGmapsData(data) {
+            document.getElementById('placeIDInput').value = data.placeID;
+            document.getElementById('addressInput').value = data.address;
+            document.getElementById('businessStatusInput').value = data.businessStatus;
+            document.getElementById('phoneInput').value = data.formattedPhoneNumber;
+            document.getElementById('nameInput').value = data.name;
+            document.getElementById('priceLevelInput').value = data.priceLevel;
+            document.getElementById('gmapsRatingInput').value = data.rating;
+            document.getElementById('mapsURLInput').value = data.url;
+            document.getElementById('nUserRatingsInput').value = data.userRatingsTotal;
+            document.getElementById('utcOffsetInput').value = data.utcOffset;
+            document.getElementById('websiteInput').value = data.website;
+            document.getElementById('zipCodeInput').value = data.zipCode;
+
+            document.getElementById('mapsURLLink').href = data.url;
+            document.getElementById('mapsURLLink').textContent = data.url;
+
+            document.getElementById('websiteLink').href = data.website;
+            document.getElementById('websiteLink').textContent = data.website;
         }
         
 
