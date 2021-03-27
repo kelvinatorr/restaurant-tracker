@@ -109,6 +109,9 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	mapPlaceDELETEHandler := authRequired(deletePlace(r), auth)
 	router.DELETE(mapPlacePath, mapPlaceDELETEHandler)
 
+	// Serve files from the web/static directory
+	router.ServeFiles("/static/*filepath", fileSystem{http.Dir("../../web/static")})
+
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
 		http.Error(w, "The server encountered an error processing your request.", http.StatusInternalServerError)
