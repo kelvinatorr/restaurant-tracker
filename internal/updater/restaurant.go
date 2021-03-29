@@ -22,7 +22,7 @@ type CityState struct {
 
 type GmapsPlace struct {
 	ID                   int64   `json:"id" schema:"gmapsPlaceID"`
-	LastUpdated          string  `json:"last_updated"`
+	LastUpdated          string  `json:"last_updated" schema:"lastUpdated"`
 	PlaceID              string  `json:"place_id" schema:"placeID"`
 	BusinessStatus       string  `json:"business_status" schema:"businessStatus"`
 	FormattedPhoneNumber string  `json:"formatted_phone_number" schema:"phone"`

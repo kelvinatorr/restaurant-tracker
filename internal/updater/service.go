@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"time"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
 	"github.com/kelvinatorr/restaurant-tracker/internal/mapper"
@@ -79,10 +80,9 @@ func (s service) UpdateRestaurant(r Restaurant) (int64, error) {
 		// Get the Place Details for this PlaceID
 		pd, err := s.m.PlaceDetails(r.GmapsPlace.PlaceID)
 		if err != nil {
-			log.Println(err)
+			return 0, err
 		}
 		// Update the values in the restaurant struct.
-		// TODO: move these fields to the gmaps struct
 		r.Latitude = pd.Result.Geometry.Location.Lat
 		r.Longitude = pd.Result.Geometry.Location.Lng
 		r.Zipcode = pd.Result.ZipCode
@@ -111,6 +111,12 @@ func (s service) UpdateRestaurant(r Restaurant) (int64, error) {
 		log.Printf("Updating GmapsPlace id: %d.\n", r.GmapsPlace.ID)
 		// Make the gmaps foreign key the restaurant id
 		r.GmapsPlace.RestaurantID = r.ID
+		// Parse the last updated date into the proper full format
+		lastUpdated, err := time.Parse("2006-01-02", r.GmapsPlace.LastUpdated)
+		if err != nil {
+			return 0, err
+		}
+		r.GmapsPlace.LastUpdated = lastUpdated.Format(time.RFC3339)
 		gmapsPlaceRecordsAffected := s.r.UpdateGmapsPlace(r.GmapsPlace)
 		log.Printf("%d GmapsPlace records affected.\n", gmapsPlaceRecordsAffected)
 	} else {
