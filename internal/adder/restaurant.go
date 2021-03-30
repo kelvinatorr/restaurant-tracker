@@ -1,21 +1,21 @@
 package adder
 
 type Restaurant struct {
-	Name       string     `json:"name"`
-	Cuisine    string     `json:"cuisine"`
-	Note       string     `json:"note"`
-	Address    string     `json:"address"`
-	Zipcode    string     `json:"zipcode"`
-	CityState  CityState  `json:"city_state"`
-	Latitude   float32    `json:"latitude"`
-	Longitude  float32    `json:"longitude"`
+	Name       string     `json:"name" schema:"name,required"`
+	Cuisine    string     `json:"cuisine" schema:"cuisine,required"`
+	Note       string     `json:"note" schema:"note"`
+	Address    string     `json:"address" schema:"address"`
+	Zipcode    string     `json:"zipcode" schema:"zipCode"`
+	CityState  CityState  `json:"city_state" schema:"cityState"`
+	Latitude   float32    `json:"latitude" schema:"latitude"`
+	Longitude  float32    `json:"longitude" schema:"longitude"`
 	GmapsPlace GmapsPlace `json:"gmaps_place"`
 	CityID     int64      `json:"city_id"`
 }
 
 type CityState struct {
-	Name  string `json:"name"`
-	State string `json:"state"`
+	Name  string `json:"name" schema:"city"`
+	State string `json:"state" schema:"state"`
 }
 
 type GmapsPlace struct {

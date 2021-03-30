@@ -44,7 +44,7 @@ func main() {
 	defer s.CloseStorage()
 
 	var m mapper.Service = mapper.NewService(gmapsKey)
-	var add adder.Service = adder.NewService(&s)
+	var add adder.Service = adder.NewService(&s, m)
 	var list lister.Service = lister.NewService(&s)
 	var update updater.Service = updater.NewService(&s, m)
 	var remove remover.Service = remover.NewService(&s)

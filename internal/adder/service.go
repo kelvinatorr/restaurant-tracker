@@ -9,6 +9,7 @@ import (
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
+	"github.com/kelvinatorr/restaurant-tracker/internal/mapper"
 )
 
 // ErrDuplicate is used when a resturant already exists.
@@ -48,8 +49,13 @@ type Repository interface {
 	AddUser(User) int64
 }
 
+type Map interface {
+	PlaceDetails(string) (mapper.PlaceDetail, error)
+}
+
 type service struct {
 	r Repository
+	m Map
 }
 
 func (s *service) AddRestaurant(r Restaurant) (int64, error) {
@@ -76,14 +82,40 @@ func (s *service) AddRestaurant(r Restaurant) (int64, error) {
 	log.Println(fmt.Sprintf("%s, %s has cityID %d", r.CityState.Name, r.CityState.State, cityID))
 	// Add the city id to the restaurant object
 	r.CityID = cityID
-	// Add the restaurant
-	newRestaurantID := s.r.AddRestaurant(r)
 
+	var newRestaurantID int64
 	// Only add gmaps place if we actually have it.
 	if r.GmapsPlace.PlaceID != "" {
+		// Get the Google Maps Details
+		pd, err := s.m.PlaceDetails(r.GmapsPlace.PlaceID)
+		if err != nil {
+			return 0, err
+		}
+		// Update the values in the restaurant struct.
+		r.Latitude = pd.Result.Geometry.Location.Lat
+		r.Longitude = pd.Result.Geometry.Location.Lng
+		r.Zipcode = pd.Result.ZipCode
+		r.Address = pd.Result.Address
+
+		r.GmapsPlace.BusinessStatus = pd.Result.BusinessStatus
+		r.GmapsPlace.FormattedPhoneNumber = pd.Result.FormattedPhoneNumber
+		r.GmapsPlace.Name = pd.Result.Name
+		r.GmapsPlace.PriceLevel = pd.Result.PriceLevel
+		r.GmapsPlace.Rating = pd.Result.Rating
+		r.GmapsPlace.URL = pd.Result.URL
+		r.GmapsPlace.UserRatingsTotal = pd.Result.UserRatingsTotal
+		r.GmapsPlace.UTCOffset = pd.Result.UTCOffset
+		r.GmapsPlace.Website = pd.Result.Website
+
+		// First add the restaurant
+		newRestaurantID = s.r.AddRestaurant(r)
+		// Set the restaurant id on the GmapsPlace for foreign key relationships
 		r.GmapsPlace.RestaurantID = newRestaurantID
-		// Add the GmapsPlace
+		// Finally add the GmapsPlace
 		s.r.AddGmapsPlace(r.GmapsPlace)
+	} else {
+		// Just add the restaurant because there is no Gmaps Place data
+		newRestaurantID = s.r.AddRestaurant(r)
 	}
 
 	s.r.Commit()
@@ -206,6 +238,6 @@ func checkUserData(u User) error {
 }
 
 // NewService creates an adding service with the necessary dependencies
-func NewService(r Repository) Service {
-	return &service{r}
+func NewService(r Repository, m Map) Service {
+	return &service{r, m}
 }

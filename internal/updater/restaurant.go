@@ -12,7 +12,7 @@ type Restaurant struct {
 	Longitude         float32    `json:"longitude" schema:"longitude"`
 	GmapsPlace        GmapsPlace `json:"gmaps_place" schema:"gmapsPlace"`
 	CityID            int64      `json:"city_id"`
-	LastVisitDatetime string     `json:"last_visit_datetime" schema:"lastVisit"`
+	LastVisitDatetime string     `json:"last_visit_datetime"`
 }
 
 type CityState struct {

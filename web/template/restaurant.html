@@ -24,13 +24,17 @@
 <p>
     {{.Text}}
 </p>
+{{if ne .Restaurant.ID 0}}
 <p>
     <a href="/">Add Visit</a>
 </p>
+{{end}}
 <form method="POST">
+    {{if ne .Restaurant.ID 0}}
     <div class="form-label-group">
         <input type="hidden" name="id" id="idInput" value="{{.Restaurant.ID}}" />
     </div>
+    {{end}}
 
     <div class="form-label-group">
         <label for="nameInput">Name</label>
@@ -53,14 +57,16 @@
         <textarea name="note" id="noteText">{{.Restaurant.Note}}</textarea>
     </div>
 
+    {{if ne .Restaurant.ID 0}}
     <div class="form-label-group">
         <label for="lastVisitInput">Last Visit</label>
-        <input type="date" name="lastVisit" id="lastVisitInput" readonly value="{{.Restaurant.LastVisitDatetime}}" />
+        <input type="date" id="lastVisitInput" readonly value="{{.Restaurant.LastVisitDatetime}}" />
     </div>
 
     <div>
         <a href="/">View Visits</a>
     </div>
+    {{end}}
 
     <br/>
     <div class="form-label-group">        
@@ -270,7 +276,7 @@
             document.getElementById('addressInput').value = data.address;
             document.getElementById('businessStatusInput').value = data.businessStatus;
             document.getElementById('phoneInput').value = data.formattedPhoneNumber;
-            document.getElementById('nameInput').value = data.name;
+            document.getElementById('gmapsNameInput').value = data.name;
             document.getElementById('priceLevelInput').value = data.priceLevel;
             document.getElementById('gmapsRatingInput').value = data.rating;
             document.getElementById('mapsURLInput').value = data.url;

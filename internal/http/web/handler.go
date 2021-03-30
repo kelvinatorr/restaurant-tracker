@@ -90,7 +90,7 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 
 	restaurantPath := "/restaurants/:id"
 	restaurantGETHandler := authRequired(getRestaurant(l, m), auth)
-	restaurantPOSTHandler := authRequired(postRestaurant(u, m), auth)
+	restaurantPOSTHandler := authRequired(postRestaurant(u, a, m), auth)
 	router.GET(restaurantPath, restaurantGETHandler)
 	router.HEAD(restaurantPath, restaurantGETHandler)
 	router.POST(restaurantPath, restaurantPOSTHandler)
@@ -638,27 +638,45 @@ func getRestaurant(s lister.Service, m mapper.Service) httprouter.Handle {
 
 		data := Data{}
 
-		// Get the restaurant requested
-		restaurant, err := s.GetRestaurant(int64(ID))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
-
 		haveGmapsKey := m.HaveGmapsKey()
 
-		data.Head = Head{restaurant.Name}
-		data.Yield = struct {
-			Header       string
-			Text         string
-			Restaurant   lister.Restaurant
-			HaveGmapsKey bool
-		}{
-			restaurant.Name,
-			"Edit this restuarant's details below",
-			restaurant,
-			haveGmapsKey,
+		var restaurant lister.Restaurant
+		// Get the restaurant requested
+		if ID != 0 {
+			restaurant, err = s.GetRestaurant(int64(ID))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			}
+			data.Head = Head{restaurant.Name}
+			data.Yield = struct {
+				Header       string
+				Text         string
+				Restaurant   lister.Restaurant
+				HaveGmapsKey bool
+			}{
+				restaurant.Name,
+				"Edit this restaurant's details below",
+				restaurant,
+				haveGmapsKey,
+			}
+		} else {
+			// Adding a new restaurant
+			restaurant = lister.Restaurant{}
+			data.Head = Head{"Add A New Restaurant"}
+			data.Yield = struct {
+				Header       string
+				Text         string
+				Restaurant   lister.Restaurant
+				HaveGmapsKey bool
+			}{
+				"Add A New Restaurant",
+				"Add the new restaurant's details below",
+				restaurant,
+				haveGmapsKey,
+			}
 		}
+
 		v.render(w, data)
 	}
 }
@@ -688,42 +706,101 @@ func getPlaceSearch(m mapper.Service) httprouter.Handle {
 	}
 }
 
-func postRestaurant(u updater.Service, m mapper.Service) httprouter.Handle {
+func postRestaurant(u updater.Service, a adder.Service, m mapper.Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		var resUpdate updater.Restaurant
-		if err := parseForm(r, &resUpdate); err != nil {
-			log.Println(err)
-			http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
 			return
+		}
+		if ID != 0 {
+			updateRestaurant(u, m, w, r)
+		} else {
+			addRestaurant(a, m, w, r)
+		}
+	}
+}
+
+func addRestaurant(a adder.Service, m mapper.Service, w http.ResponseWriter, r *http.Request) {
+	var resNew adder.Restaurant
+	if err := parseForm(r, &resNew); err != nil {
+		log.Println(err)
+		http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
+		return
+	}
+
+	newRestaurantID, err := a.AddRestaurant(resNew)
+	if err != nil {
+		log.Println(err)
+		v := newView("base", "../../web/template/restaurant.html")
+		data := Data{}
+		data.Head = Head{"Add A New Restaurant"}
+		// Show the user the error.
+		data.Alert = Alert{err.Error()}
+
+		// Fill in the form again for convenience. Need lister.Restaurant because we need an ID property for the template
+		restaurant := lister.Restaurant{
+			Name:    resNew.Name,
+			Cuisine: resNew.Cuisine,
+			Note:    resNew.Note,
+			CityState: lister.CityState{
+				Name:  resNew.CityState.Name,
+				State: resNew.CityState.State,
+			},
 		}
 
-		recordsAffected, err := u.UpdateRestaurant(resUpdate)
-		if err != nil {
-			log.Println(err)
-			v := newView("base", "../../web/template/restaurant.html")
-			data := Data{}
-			data.Head = Head{resUpdate.Name}
-			// Show the user the error.
-			data.Alert = Alert{err.Error()}
-			// Fill in the form again for convenience
-			data.Yield = struct {
-				Header       string
-				Text         string
-				Restaurant   updater.Restaurant
-				HaveGmapsKey bool
-			}{
-				resUpdate.Name,
-				"Edit this restuarant's details below",
-				resUpdate,
-				m.HaveGmapsKey(),
-			}
-			v.render(w, data)
-			return
+		data.Yield = struct {
+			Header       string
+			Text         string
+			Restaurant   lister.Restaurant
+			HaveGmapsKey bool
+		}{
+			"Add A New Restaurant",
+			"Add the new restaurant's details below",
+			restaurant,
+			m.HaveGmapsKey(),
 		}
-		log.Printf("Updated restaurant with ID: %d. %d records affected\n", resUpdate.ID, recordsAffected)
-		// Redirect to the same page which will show the changed values.
-		http.Redirect(w, r, fmt.Sprintf("/restaurants/%d", resUpdate.ID), http.StatusFound)
+		v.render(w, data)
+		return
 	}
+	http.Redirect(w, r, fmt.Sprintf("/restaurants/%d", newRestaurantID), http.StatusFound)
+}
+
+func updateRestaurant(u updater.Service, m mapper.Service, w http.ResponseWriter, r *http.Request) {
+	var resUpdate updater.Restaurant
+	if err := parseForm(r, &resUpdate); err != nil {
+		log.Println(err)
+		http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
+		return
+	}
+
+	recordsAffected, err := u.UpdateRestaurant(resUpdate)
+	if err != nil {
+		log.Println(err)
+		v := newView("base", "../../web/template/restaurant.html")
+		data := Data{}
+		data.Head = Head{resUpdate.Name}
+		// Show the user the error.
+		data.Alert = Alert{err.Error()}
+		// Fill in the form again for convenience
+		data.Yield = struct {
+			Header       string
+			Text         string
+			Restaurant   updater.Restaurant
+			HaveGmapsKey bool
+		}{
+			resUpdate.Name,
+			"Edit this restuarant's details below",
+			resUpdate,
+			m.HaveGmapsKey(),
+		}
+		v.render(w, data)
+		return
+	}
+	log.Printf("Updated restaurant with ID: %d. %d records affected\n", resUpdate.ID, recordsAffected)
+	// Redirect to the same page which will show the changed values.
+	http.Redirect(w, r, fmt.Sprintf("/restaurants/%d", resUpdate.ID), http.StatusOK)
 }
 
 func deletePlace(s remover.Service) httprouter.Handle {

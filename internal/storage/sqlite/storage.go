@@ -239,7 +239,7 @@ func generateRestaurantSQL() string {
 			res.id,
     		res.name,
     		cuisine,
-    		res.note,
+    		COALESCE(res.note, "") as note,
     		COALESCE(address, "") as address,
     		COALESCE(zipcode, "") as zipcode,
     		COALESCE(latitude, 0) as latitude,

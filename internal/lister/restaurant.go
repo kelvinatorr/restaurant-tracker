@@ -6,7 +6,7 @@ type Restaurant struct {
 	Cuisine           string          `json:"cuisine"`
 	Note              string          `json:"note"`
 	Address           string          `json:"address"`
-	CityState         cityState       `json:"city_state"`
+	CityState         CityState       `json:"city_state"`
 	Zipcode           string          `json:"zipcode"`
 	Latitude          float32         `json:"latitude"`
 	Longitude         float32         `json:"longitude"`
@@ -17,7 +17,7 @@ type Restaurant struct {
 	SearchValue       string          `json:"search_value"`
 }
 
-type cityState struct {
+type CityState struct {
 	ID    int64  `json:"id"`
 	Name  string `json:"name"`
 	State string `json:"state"`
