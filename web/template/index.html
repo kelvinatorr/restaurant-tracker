@@ -23,8 +23,8 @@
     <input id="searchInput" type="text" placeholder="Search" />    
   </div>
   <div>
-    <label for="ignoreCase">Ignore Case</label>
-    <input type="checkbox" id="ignoreCase" name="ignore case">    
+    <label for="matchCase">Match Case</label>
+    <input type="checkbox" id="matchCase">    
   </div>  
 </form>
 <br/>
@@ -121,7 +121,7 @@
 <script>
   (function() {
     const searchInput = document.getElementById('searchInput');
-    const searchIgnoreCase = document.getElementById("ignoreCase");
+    const searchMatchCase = document.getElementById("matchCase");
     const clearFilterLink = document.getElementById('clearFilterLink');
     
     setSortParams();
@@ -130,7 +130,7 @@
     setFilterParams();
 
     searchInput.addEventListener('keyup', debounce(searchTable, 250));
-    searchIgnoreCase.addEventListener('change', searchTable);
+    searchMatchCase.addEventListener('change', searchTable);
 
     // If the url search parms contain a filter, show the clear filter link, otherwise keep it hidden
     function toggleClearFilterVisibility() {
@@ -174,9 +174,9 @@
     function searchTable(e) {
       const searchTerm = searchInput.value      
 
-      const ignoreCase = searchIgnoreCase.checked
+      const matchCase = searchMatchCase.checked
 
-      const searchTermRex = new RegExp(searchTerm, ignoreCase ? 'i' : '');
+      const searchTermRex = new RegExp(searchTerm, matchCase ? '' : 'i');
 
       // Get all the rows of the table
       const restaurantRows = document.querySelectorAll('#restaurantTable > tbody > .restaurant-row');
