@@ -225,7 +225,7 @@ func getInitialSignup(l lister.Service) func(w http.ResponseWriter, r *http.Requ
 		data := Data{}
 		data.Head = Head{"Initial Signup"}
 		data.Yield = struct {
-			Header    string
+			Heading   string
 			Text      string
 			FirstName string
 			LastName  string
@@ -256,12 +256,12 @@ func getSignIn(l lister.Service) func(w http.ResponseWriter, r *http.Request, _ 
 	}
 }
 
-func postUserAdd(a adder.Service, header string, text string) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func postUserAdd(a adder.Service, heading string, text string) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		var u adder.User
 
 		data := Data{}
-		data.Head = Head{Title: header}
+		data.Head = Head{Title: heading}
 		v := newView("base", "../../web/template/create-user.html")
 
 		if err := parseForm(r, &u); err != nil {
@@ -275,13 +275,13 @@ func postUserAdd(a adder.Service, header string, text string) func(w http.Respon
 			data.Alert = Alert{Message: err.Error()}
 			// Add the data that was submitted for convenience
 			data.Yield = struct {
-				Header    string
+				Heading   string
 				Text      string
 				FirstName string
 				LastName  string
 				Email     string
 			}{
-				header,
+				heading,
 				text,
 				u.FirstName,
 				u.LastName,
@@ -338,7 +338,6 @@ func postSignIn(a auther.Service) func(w http.ResponseWriter, r *http.Request, _
 
 func getHome(s lister.Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		w.Header().Set("Content-Type", "text/html")
 		v := newView("base", "../../web/template/index.html")
 		// TODO: Pull in Site Name from the database.
 
@@ -369,7 +368,7 @@ func getUserAdd() func(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		data := Data{}
 		data.Head = Head{"Add A New User"}
 		data.Yield = struct {
-			Header    string
+			Heading   string
 			Text      string
 			FirstName string
 			LastName  string
@@ -451,9 +450,9 @@ func getUser() httprouter.Handle {
 		data := Data{}
 		data.Head = Head{fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName)}
 		data.Yield = struct {
-			Header string
-			Text   string
-			User   lister.User
+			Heading string
+			Text    string
+			User    lister.User
 		}{
 			fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName),
 			"Edit your profile by changing the information below.",
@@ -491,9 +490,9 @@ func postUser(u updater.Service) httprouter.Handle {
 			data.Alert = Alert{err.Error()}
 			// Fill in the form again for convenience
 			data.Yield = struct {
-				Header string
-				Text   string
-				User   updater.User
+				Heading string
+				Text    string
+				User    updater.User
 			}{
 				fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName),
 				"Edit your profile by changing the information below.",
@@ -517,8 +516,8 @@ func getChangePassword() httprouter.Handle {
 		data := Data{}
 		data.Head = Head{"Change Password"}
 		data.Yield = struct {
-			Header string
-			Text   string
+			Heading string
+			Text    string
 		}{
 			"ChangePassword",
 			"Change your password by entering your current password and new password below.",
@@ -552,8 +551,8 @@ func postChangePassword(u updater.Service) httprouter.Handle {
 		data := Data{}
 		data.Head = Head{"Change Password"}
 		data.Yield = struct {
-			Header string
-			Text   string
+			Heading string
+			Text    string
 		}{
 			"ChangePassword",
 			"Change your password by entering your current password and new password below.",
@@ -612,7 +611,7 @@ func getFilter(s lister.Service) httprouter.Handle {
 		}{Operator: avgRatingFilterOp.Operator, Value: avgRatingFilterOp.Value}
 
 		data.Yield = struct {
-			Header        string
+			Heading       string
 			Text          string
 			FilterOptions lister.FilterOptions
 			LastVisitOp   string
@@ -657,7 +656,7 @@ func getRestaurant(s lister.Service, m mapper.Service) httprouter.Handle {
 			}
 			data.Head = Head{restaurant.Name}
 			data.Yield = struct {
-				Header       string
+				Heading      string
 				Text         string
 				Restaurant   lister.Restaurant
 				HaveGmapsKey bool
@@ -672,7 +671,7 @@ func getRestaurant(s lister.Service, m mapper.Service) httprouter.Handle {
 			restaurant = lister.Restaurant{}
 			data.Head = Head{"Add A New Restaurant"}
 			data.Yield = struct {
-				Header       string
+				Heading      string
 				Text         string
 				Restaurant   lister.Restaurant
 				HaveGmapsKey bool
@@ -758,7 +757,7 @@ func addRestaurant(a adder.Service, m mapper.Service, w http.ResponseWriter, r *
 		}
 
 		data.Yield = struct {
-			Header       string
+			Heading      string
 			Text         string
 			Restaurant   lister.Restaurant
 			HaveGmapsKey bool
@@ -792,7 +791,7 @@ func updateRestaurant(u updater.Service, m mapper.Service, w http.ResponseWriter
 		data.Alert = Alert{err.Error()}
 		// Fill in the form again for convenience
 		data.Yield = struct {
-			Header       string
+			Heading      string
 			Text         string
 			Restaurant   updater.Restaurant
 			HaveGmapsKey bool
@@ -807,7 +806,7 @@ func updateRestaurant(u updater.Service, m mapper.Service, w http.ResponseWriter
 	}
 	log.Printf("Updated restaurant with ID: %d. %d records affected\n", resUpdate.ID, recordsAffected)
 	// Redirect to the same page which will show the changed values.
-	http.Redirect(w, r, fmt.Sprintf("/restaurants/%d", resUpdate.ID), http.StatusOK)
+	http.Redirect(w, r, fmt.Sprintf("/restaurants/%d", resUpdate.ID), http.StatusFound)
 }
 
 func deletePlace(s remover.Service) httprouter.Handle {
@@ -905,7 +904,7 @@ func getDeleteRestaurant(l lister.Service) httprouter.Handle {
 		}
 		data.Head = Head{restaurant.Name}
 		data.Yield = struct {
-			Header     string
+			Heading    string
 			Text       string
 			Restaurant lister.Restaurant
 		}{
@@ -950,7 +949,7 @@ func postDeleteRestaurant(s remover.Service) httprouter.Handle {
 			data.Alert = Alert{fmt.Sprintf("Input: %s did not match %s", deleteConfirm.ConfirmName, deleteConfirm.Name)}
 			// Fill in the form again for convenience
 			data.Yield = struct {
-				Header     string
+				Heading    string
 				Text       string
 				Restaurant lister.Restaurant
 			}{

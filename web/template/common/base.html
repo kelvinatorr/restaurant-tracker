@@ -19,6 +19,12 @@
 </head>
 
 <body>
+    <header>
+        <a href="/">Track Restaurants</a>
+        <form method="POST" action="/sign-out">
+            <input type="submit" value="Sign Out" />
+        </form>
+    </header>
     <div>
         {{template "yield" .Yield}}
     </div>
