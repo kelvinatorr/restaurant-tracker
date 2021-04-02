@@ -95,6 +95,13 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.HEAD(restaurantPath, restaurantGETHandler)
 	router.POST(restaurantPath, restaurantPOSTHandler)
 
+	deleteResPath := "/delete-restaurant/:id"
+	deleteResGETHandler := authRequired(getDeleteRestaurant(l), auth)
+	deleteResPOSTHandler := authRequired(postDeleteRestaurant(r), auth)
+	router.GET(deleteResPath, deleteResGETHandler)
+	router.HEAD(deleteResPath, deleteResGETHandler)
+	router.POST(deleteResPath, deleteResPOSTHandler)
+
 	mapPlaceSearchPath := "/maps/place-search"
 	mapPlaceSearchGETHandler := authRequired(getPlaceSearch(m), auth)
 	router.GET(mapPlaceSearchPath, mapPlaceSearchGETHandler)
@@ -873,5 +880,91 @@ func getPlaceRefresh(m mapper.Service) httprouter.Handle {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(pd)
+	}
+}
+
+func getDeleteRestaurant(l lister.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		v := newView("base", "../../web/template/delete-restaurant.html")
+
+		data := Data{}
+
+		var restaurant lister.Restaurant
+		// Get the restaurant requested
+		restaurant, err = l.GetRestaurant(int64(ID))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		data.Head = Head{restaurant.Name}
+		data.Yield = struct {
+			Header     string
+			Text       string
+			Restaurant lister.Restaurant
+		}{
+			fmt.Sprintf("Delete %s", restaurant.Name),
+			fmt.Sprintf("Are you sure you want to delete %s?", restaurant.Name),
+			restaurant,
+		}
+
+		v.render(w, data)
+	}
+}
+
+func postDeleteRestaurant(s remover.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		deleteConfirm := struct {
+			Name        string `schema:"name"`
+			ConfirmName string `schema:"confirmName"`
+		}{
+			"",
+			"",
+		}
+		if err := parseForm(r, &deleteConfirm); err != nil {
+			log.Println(err)
+			http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
+			return
+		}
+
+		if deleteConfirm.Name != deleteConfirm.ConfirmName {
+			log.Printf("Delete requested for %d, but confirmation name %s doesn't match %s", ID, deleteConfirm.ConfirmName,
+				deleteConfirm.Name)
+			v := newView("base", "../../web/template/delete-restaurant.html")
+			data := Data{}
+			data.Head = Head{deleteConfirm.Name}
+			// Show the user the error.
+			data.Alert = Alert{fmt.Sprintf("Input: %s did not match %s", deleteConfirm.ConfirmName, deleteConfirm.Name)}
+			// Fill in the form again for convenience
+			data.Yield = struct {
+				Header     string
+				Text       string
+				Restaurant lister.Restaurant
+			}{
+				fmt.Sprintf("Delete %s", deleteConfirm.Name),
+				fmt.Sprintf("Are you sure you want to delete %s?", deleteConfirm.Name),
+				lister.Restaurant{Name: deleteConfirm.Name},
+			}
+			v.render(w, data)
+			return
+		} else {
+			log.Printf("Confirmed request to remove %s with ID: %d", deleteConfirm.Name, ID)
+			s.RemoveRestaurant(remover.Restaurant{ID: int64(ID)})
+			// Redirect to the list of other restaurants.
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+		}
 	}
 }

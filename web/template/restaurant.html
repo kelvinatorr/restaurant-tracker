@@ -212,6 +212,14 @@
     <br/>
     <button class="btn btn-lg btn-primary btn-block" type="submit">Save</button>
 </form>
+<br/>
+{{if ne .Restaurant.ID 0}}
+<div>
+    <button type="button" class="btn btn-lg btn-block" id="deleteResBtn" data-id="{{.Restaurant.ID}}">
+        Delete Restaurant
+    </button>
+</div>
+{{end}}
 
 <template id="gmapsSearchDataDiv">
     <div>                    
@@ -247,6 +255,18 @@
         const refreshGmapsDataBtn = document.getElementById('refreshGmapsDataBtn');
         if (refreshGmapsDataBtn) {
             refreshGmapsDataBtn.addEventListener('click', refreshGmapsData);
+        }
+
+        const deleteResBtn = document.getElementById('deleteResBtn');
+        if (deleteResBtn) {
+            deleteResBtn.addEventListener('click', deleteRestaurant)
+        }
+
+        function deleteRestaurant() {
+            const restaurantID = deleteResBtn.dataset.id;
+            const destUrl = new URL(`/delete-restaurant/${restaurantID}`, baseURL);
+            // Go to the formed url
+            window.location.href =  destUrl;
         }
 
         function refreshGmapsData(e) {
