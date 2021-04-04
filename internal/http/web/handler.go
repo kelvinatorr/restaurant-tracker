@@ -124,6 +124,13 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 		http.Error(w, "The server encountered an error processing your request.", http.StatusInternalServerError)
 	}
 
+	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		v := newView("base", "../../web/template/404.html")
+		data := Data{}
+		v.render(w, data)
+		return
+	})
+
 	// Add verbose output
 	var h http.Handler
 	// h = authRequired(router, auth, authRequiredURLs)
