@@ -1,0 +1,64 @@
+{{define "head"}}
+<title>{{.Title}}</title>
+<style>
+    table, th, td {
+        border: 1px solid black;
+    }
+</style>
+{{end}}
+
+{{define "yield"}}
+<h1>{{.Heading}}</h1>
+
+<p>
+    <a href="/r/{{.RestaurantID}}/visits/0">Add Visit</a>
+</p>
+
+<div>
+    <div>
+        <table id="visitTable">
+            <thead>
+              <tr>
+                <th>
+                    Date
+                </th>
+                <th>
+                    Note
+                </th>
+                <th>
+                    Users Ratings
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {{range .Visits}}
+                <tr class="visit-row">
+                    <td>
+                        <a href="/r/{{.RestaurantID}}/visits/{{.ID}}">
+                            {{.VisitDateTime}}
+                        </a>
+                    </td>
+                    <td>
+                        {{.Note}}
+                    </td>
+                    <td>
+                        {{range .VisitUsers}}
+                            <p>
+                                {{.User.FirstName}} {{.User.LastName}}:
+                                {{if.Rating}}
+                                    {{.Rating}}
+                                {{else}}
+                                    null
+                                {{end}}
+                            </p>                            
+                        {{end}}
+                    </td>
+                </tr>
+              {{end}}
+            </tbody>
+          </table>
+    </div>
+</div>
+{{end}}
+{{define "script"}}
+{{end}}

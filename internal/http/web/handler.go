@@ -116,6 +116,11 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	mapPlaceDELETEHandler := authRequired(deletePlace(r), auth)
 	router.DELETE(mapPlacePath, mapPlaceDELETEHandler)
 
+	visitsPath := "/r/:resid/visits"
+	visitsGETHandler := authRequired(getVisits(l), auth)
+	router.GET(visitsPath, visitsGETHandler)
+	router.HEAD(visitsPath, visitsGETHandler)
+
 	// Serve files from the web/static directory
 	router.ServeFiles("/static/*filepath", fileSystem{http.Dir("../../web/static")})
 
@@ -916,7 +921,7 @@ func getDeleteRestaurant(l lister.Service) httprouter.Handle {
 			Restaurant lister.Restaurant
 		}{
 			fmt.Sprintf("Delete %s", restaurant.Name),
-			fmt.Sprintf("Are you sure you want to delete %s?", restaurant.Name),
+			fmt.Sprintf("Are you sure you want to delete %s? This will also delete all visit data for this restaurant.", restaurant.Name),
 			restaurant,
 		}
 
@@ -974,3 +979,45 @@ func postDeleteRestaurant(s remover.Service) httprouter.Handle {
 		}
 	}
 }
+
+func getVisits(l lister.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		ID, err := strconv.Atoi(p.ByName("resid"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("resid")),
+				http.StatusBadRequest)
+			return
+		}
+		resID := int64(ID)
+
+		// Get the restaurant 1st so we can show its name and make sure it exists
+		restaurant, err := l.GetRestaurant(resID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		// Then we get its visits
+		visits := l.GetVisitsByRestaurantID(resID)
+
+		v := newView("base", "../../web/template/visits.html")
+
+		data := Data{}
+
+		data.Head = Head{restaurant.Name}
+		data.Yield = struct {
+			Heading      string
+			Text         string
+			RestaurantID int64
+			Visits       []lister.Visit
+		}{
+			fmt.Sprintf("%s Visits", restaurant.Name),
+			fmt.Sprintf("Are you sure you want to delete %s?", restaurant.Name),
+			restaurant.ID,
+			visits,
+		}
+
+		v.render(w, data)
+	}
+}
+
