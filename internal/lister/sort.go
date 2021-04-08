@@ -20,6 +20,8 @@ func (s service) getAllowedSortFields(object string) (map[string]string, error) 
 	switch object {
 	case "restaurant":
 		return s.r.RestaurantSortFields(), nil
+	case "visit":
+		return s.r.VisitSortFields(), nil
 	default:
 		return make(map[string]string), fmt.Errorf("Unknown sort object %s", object)
 	}

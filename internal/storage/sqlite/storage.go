@@ -601,15 +601,28 @@ func (s Storage) GetVisit(id int64) lister.Visit {
 }
 
 // GetVisitsByRestaurantID gets all the visits for a given restaurant_id
-func (s Storage) GetVisitsByRestaurantID(restaurantID int64) []lister.Visit {
+func (s Storage) GetVisitsByRestaurantID(restaurantID int64, sortOps []lister.SortOperation) []lister.Visit {
 	var allVisits []lister.Visit
 	var v lister.Visit
 	sqlStatement := generateVisitSQL()
+
 	// Add where clause by id
 	sqlStatement = sqlStatement + `
 		WHERE
 			v.restaurant_id=$1
 	`
+
+	nSortOps := len(sortOps)
+	if nSortOps > 0 {
+		sqlStatement = sqlStatement + `
+			ORDER BY
+		`
+		// add sort statements
+		for i, so := range sortOps {
+			sqlStatement = addSortOps(sqlStatement, so, i == nSortOps-1)
+		}
+	}
+
 	dbRows, err := s.db.Query(sqlStatement, restaurantID)
 	checkAndPanic(err)
 	defer dbRows.Close()

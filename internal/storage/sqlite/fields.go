@@ -23,3 +23,9 @@ func (s Storage) RestaurantFilterFields() map[string]lister.Field {
 	restaurantFields["avg_rating"] = lister.Field{Name: "avg_rating", Type: "REAL"}
 	return restaurantFields
 }
+
+func (s Storage) VisitSortFields() map[string]string {
+	visitFields := make(map[string]string)
+	visitFields["date"] = "visit_datetime"
+	return visitFields
+}

@@ -997,8 +997,16 @@ func getVisits(l lister.Service) httprouter.Handle {
 			return
 		}
 
+		// get the query parameters parameter
+		queryParams := r.URL.Query()
+
 		// Then we get its visits
-		visits := l.GetVisitsByRestaurantID(resID)
+		visits, err := l.GetVisitsByRestaurantID(resID, queryParams)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, "There was a problem processing your request", http.StatusBadRequest)
+			return
+		}
 
 		v := newView("base", "../../web/template/visits.html")
 

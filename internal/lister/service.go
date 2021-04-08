@@ -26,7 +26,7 @@ type Service interface {
 	GetRestaurant(int64) (Restaurant, error)
 	GetRestaurants(url.Values) ([]Restaurant, error)
 	GetVisit(int64) (Visit, error)
-	GetVisitsByRestaurantID(int64) []Visit
+	GetVisitsByRestaurantID(int64, url.Values) ([]Visit, error)
 	GetUserCount() int64
 	GetUserByID(int64) User
 	GetFilterOptions(url.Values) FilterOptions
@@ -40,13 +40,14 @@ type Repository interface {
 	GetRestaurants([]SortOperation, []FilterOperation) []Restaurant
 	GetVisit(int64) Visit
 	GetVisitUsersByVisitID(int64) []VisitUser
-	GetVisitsByRestaurantID(int64) []Visit
+	GetVisitsByRestaurantID(int64, []SortOperation) []Visit
 	GetUserCount() int64
 	GetUser(int64) User
 	GetRestaurantAvgRatingByUser(int64) []AvgUserRating
 	GetDistinct(string, string) []string
 	RestaurantSortFields() map[string]string
 	RestaurantFilterFields() map[string]Field
+	VisitSortFields() map[string]string
 }
 
 type service struct {
@@ -125,13 +126,19 @@ func (s service) GetVisit(id int64) (Visit, error) {
 	return v, err
 }
 
-func (s service) GetVisitsByRestaurantID(restaurantID int64) []Visit {
-	allVisits := s.r.GetVisitsByRestaurantID(restaurantID)
+func (s service) GetVisitsByRestaurantID(restaurantID int64, qp url.Values) ([]Visit, error) {
+	var allVisits []Visit
+	sops, err := s.checkSort("visit", qp)
+	if err != nil {
+		return allVisits, err
+	}
+
+	allVisits = s.r.GetVisitsByRestaurantID(restaurantID, sops)
 	for i, v := range allVisits {
 		// For each visit get the users who were there and their rating.
 		allVisits[i].VisitUsers = s.r.GetVisitUsersByVisitID(v.ID)
 	}
-	return allVisits
+	return allVisits, nil
 }
 
 // GetUserCount returns the number of users in the repository.
