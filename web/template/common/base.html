@@ -22,6 +22,7 @@
     <header>
         <a href="/">Track Restaurants</a>
         <form method="POST" action="/sign-out">
+            {{genCSRFField}}
             <input type="submit" value="Sign Out" />
         </form>
     </header>

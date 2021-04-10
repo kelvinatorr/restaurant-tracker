@@ -2,9 +2,13 @@ package web
 
 import (
 	"bytes"
+	"errors"
 	"html/template"
 	"io"
+	"log"
 	"net/http"
+
+	"github.com/gorilla/csrf"
 )
 
 const (
@@ -17,7 +21,13 @@ const (
 func newView(layout string, files ...string) *view {
 	commonFiles := []string{"../../web/template/common/base.html", "../../web/template/alert.html"}
 	files = append(files, commonFiles...)
-	t, err := template.ParseFiles(files...)
+	// Add a genCSRFField function to the template so we can change it in the render function
+	t, err := template.New("").Funcs(template.FuncMap{
+		"genCSRFField": func() (template.HTML, error) {
+			// This function is generated in the when the view is rendered
+			return "", errors.New("csrfField is not implemented")
+		},
+	}).ParseFiles(files...)
 	if err != nil {
 		panic(err)
 	}
@@ -33,7 +43,7 @@ type view struct {
 	Layout   string
 }
 
-func (v *view) render(w http.ResponseWriter, data interface{}) {
+func (v *view) render(w http.ResponseWriter, r *http.Request, data interface{}) {
 	w.Header().Set("Content-Type", "text/html")
 	switch data.(type) {
 	case Data:
@@ -43,11 +53,19 @@ func (v *view) render(w http.ResponseWriter, data interface{}) {
 			Yield: data,
 		}
 	}
+	csrfField := csrf.TemplateField(r)
+	tpl := v.Template.Funcs(template.FuncMap{
+		"genCSRFField": func() template.HTML {
+			return csrfField
+		},
+	})
+
 	// Execute the template into a buffer 1st to see if there was a problem. This prevents rendering a incomplete
 	// template to the user.
 	var buf bytes.Buffer
-	err := v.Template.ExecuteTemplate(&buf, v.Layout, data)
+	err := tpl.ExecuteTemplate(&buf, v.Layout, data)
 	if err != nil {
+		log.Println(err.Error())
 		http.Error(w, "There was a problem rendering the html template", http.StatusInternalServerError)
 		return
 	}

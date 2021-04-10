@@ -30,6 +30,7 @@
 </p>
 {{end}}
 <form method="POST">
+    {{genCSRFField}}
     {{if ne .Restaurant.ID 0}}
     <div class="form-label-group">
         <input type="hidden" name="id" id="idInput" value="{{.Restaurant.ID}}" />

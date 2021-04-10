@@ -8,6 +8,7 @@
     {{.Text}}
 </p>
 <form id="deleteRestaurantForm" method="POST">
+    {{genCSRFField}}
     <div class="form-label-group">
         <input type="hidden" name="name" value="{{.Restaurant.Name}}" />
     </div>

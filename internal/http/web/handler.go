@@ -121,6 +121,11 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.GET(visitsPath, visitsGETHandler)
 	router.HEAD(visitsPath, visitsGETHandler)
 
+	visitPath := "/r/:resid/visits/:id"
+	visitGETHandler := authRequired(getVisit(l), auth)
+	router.GET(visitPath, visitGETHandler)
+	router.HEAD(visitPath, visitGETHandler)
+
 	// Serve files from the web/static directory
 	router.ServeFiles("/static/*filepath", fileSystem{http.Dir("../../web/static")})
 
@@ -132,7 +137,7 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		v := newView("base", "../../web/template/404.html")
 		data := Data{}
-		v.render(w, data)
+		v.render(w, r, data)
 		return
 	})
 
@@ -219,6 +224,7 @@ func parseForm(r *http.Request, dest interface{}) error {
 		return err
 	}
 	dec := schema.NewDecoder()
+	dec.IgnoreUnknownKeys(true)
 	if err := dec.Decode(dest, r.PostForm); err != nil {
 		return err
 	}
@@ -249,7 +255,7 @@ func getInitialSignup(l lister.Service) func(w http.ResponseWriter, r *http.Requ
 			"",
 			"",
 		}
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
@@ -264,7 +270,7 @@ func getSignIn(l lister.Service) func(w http.ResponseWriter, r *http.Request, _ 
 		v := newView("base", "../../web/template/sign-in.html")
 		data := Data{}
 		data.Head = Head{Title: "Sign In"}
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
@@ -299,7 +305,7 @@ func postUserAdd(a adder.Service, heading string, text string) func(w http.Respo
 				u.LastName,
 				u.Email,
 			}
-			v.render(w, data)
+			v.render(w, r, data)
 			return
 		}
 		log.Printf("New user created with ID: %d\n", newUserID)
@@ -327,7 +333,7 @@ func postSignIn(a auther.Service) func(w http.ResponseWriter, r *http.Request, _
 			data.Alert = Alert{Message: err.Error()}
 			// Add the email that was submitted for convenience
 			data.Yield = struct{ Email string }{u.Email}
-			v.render(w, data)
+			v.render(w, r, data)
 			return
 		}
 
@@ -370,7 +376,7 @@ func getHome(s lister.Service) httprouter.Handle {
 		}{
 			restaurants,
 		}
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
@@ -392,7 +398,7 @@ func getUserAdd() func(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 			"",
 			"",
 		}
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
@@ -471,7 +477,7 @@ func getUser() httprouter.Handle {
 			user,
 		}
 
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
@@ -510,7 +516,7 @@ func postUser(u updater.Service) httprouter.Handle {
 				"Edit your profile by changing the information below.",
 				userUpdate,
 			}
-			v.render(w, data)
+			v.render(w, r, data)
 			return
 		}
 		log.Printf("Updated user with ID: %d. %d records affected\n", user.ID, recordsAffected)
@@ -534,7 +540,7 @@ func getChangePassword() httprouter.Handle {
 			"ChangePassword",
 			"Change your password by entering your current password and new password below.",
 		}
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
@@ -574,14 +580,14 @@ func postChangePassword(u updater.Service) httprouter.Handle {
 
 			// Show the user the error.
 			data.Alert = Alert{err.Error()}
-			v.render(w, data)
+			v.render(w, r, data)
 			return
 		}
 		log.Printf("Updated password for user with ID: %d. %d records affected\n", user.ID, recordsAffected)
 
 		// Display success alert
 		data.Alert = Alert{"Success! Your password has been changed."}
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
@@ -638,7 +644,7 @@ func getFilter(s lister.Service) httprouter.Handle {
 			lastVisitOp,
 			avgRating,
 		}
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
@@ -695,7 +701,7 @@ func getRestaurant(s lister.Service, m mapper.Service) httprouter.Handle {
 			}
 		}
 
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
@@ -779,7 +785,7 @@ func addRestaurant(a adder.Service, m mapper.Service, w http.ResponseWriter, r *
 			restaurant,
 			m.HaveGmapsKey(),
 		}
-		v.render(w, data)
+		v.render(w, r, data)
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/restaurants/%d", newRestaurantID), http.StatusFound)
@@ -813,7 +819,7 @@ func updateRestaurant(u updater.Service, m mapper.Service, w http.ResponseWriter
 			resUpdate,
 			m.HaveGmapsKey(),
 		}
-		v.render(w, data)
+		v.render(w, r, data)
 		return
 	}
 	log.Printf("Updated restaurant with ID: %d. %d records affected\n", resUpdate.ID, recordsAffected)
@@ -925,7 +931,7 @@ func getDeleteRestaurant(l lister.Service) httprouter.Handle {
 			restaurant,
 		}
 
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
@@ -969,7 +975,7 @@ func postDeleteRestaurant(s remover.Service) httprouter.Handle {
 				fmt.Sprintf("Are you sure you want to delete %s?", deleteConfirm.Name),
 				lister.Restaurant{Name: deleteConfirm.Name},
 			}
-			v.render(w, data)
+			v.render(w, r, data)
 			return
 		} else {
 			log.Printf("Confirmed request to remove %s with ID: %d", deleteConfirm.Name, ID)
@@ -1025,7 +1031,7 @@ func getVisits(l lister.Service) httprouter.Handle {
 			visits,
 		}
 
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 

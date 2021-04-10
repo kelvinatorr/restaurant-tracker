@@ -1,11 +1,13 @@
 package main
 
 import (
+	"crypto/rand"
 	"flag"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/gorilla/csrf"
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
 	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
 	"github.com/kelvinatorr/restaurant-tracker/internal/http/web"
@@ -21,9 +23,13 @@ func main() {
 	// Flag for database path
 	dbPathPtr := flag.String("db", "", "Path to the sqlite database. See README for instructions on how to make one.")
 	verbosePtr := flag.Bool("v", false, "Set -v for verbose logging.")
+	csrfKeyPtr := flag.String("csrf", "", "A string that will be used as the anti-csrf key. A random one will be generated if not provided.")
+	prodPtr := flag.Bool("prod", false, "Provide this flag in production.")
 	flag.Parse()
 	dbPath := *dbPathPtr
 	verbose := *verbosePtr
+	csrfKey := *csrfKeyPtr
+	isProd := *prodPtr
 
 	// Read the secret key env variable.
 	secretKey := os.Getenv("SECRETKEY")
@@ -50,12 +56,26 @@ func main() {
 	var remove remover.Service = remover.NewService(&s)
 	var auth auther.Service = auther.NewService(&s, secretKey)
 
+	var csrfKeyBytes []byte
+	if csrfKey == "" {
+		b := make([]byte, 32)
+		_, err := rand.Read(b)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		csrfKeyBytes = b
+	} else {
+		csrfKeyBytes = []byte(csrfKey)
+	}
+	// Create the CSRF middleware
+	csrfMw := csrf.Protect(csrfKeyBytes, csrf.Secure(isProd), csrf.MaxAge(0))
+
 	// http endpoints to receive data
 	// set up the HTTP server
 	router := web.Handler(list, add, update, remove, auth, m, verbose)
 
 	log.Println("The restaurant tracker web server is starting on: http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Fatal(http.ListenAndServe(":8080", csrfMw(router)))
 
 	log.Println("Done with web server")
 }
