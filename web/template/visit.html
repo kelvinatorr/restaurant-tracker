@@ -1,0 +1,65 @@
+{{define "head"}}
+<title>{{.Title}}</title>
+<style>
+</style>
+{{end}}
+
+{{define "yield"}}
+<h1>{{.Heading}}</h1>
+
+<p>
+    {{.Text}}
+</p>
+
+<form method="POST">
+    {{genCSRFField}}
+    
+    {{if ne .Visit.ID 0}}
+    <div class="form-label-group">
+        <input type="hidden" name="id" id="idInput" value="{{.Visit.ID}}" />
+    </div>
+    {{end}}
+
+    <div class="form-label-group">
+        <input type="hidden" name="restaurantID" id="idInput" value="{{.Visit.ID}}" />
+    </div>
+
+    <div class="form-label-group">
+        <label for="visitDateTimeInput">Date</label>
+        <input type="date" id="visitDateTimeInput" name="visitDateTime" value="{{.Visit.VisitDateTime}}" required autofocus />
+    </div>
+
+    <div class="form-label-group">
+        <label for="noteText">Note</label>
+        <textarea name="note" name="note" id="noteText">{{.Visit.Note}}</textarea>
+    </div>
+
+    <fieldset>
+        <legend>Ratings</legend>
+        {{range .Visit.VisitUsers}}
+        <div class="form-label-group">
+            <label>
+                {{.User.FirstName}} {{.User.LastName}}
+                <input type="number" min="1" max="5" name="visitUsers.0.rating" value="{{.Rating}}" />
+            </label>            
+        </div>
+        {{end}}
+    </fieldset>    
+
+    <br/>
+    <button class="btn btn-lg btn-primary btn-block" type="submit">Save</button>
+</form>
+
+<br/>
+{{if ne .Visit.ID 0}}
+<div>
+    <button type="button" class="btn btn-lg btn-block" id="deleteVisitBtn" data-id="{{.Visit.ID}}">
+        Delete Visit
+    </button>
+</div>
+{{end}}
+
+
+{{end}}
+{{define "script"}}
+{{end}}

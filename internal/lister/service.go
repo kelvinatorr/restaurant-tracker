@@ -123,6 +123,13 @@ func (s service) GetVisit(id int64) (Visit, error) {
 		// Get the users who were in this visit.
 		v.VisitUsers = s.r.GetVisitUsersByVisitID(v.ID)
 	}
+	dateFormat := "2006-01-02"
+	visitDateTime, err := time.Parse(time.RFC3339, v.VisitDateTime)
+	if err != nil {
+		return v, err
+	}
+	v.VisitDateTime = visitDateTime.Format(dateFormat)
+
 	return v, err
 }
 

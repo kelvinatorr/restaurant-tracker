@@ -1021,12 +1021,10 @@ func getVisits(l lister.Service) httprouter.Handle {
 		data.Head = Head{restaurant.Name}
 		data.Yield = struct {
 			Heading      string
-			Text         string
 			RestaurantID int64
 			Visits       []lister.Visit
 		}{
 			fmt.Sprintf("%s Visits", restaurant.Name),
-			fmt.Sprintf("Are you sure you want to delete %s?", restaurant.Name),
 			restaurant.ID,
 			visits,
 		}
@@ -1035,3 +1033,50 @@ func getVisits(l lister.Service) httprouter.Handle {
 	}
 }
 
+func getVisit(l lister.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		resID, err := strconv.Atoi(p.ByName("resid"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("resid")),
+				http.StatusBadRequest)
+			return
+		}
+
+		// Get the restaurant 1st so we can show its name and make sure it exists
+		restaurant, err := l.GetRestaurant(int64(resID))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid visit ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		visit, err := l.GetVisit(int64(ID))
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		v := newView("base", "../../web/template/visit.html")
+
+		data := Data{}
+		data.Head = Head{fmt.Sprintf("Add Visit %s", restaurant.Name)}
+		data.Yield = struct {
+			Heading string
+			Text    string
+			Visit   lister.Visit
+		}{
+			fmt.Sprintf("Add Visit to %s", restaurant.Name),
+			"Add the date and optional note for your visit below",
+			visit,
+		}
+
+		v.render(w, r, data)
+	}
+}
