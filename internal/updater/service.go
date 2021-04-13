@@ -159,6 +159,13 @@ func (s service) UpdateVisit(v Visit) (int64, error) {
 		v.VisitUsers[i].VisitID = v.ID
 	}
 
+	visitDateTime, err := time.Parse("2006-01-02", v.VisitDateTime)
+	if err != nil {
+		log.Println(err)
+		return 0, fmt.Errorf("Cannot format %s as date", v.VisitDateTime)
+	}
+	v.VisitDateTime = visitDateTime.Format(time.RFC3339)
+
 	s.r.Begin()
 	// Defer rollback just in case there is a problem.
 	defer s.r.Rollback()

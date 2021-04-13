@@ -123,8 +123,10 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 
 	visitPath := "/r/:resid/visits/:id"
 	visitGETHandler := authRequired(getVisit(l), auth)
+	visitPOSTHandler := authRequired(postVisit(u, a, l), auth)
 	router.GET(visitPath, visitGETHandler)
 	router.HEAD(visitPath, visitGETHandler)
+	router.POST(visitPath, visitPOSTHandler)
 
 	// Serve files from the web/static directory
 	router.ServeFiles("/static/*filepath", fileSystem{http.Dir("../../web/static")})
@@ -1079,4 +1081,77 @@ func getVisit(l lister.Service) httprouter.Handle {
 
 		v.render(w, r, data)
 	}
+}
+
+func postVisit(u updater.Service, a adder.Service, l lister.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid visit ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+		if ID != 0 {
+			updateVisit(u, l, w, r)
+		} else {
+			addVisit(a, w, r)
+		}
+	}
+}
+
+func updateVisit(u updater.Service, l lister.Service, w http.ResponseWriter, r *http.Request) {
+	var visitUpdate updater.Visit
+	if err := parseForm(r, &visitUpdate); err != nil {
+		log.Println(err)
+		http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
+		return
+	}
+	recordsAffected, err := u.UpdateVisit(visitUpdate)
+	if err != nil {
+		updateErrorMsg := err.Error()
+		log.Println(updateErrorMsg)
+
+		restaurant, err := l.GetRestaurant(visitUpdate.RestaurantID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		visit := lister.Visit{
+			ID:            visitUpdate.ID,
+			RestaurantID:  visitUpdate.RestaurantID,
+			VisitDateTime: visitUpdate.VisitDateTime,
+			Note:          visitUpdate.Note,
+		}
+		for _, vu := range visitUpdate.VisitUsers {
+			lvu := lister.VisitUser{ID: vu.ID, User: l.GetUserByID(vu.UserID), Rating: vu.Rating}
+			visit.VisitUsers = append(visit.VisitUsers, lvu)
+		}
+
+		v := newView("base", "../../web/template/visit.html")
+
+		data := Data{}
+		// Show the user the error.
+		data.Alert = Alert{updateErrorMsg}
+		data.Head = Head{fmt.Sprintf("Add Visit %s", restaurant.Name)}
+		data.Yield = struct {
+			Heading string
+			Text    string
+			Visit   lister.Visit
+		}{
+			fmt.Sprintf("Add Visit to %s", restaurant.Name),
+			"Add the date and optional note for your visit below",
+			visit,
+		}
+		v.render(w, r, data)
+		return
+	}
+
+	log.Printf("Updated visit with ID: %d. %d records affected\n", visitUpdate.ID, recordsAffected)
+	// Redirect to the same page which will show the changed values.
+	http.Redirect(w, r, fmt.Sprintf("/r/%d/visits/%d", visitUpdate.RestaurantID, visitUpdate.ID), http.StatusFound)
+}
+
+func addVisit(a adder.Service, w http.ResponseWriter, r *http.Request) {
+	log.Println("Yup adding")
 }
