@@ -25,12 +25,13 @@ func (m *ErrDoesNotExist) Error() string {
 type Service interface {
 	GetRestaurant(int64) (Restaurant, error)
 	GetRestaurants(url.Values) ([]Restaurant, error)
-	GetVisit(int64) (Visit, error)
+	GetVisit(int64, int64) (Visit, error)
 	GetVisitsByRestaurantID(int64, url.Values) ([]Visit, error)
 	GetUserCount() int64
 	GetUserByID(int64) User
 	GetFilterOptions(url.Values) FilterOptions
 	GetFilterParam(string, url.Values) FilterOperation
+	GetUsers() []User
 }
 
 // Repository provides access to restaurant repository.
@@ -38,7 +39,7 @@ type Repository interface {
 	// GetRestaurant gets a given restaurant to the repository.
 	GetRestaurant(int64) Restaurant
 	GetRestaurants([]SortOperation, []FilterOperation) []Restaurant
-	GetVisit(int64) Visit
+	GetVisit(int64, int64) Visit
 	GetVisitUsersByVisitID(int64) []VisitUser
 	GetVisitsByRestaurantID(int64, []SortOperation) []Visit
 	GetUserCount() int64
@@ -48,6 +49,7 @@ type Repository interface {
 	RestaurantSortFields() map[string]string
 	RestaurantFilterFields() map[string]Field
 	VisitSortFields() map[string]string
+	GetUsers() []User
 }
 
 type service struct {
@@ -113,12 +115,13 @@ func (s service) GetRestaurants(qp url.Values) ([]Restaurant, error) {
 	return rs, nil
 }
 
-// GetVisit returns a visit with the given id
-func (s service) GetVisit(id int64) (Visit, error) {
+// GetVisit returns a visit with the given id and restaurant id
+func (s service) GetVisit(id int64, resID int64) (Visit, error) {
 	var err error
-	v := s.r.GetVisit(id)
+	v := s.r.GetVisit(id, resID)
 	if v.ID == 0 {
-		err = &ErrDoesNotExist{fmt.Sprintf("No visit with id: %d", id)}
+		err = &ErrDoesNotExist{fmt.Sprintf("No visit with id: %d for restaurant: %d", id, resID)}
+		return v, err
 	} else {
 		// Get the users who were in this visit.
 		v.VisitUsers = s.r.GetVisitUsersByVisitID(v.ID)
@@ -165,6 +168,11 @@ func (s service) GetFilterOptions(qp url.Values) FilterOptions {
 		City:    generateFilterOptions(s.r.GetDistinct("name", "city"), s.GetFilterParam("city", qp).Value),
 		State:   generateFilterOptions(s.r.GetDistinct("state", "city"), s.GetFilterParam("state", qp).Value),
 	}
+}
+
+// GetUsers gets all the users in storage
+func (s service) GetUsers() []User {
+	return s.r.GetUsers()
 }
 
 func generateFilterOptions(distinctSlice []string, selectedValue string) []FilterOption {

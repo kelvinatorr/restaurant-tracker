@@ -582,17 +582,18 @@ func (s Storage) removeRow(tableName string, rowID int64) int64 {
 	return rowsAffected
 }
 
-// GetVisit queries the visit table for a given visit id. If the returned visit has ID = 0 then it is not in
+// GetVisit queries the visit table for a given visit id and restaurant id. If the returned visit has ID = 0 then it is not in
 // the database
-func (s Storage) GetVisit(id int64) lister.Visit {
+func (s Storage) GetVisit(id int64, resID int64) lister.Visit {
 	var v lister.Visit
 	sqlStatement := generateVisitSQL()
 	// Add where clause by id
 	sqlStatement = sqlStatement + `
 		WHERE
 			v.id=$1
+			and v.restaurant_id=$2
 	`
-	row := s.db.QueryRow(sqlStatement, id)
+	row := s.db.QueryRow(sqlStatement, id, resID)
 	err := fillVisit(row, &v)
 	if err != sql.ErrNoRows {
 		checkAndPanic(err)
@@ -760,6 +761,37 @@ func (s Storage) GetUser(id int64) lister.User {
 		checkAndPanic(err)
 	}
 	return u
+}
+
+// GetUsers queries the user table for all the users.
+func (s Storage) GetUsers() []lister.User {
+	var allUsers []lister.User
+	var u lister.User
+	sqlStatement := `
+		SELECT 
+			id,
+			first_name,
+			last_name,
+			email
+		FROM
+			user
+	`
+	dbRows, err := s.db.Query(sqlStatement)
+	checkAndPanic(err)
+	defer dbRows.Close()
+	for dbRows.Next() {
+		err = dbRows.Scan(
+			&u.ID,
+			&u.FirstName,
+			&u.LastName,
+			&u.Email,
+		)
+		checkAndPanic(err)
+		allUsers = append(allUsers, u)
+	}
+	err = dbRows.Err()
+	checkAndPanic(err)
+	return allUsers
 }
 
 // GetUserBy queries the user table for a given user by field and value. Do not pass field arguments from untrusted
