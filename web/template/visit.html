@@ -58,7 +58,8 @@
 <br/>
 {{if ne .Visit.ID 0}}
 <div>
-    <button type="button" class="btn btn-lg btn-block" id="deleteVisitBtn" data-id="{{.Visit.ID}}">
+    <button type="button" class="btn btn-lg btn-block" id="deleteVisitBtn" data-id="{{.Visit.ID}}" 
+        data-restaurant-id="{{.Visit.RestaurantID}}">
         Delete Visit
     </button>
 </div>
@@ -67,4 +68,21 @@
 
 {{end}}
 {{define "script"}}
+<script>
+    (function() {
+        const baseURL = window.location.origin;
+        const deleteVisitBtn = document.getElementById('deleteVisitBtn');
+        if (deleteVisitBtn) {
+            deleteVisitBtn.addEventListener('click', deleteVisit);
+        }
+
+        function deleteVisit() {
+            const visitID = deleteVisitBtn.dataset.id;
+            const restaurantID = deleteVisitBtn.dataset.restaurantId;
+            const destUrl = new URL(`/r/${restaurantID}/delete-visit/${visitID}`, baseURL);
+            // Go to the formed url
+            window.location.href =  destUrl;
+        }
+    })();
+</script>
 {{end}}

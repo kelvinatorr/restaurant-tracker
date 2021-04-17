@@ -128,6 +128,13 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.HEAD(visitPath, visitGETHandler)
 	router.POST(visitPath, visitPOSTHandler)
 
+	deleteVisitPath := "/r/:resid/delete-visit/:id"
+	deleteVisitGETHandler := authRequired(getDeleteVisit(l), auth)
+	deleteVisitPOSTHandler := authRequired(postDeleteVisit(r), auth)
+	router.GET(deleteVisitPath, deleteVisitGETHandler)
+	router.HEAD(deleteVisitPath, deleteVisitGETHandler)
+	router.POST(deleteVisitPath, deleteVisitPOSTHandler)
+
 	// Serve files from the web/static directory
 	router.ServeFiles("/static/*filepath", fileSystem{http.Dir("../../web/static")})
 
@@ -1235,4 +1242,86 @@ func addVisit(a adder.Service, l lister.Service, w http.ResponseWriter, r *http.
 	log.Printf("Added new visit to restaurant %d with ID: %d.\n", visitNew.RestaurantID, newVisitID)
 	// Redirect to the same page which will show the changed values.
 	http.Redirect(w, r, fmt.Sprintf("/r/%d/visits/%d", visitNew.RestaurantID, newVisitID), http.StatusFound)
+}
+
+func getDeleteVisit(l lister.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		resID, err := strconv.Atoi(p.ByName("resid"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("resid")),
+				http.StatusBadRequest)
+			return
+		}
+
+		resID64 := int64(resID)
+		// Get the restaurant 1st so we can show its name and make sure it exists
+		restaurant, err := l.GetRestaurant(resID64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid visit ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		visit, err := l.GetVisit(int64(ID), resID64)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		v := newView("base", "../../web/template/delete-visit.html")
+
+		data := Data{}
+		titleHeading := fmt.Sprintf("Delete Visit To %s", restaurant.Name)
+		data.Head = Head{titleHeading}
+		data.Yield = struct {
+			Heading    string
+			Restaurant lister.Restaurant
+			Visit      lister.Visit
+		}{
+			titleHeading,
+			restaurant,
+			visit,
+		}
+
+		v.render(w, r, data)
+	}
+}
+
+func postDeleteVisit(s remover.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid visit ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		deleteConfirm := struct {
+			RestaurantName string `schema:"restaurantName"`
+			RestaurantID   int    `schema:"restaurantID"`
+			VisitDateTime  string `schema:"VisitDateTime"`
+		}{
+			"",
+			0,
+			"",
+		}
+		if err := parseForm(r, &deleteConfirm); err != nil {
+			log.Println(err)
+			http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
+			return
+		}
+
+		log.Printf("Confirmed request to remove visit to %s on %s with ID: %d", deleteConfirm.RestaurantName,
+			deleteConfirm.VisitDateTime, ID)
+		s.RemoveVisit(remover.Visit{ID: int64(ID)})
+		// Redirect to the list of other visits.
+		http.Redirect(w, r, fmt.Sprintf("/r/%d/visits", deleteConfirm.RestaurantID), http.StatusSeeOther)
+	}
 }

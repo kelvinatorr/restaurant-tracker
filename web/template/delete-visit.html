@@ -1,0 +1,40 @@
+{{define "head"}}
+<title>{{.Title}}</title>
+{{end}}
+
+{{define "yield"}}
+<h1>{{.Heading}}</h1>
+<p>
+    Are you sure you want to delete your <strong>{{.Visit.VisitDateTime}}</strong> visit to {{.Restaurant.Name}}?
+</p>
+<p>
+    This cannot be undone.
+</p>
+<form method="POST">
+    {{genCSRFField}}
+    <input type="hidden" name="restaurantName" value="{{.Restaurant.Name}}" />
+    <input type="hidden" name="restaurantID" id="restaurantIDInput" value="{{.Restaurant.ID}}" />
+    <input type="hidden" name="visitDateTime" value="{{.Visit.VisitDateTime}}" />
+    <button id="backBtn" class="btn btn-lg btn-block" type="button" data-id="{{.Visit.ID}}">Nevermind</button>
+    <button class="btn btn-lg btn-primary btn-block" type="submit">Delete It!</button>
+</form>
+
+{{end}}
+
+{{define "script"}}
+<script>
+    (function() {
+        const baseURL = window.location.origin;
+        const backBtn = document.getElementById('backBtn');
+        backBtn.addEventListener('click', goBack)
+
+        function goBack() {
+            const restaurantID = document.getElementById('restaurantIDInput').value;
+            const visitID = backBtn.dataset.id;            
+            const destUrl = new URL(`/r/${restaurantID}/visits/${visitID}`, baseURL);
+            // Go to the formed url
+            window.location.href =  destUrl;
+        }
+    })();
+</script>
+{{end}}
