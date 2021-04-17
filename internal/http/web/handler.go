@@ -1125,7 +1125,7 @@ func postVisit(u updater.Service, a adder.Service, l lister.Service) httprouter.
 		if ID != 0 {
 			updateVisit(u, l, w, r)
 		} else {
-			addVisit(a, w, r)
+			addVisit(a, l, w, r)
 		}
 	}
 }
@@ -1164,6 +1164,60 @@ func updateVisit(u updater.Service, l lister.Service, w http.ResponseWriter, r *
 		data := Data{}
 		// Show the user the error.
 		data.Alert = Alert{updateErrorMsg}
+		data.Head = Head{fmt.Sprintf("Edit Visit %s", restaurant.Name)}
+		data.Yield = struct {
+			Heading string
+			Text    string
+			Visit   lister.Visit
+		}{
+			fmt.Sprintf("Edit Visit to %s", restaurant.Name),
+			"Add the date and optional note for your visit below",
+			visit,
+		}
+		v.render(w, r, data)
+		return
+	}
+
+	log.Printf("Updated visit with ID: %d. %d records affected\n", visitUpdate.ID, recordsAffected)
+	// Redirect to the same page which will show the changed values.
+	http.Redirect(w, r, fmt.Sprintf("/r/%d/visits/%d", visitUpdate.RestaurantID, visitUpdate.ID), http.StatusFound)
+}
+
+func addVisit(a adder.Service, l lister.Service, w http.ResponseWriter, r *http.Request) {
+	var visitNew adder.Visit
+	if err := parseForm(r, &visitNew); err != nil {
+		log.Println(err)
+		http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
+		return
+	}
+
+	newVisitID, err := a.AddVisit(visitNew)
+	if err != nil {
+		errorMsg := err.Error()
+		log.Println(errorMsg)
+		restaurant, err := l.GetRestaurant(visitNew.RestaurantID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		// Create a new visit but with what the user typed in
+		visit := lister.Visit{
+			ID:            0,
+			RestaurantID:  visitNew.RestaurantID,
+			VisitDateTime: visitNew.VisitDateTime,
+			Note:          visitNew.Note,
+		}
+		for _, vu := range visitNew.VisitUsers {
+			lvu := lister.VisitUser{ID: 0, User: l.GetUserByID(vu.UserID), Rating: vu.Rating}
+			visit.VisitUsers = append(visit.VisitUsers, lvu)
+		}
+
+		v := newView("base", "../../web/template/visit.html")
+
+		data := Data{}
+		// Show the user the error.
+		data.Alert = Alert{errorMsg}
 		data.Head = Head{fmt.Sprintf("Add Visit %s", restaurant.Name)}
 		data.Yield = struct {
 			Heading string
@@ -1178,11 +1232,7 @@ func updateVisit(u updater.Service, l lister.Service, w http.ResponseWriter, r *
 		return
 	}
 
-	log.Printf("Updated visit with ID: %d. %d records affected\n", visitUpdate.ID, recordsAffected)
+	log.Printf("Added new visit to restaurant %d with ID: %d.\n", visitNew.RestaurantID, newVisitID)
 	// Redirect to the same page which will show the changed values.
-	http.Redirect(w, r, fmt.Sprintf("/r/%d/visits/%d", visitUpdate.RestaurantID, visitUpdate.ID), http.StatusFound)
-}
-
-func addVisit(a adder.Service, w http.ResponseWriter, r *http.Request) {
-	log.Println("Yup adding")
+	http.Redirect(w, r, fmt.Sprintf("/r/%d/visits/%d", visitNew.RestaurantID, newVisitID), http.StatusFound)
 }

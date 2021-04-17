@@ -21,7 +21,7 @@
     {{end}}
 
     <div class="form-label-group">
-        <input type="hidden" name="restaurantID" id="idInput" value="{{.Visit.ID}}" />
+        <input type="hidden" name="restaurantID" id="idInput" value="{{.Visit.RestaurantID}}" />
     </div>
 
     <div class="form-label-group">
@@ -45,7 +45,7 @@
             <label>
                 {{$element.User.FirstName}} {{$element.User.LastName}}
                 <input type="number" min="1" max="5" name="visitUsers.{{$index}}.rating" 
-                    value="{{if eq $element.Rating 0}} null {{else}} {{$element.Rating}} {{end}}" />
+                    value="{{if eq $element.Rating 0}}null{{else}}{{$element.Rating}}{{end}}" />
             </label>     
         </div>
         {{end}}
