@@ -211,6 +211,9 @@
         
     </div>
     <br/>
+    <button class="btn btn-lg btn-block" type="button" id="backBtn">
+        Back
+    </button>
     <button class="btn btn-lg btn-primary btn-block" type="submit">Save</button>
 </form>
 <br/>
@@ -261,6 +264,15 @@
         const deleteResBtn = document.getElementById('deleteResBtn');
         if (deleteResBtn) {
             deleteResBtn.addEventListener('click', deleteRestaurant)
+        }
+
+        const backBtn = document.getElementById('backBtn');
+        backBtn.addEventListener('click', goBack);
+
+        function goBack() {
+            const destUrl = new URL(`/`, baseURL);
+            // Go to the formed url. Don't use back because then the page won't be refreshed
+            window.location.href =  destUrl;
         }
 
         function deleteRestaurant() {
