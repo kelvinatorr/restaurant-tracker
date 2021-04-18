@@ -613,15 +613,20 @@ func (s Storage) GetVisitsByRestaurantID(restaurantID int64, sortOps []lister.So
 			v.restaurant_id=$1
 	`
 
-	nSortOps := len(sortOps)
-	if nSortOps > 0 {
-		sqlStatement = sqlStatement + `
+	sqlStatement = sqlStatement + `
 			ORDER BY
 		`
+	nSortOps := len(sortOps)
+	if nSortOps > 0 {
 		// add sort statements
 		for i, so := range sortOps {
 			sqlStatement = addSortOps(sqlStatement, so, i == nSortOps-1)
 		}
+	} else {
+		// By default sort by this
+		sqlStatement = sqlStatement + `
+			visit_datetime desc
+		`
 	}
 
 	dbRows, err := s.db.Query(sqlStatement, restaurantID)
