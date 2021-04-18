@@ -980,7 +980,7 @@ func (s Storage) UpdateVisitUser(vu updater.VisitUser) int64 {
 		SET
 			visit_id = $1,
 			user_id = $2,
-			rating = CASE WHEN $3 == "" THEN NULL ELSE $3 END
+			rating = CASE WHEN $3 == 0 THEN NULL ELSE $3 END
 		WHERE
 			id = $4
 	`
