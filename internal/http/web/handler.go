@@ -1027,13 +1027,13 @@ func getVisits(l lister.Service) httprouter.Handle {
 
 		data := Data{}
 
-		data.Head = Head{restaurant.Name}
+		data.Head = Head{fmt.Sprintf("%s Visits", restaurant.Name)}
 		data.Yield = struct {
 			Heading      string
 			RestaurantID int64
 			Visits       []lister.Visit
 		}{
-			fmt.Sprintf("%s Visits", restaurant.Name),
+			fmt.Sprintf("%s", restaurant.Name),
 			restaurant.ID,
 			visits,
 		}
