@@ -32,8 +32,8 @@
             const restaurantID = document.getElementById('restaurantIDInput').value;
             const visitID = backBtn.dataset.id;            
             const destUrl = new URL(`/r/${restaurantID}/visits/${visitID}`, baseURL);
-            // Go to the formed url
-            window.location.href =  destUrl;
+            // Go to the formed url by replacing it so that the user can't go back to it.
+            window.location.replace(destUrl);
         }
     })();
 </script>

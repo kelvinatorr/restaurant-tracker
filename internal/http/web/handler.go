@@ -1240,8 +1240,8 @@ func addVisit(a adder.Service, l lister.Service, w http.ResponseWriter, r *http.
 	}
 
 	log.Printf("Added new visit to restaurant %d with ID: %d.\n", visitNew.RestaurantID, newVisitID)
-	// Redirect to the same page which will show the changed values.
-	http.Redirect(w, r, fmt.Sprintf("/r/%d/visits/%d", visitNew.RestaurantID, newVisitID), http.StatusFound)
+	// Redirect to the list which should show the new entry
+	http.Redirect(w, r, fmt.Sprintf("/r/%d/visits", visitNew.RestaurantID), http.StatusFound)
 }
 
 func getDeleteVisit(l lister.Service) httprouter.Handle {

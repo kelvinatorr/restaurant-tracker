@@ -35,7 +35,7 @@
     </div>
 
     <fieldset>
-        <legend>Ratings</legend>
+        <legend>Ratings (1-5)</legend>
         {{range $index, $element := .Visit.VisitUsers}}
         {{if ne $element.ID 0}}
         <input type="hidden" name="visitUsers.{{$index}}.id" value="{{$element.ID}}" />
@@ -52,12 +52,17 @@
     </fieldset>    
 
     <br/>
-    <button class="btn btn-lg btn-primary btn-block" type="submit">Save</button>
+    <button class="btn btn-lg btn-block" type="button" id="backBtn" data-restaurant-id="{{.Visit.RestaurantID}}">
+        Back
+    </button>
+    <button class="btn btn-lg btn-primary btn-block" type="submit">
+        Save {{if eq .Visit.ID 0}}New Visit{{end}}
+    </button>
 </form>
 
 <br/>
 {{if ne .Visit.ID 0}}
-<div>
+<div>    
     <button type="button" class="btn btn-lg btn-block" id="deleteVisitBtn" data-id="{{.Visit.ID}}" 
         data-restaurant-id="{{.Visit.RestaurantID}}">
         Delete Visit
@@ -74,6 +79,16 @@
         const deleteVisitBtn = document.getElementById('deleteVisitBtn');
         if (deleteVisitBtn) {
             deleteVisitBtn.addEventListener('click', deleteVisit);
+        }
+
+        const backBtn = document.getElementById('backBtn');
+        backBtn.addEventListener('click', goBack);
+
+        function goBack() {
+            const restaurantID = backBtn.dataset.restaurantId;
+            const destUrl = new URL(`/r/${restaurantID}/visits`, baseURL);
+            // Go to the formed url. Don't use back because then the page won't be refreshed
+            window.location.href =  destUrl;
         }
 
         function deleteVisit() {
