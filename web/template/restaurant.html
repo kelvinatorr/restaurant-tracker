@@ -332,7 +332,14 @@
 
             const gmapsPlaceID = document.getElementById('gmapsPlaceIDInput').value;
             const url = new URL(`/maps/place/${gmapsPlaceID}`, baseURL);
-            fetch(url, {method: 'DELETE'}).then(resp => {
+            const csrfToken = document.getElementsByName("gorilla.csrf.Token")[0].value
+            const fetchOptions = {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-Token': csrfToken                    
+                }
+            }
+            fetch(url, fetchOptions).then(resp => {
                 if(!resp.ok) {
                     throw new Error(`The server responded with ${resp.status}: ${resp.statusText}`);
                 }
