@@ -8,7 +8,9 @@
 {{end}}
 
 {{define "yield"}}
-<h1>{{.Heading}}</h1>
+<h1>
+    <a href="/restaurants/{{.RestaurantID}}">{{.Heading}}</a> Visits
+</h1>
 
 <p>
     <a href="/r/{{.RestaurantID}}/visits/0">Add Visit</a>
