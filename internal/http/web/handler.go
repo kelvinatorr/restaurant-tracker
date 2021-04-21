@@ -51,29 +51,29 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	dontLogBodyURLs[signInPath] = true
 
 	homePath := "/"
-	homeGETHandler := authRequired(getHome(l), auth)
+	homeGETHandler := authRequired(getHome(l), auth, l)
 	router.GET(homePath, homeGETHandler)
 	router.HEAD(homePath, homeGETHandler)
 
 	userAddPath := "/users-add"
-	userAddGETHandler := authRequired(getUserAdd(), auth)
+	userAddGETHandler := authRequired(getUserAdd(), auth, l)
 	userAddPOSTHandler := authRequired(postUserAdd(a, "Add A New User",
-		"Add another user by adding the information below."), auth)
+		"Add another user by adding the information below."), auth, l)
 	router.GET(userAddPath, userAddGETHandler)
 	router.HEAD(userAddPath, userAddGETHandler)
 	router.POST(userAddPath, userAddPOSTHandler)
 	dontLogBodyURLs[userAddPath] = true
 
 	userPath := "/users/:id"
-	userGETHandler := authRequired(checkUser(getUser(), l, u, auth), auth)
-	userPOSTHandler := authRequired(checkUser(postUser(u), l, u, auth), auth)
+	userGETHandler := authRequired(checkUser(getUser()), auth, l)
+	userPOSTHandler := authRequired(checkUser(postUser(u)), auth, l)
 	router.GET(userPath, userGETHandler)
 	router.HEAD(userPath, userGETHandler)
 	router.POST(userPath, userPOSTHandler)
 
 	changePasswordPath := "/users/:id/change-password"
-	changePasswordGETHandler := authRequired(checkUser(getChangePassword(), l, u, auth), auth)
-	changePasswordPOSTHandler := authRequired(checkUser(postChangePassword(u), l, u, auth), auth)
+	changePasswordGETHandler := authRequired(checkUser(getChangePassword()), auth, l)
+	changePasswordPOSTHandler := authRequired(checkUser(postChangePassword(u)), auth, l)
 	router.GET(changePasswordPath, changePasswordGETHandler)
 	router.HEAD(changePasswordPath, changePasswordGETHandler)
 	router.POST(changePasswordPath, changePasswordPOSTHandler)
@@ -84,53 +84,53 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.POST(signOutPath, signOutPOSTHandler)
 
 	filterPath := "/filter"
-	filterGETHandler := authRequired(getFilter(l), auth)
+	filterGETHandler := authRequired(getFilter(l), auth, l)
 	router.GET(filterPath, filterGETHandler)
 	router.HEAD(filterPath, filterGETHandler)
 
 	restaurantPath := "/restaurants/:id"
-	restaurantGETHandler := authRequired(getRestaurant(l, m), auth)
-	restaurantPOSTHandler := authRequired(postRestaurant(u, a, m), auth)
+	restaurantGETHandler := authRequired(getRestaurant(l, m), auth, l)
+	restaurantPOSTHandler := authRequired(postRestaurant(u, a, m), auth, l)
 	router.GET(restaurantPath, restaurantGETHandler)
 	router.HEAD(restaurantPath, restaurantGETHandler)
 	router.POST(restaurantPath, restaurantPOSTHandler)
 
 	deleteResPath := "/delete-restaurant/:id"
-	deleteResGETHandler := authRequired(getDeleteRestaurant(l), auth)
-	deleteResPOSTHandler := authRequired(postDeleteRestaurant(r), auth)
+	deleteResGETHandler := authRequired(getDeleteRestaurant(l), auth, l)
+	deleteResPOSTHandler := authRequired(postDeleteRestaurant(r), auth, l)
 	router.GET(deleteResPath, deleteResGETHandler)
 	router.HEAD(deleteResPath, deleteResGETHandler)
 	router.POST(deleteResPath, deleteResPOSTHandler)
 
 	mapPlaceSearchPath := "/maps/place-search"
-	mapPlaceSearchGETHandler := authRequired(getPlaceSearch(m), auth)
+	mapPlaceSearchGETHandler := authRequired(getPlaceSearch(m), auth, l)
 	router.GET(mapPlaceSearchPath, mapPlaceSearchGETHandler)
 	router.HEAD(mapPlaceSearchPath, mapPlaceSearchGETHandler)
 
 	mapPlaceRefreshPath := "/maps/place-refresh/:placeID"
-	mapPlaceRefreshGETHandler := authRequired(getPlaceRefresh(m), auth)
+	mapPlaceRefreshGETHandler := authRequired(getPlaceRefresh(m), auth, l)
 	router.GET(mapPlaceRefreshPath, mapPlaceRefreshGETHandler)
 	router.HEAD(mapPlaceRefreshPath, mapPlaceRefreshGETHandler)
 
 	mapPlacePath := "/maps/place/:id"
-	mapPlaceDELETEHandler := authRequired(deletePlace(r), auth)
+	mapPlaceDELETEHandler := authRequired(deletePlace(r), auth, l)
 	router.DELETE(mapPlacePath, mapPlaceDELETEHandler)
 
 	visitsPath := "/r/:resid/visits"
-	visitsGETHandler := authRequired(getVisits(l), auth)
+	visitsGETHandler := authRequired(getVisits(l), auth, l)
 	router.GET(visitsPath, visitsGETHandler)
 	router.HEAD(visitsPath, visitsGETHandler)
 
 	visitPath := "/r/:resid/visits/:id"
-	visitGETHandler := authRequired(getVisit(l), auth)
-	visitPOSTHandler := authRequired(postVisit(u, a, l), auth)
+	visitGETHandler := authRequired(getVisit(l), auth, l)
+	visitPOSTHandler := authRequired(postVisit(u, a, l), auth, l)
 	router.GET(visitPath, visitGETHandler)
 	router.HEAD(visitPath, visitGETHandler)
 	router.POST(visitPath, visitPOSTHandler)
 
 	deleteVisitPath := "/r/:resid/delete-visit/:id"
-	deleteVisitGETHandler := authRequired(getDeleteVisit(l), auth)
-	deleteVisitPOSTHandler := authRequired(postDeleteVisit(r), auth)
+	deleteVisitGETHandler := authRequired(getDeleteVisit(l), auth, l)
+	deleteVisitPOSTHandler := authRequired(postDeleteVisit(r), auth, l)
 	router.GET(deleteVisitPath, deleteVisitGETHandler)
 	router.HEAD(deleteVisitPath, deleteVisitGETHandler)
 	router.POST(deleteVisitPath, deleteVisitPOSTHandler)
@@ -205,7 +205,7 @@ func verboseLogger(handler http.Handler, dontLogBodyURLs map[string]bool) http.H
 	})
 }
 
-func authRequired(handler httprouter.Handle, auth auther.Service) httprouter.Handle {
+func authRequired(handler httprouter.Handle, auth auther.Service, l lister.Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		log.Println("Checking rt cookie")
 		rememberTokenCookie, err := r.Cookie("rt")
@@ -223,6 +223,29 @@ func authRequired(handler httprouter.Handle, auth auther.Service) httprouter.Han
 			http.Redirect(w, r, "/sign-in", http.StatusFound)
 			return
 		}
+
+		// Decode the payload (we already know it is valid because it was checked above)
+		signedInUser, err := auth.GetCookiePayload(rememberTokenCookie.Value)
+		if err != nil {
+			log.Println(err.Error())
+			http.Redirect(w, r, "/sign-in", http.StatusFound)
+			return
+		}
+
+		user := l.GetUserByID(signedInUser.ID)
+		// Get the user's info
+		if user.ID == 0 {
+			http.Error(w, fmt.Sprintf("There is no user with id %s", p.ByName("id")), http.StatusBadRequest)
+			return
+		}
+
+		// Save the user to the context
+		ctx := r.Context()
+
+		ctx = context.WithValue(ctx, contextKeyUser, user)
+		// Get new http.Request with the new context
+		r = r.WithContext(ctx)
+
 		// Call the next httprouter.Handle
 		handler(w, r, p)
 	}
@@ -411,7 +434,7 @@ func getUserAdd() func(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 	}
 }
 
-func checkUser(handler httprouter.Handle, l lister.Service, u updater.Service, auth auther.Service) httprouter.Handle {
+func checkUser(handler httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		// get the route parameter
 		ID, err := strconv.Atoi(p.ByName("id"))
@@ -421,41 +444,18 @@ func checkUser(handler httprouter.Handle, l lister.Service, u updater.Service, a
 			return
 		}
 
-		user := l.GetUserByID(int64(ID))
-		// Check that the user exists.
-		if user.ID == 0 {
-			http.Error(w, fmt.Sprintf("There is no user with id %s", p.ByName("id")), http.StatusBadRequest)
+		user, ok := r.Context().Value(contextKeyUser).(lister.User)
+		if !ok {
+			log.Println("user is not type lister.User")
+			http.Error(w, "A server error occurred", http.StatusInternalServerError)
 			return
 		}
 
-		// Check that the signed in in user is not editing someone else.
-		// First get the cookie
-		rememberTokenCookie, err := r.Cookie("rt")
-		if err != nil {
-			log.Println(err.Error())
-			// Redirect to sign in page
-			http.Redirect(w, r, "/sign-in", http.StatusFound)
-			return
-		}
-		// Decode the payload (we already know it is valid because it was checked by the auth middleware)
-		signedInUser, err := auth.GetCookiePayload(rememberTokenCookie.Value)
-		if err != nil {
-			log.Println(err.Error())
-			http.Redirect(w, r, "/sign-in", http.StatusFound)
-			return
-		}
 		// Then compare that the ids are the same
-		if user.ID != signedInUser.ID {
+		if user.ID != int64(ID) {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-
-		// Save the user to the context
-		ctx := r.Context()
-
-		ctx = context.WithValue(ctx, contextKeyUser, user)
-		// Get new http.Request with the new context
-		r = r.WithContext(ctx)
 
 		// Call the next httprouter.Handle
 		handler(w, r, p)

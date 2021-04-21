@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/csrf"
+	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
 )
 
 const (
@@ -45,14 +46,22 @@ type view struct {
 
 func (v *view) render(w http.ResponseWriter, r *http.Request, data interface{}) {
 	w.Header().Set("Content-Type", "text/html")
-	switch data.(type) {
+	var viewData Data
+	switch d := data.(type) {
 	case Data:
-		// do nothing
+		viewData = d
 	default:
-		data = Data{
+		viewData = Data{
 			Yield: data,
 		}
 	}
+
+	user, ok := r.Context().Value(contextKeyUser).(lister.User)
+	if ok {
+		viewData.User.ID = user.ID
+		viewData.User.FirstName = user.FirstName
+	}
+
 	csrfField := csrf.TemplateField(r)
 	tpl := v.Template.Funcs(template.FuncMap{
 		"genCSRFField": func() template.HTML {
@@ -63,7 +72,7 @@ func (v *view) render(w http.ResponseWriter, r *http.Request, data interface{}) 
 	// Execute the template into a buffer 1st to see if there was a problem. This prevents rendering a incomplete
 	// template to the user.
 	var buf bytes.Buffer
-	err := tpl.ExecuteTemplate(&buf, v.Layout, data)
+	err := tpl.ExecuteTemplate(&buf, v.Layout, viewData)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "There was a problem rendering the html template", http.StatusInternalServerError)

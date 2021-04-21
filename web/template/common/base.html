@@ -21,10 +21,15 @@
 <body>
     <header>
         <a href="/">Track Restaurants</a>
-        <form method="POST" action="/sign-out">
-            {{genCSRFField}}
-            <input type="submit" value="Sign Out" />
-        </form>
+        {{if .User}}
+        <div>
+            <a href="/users/{{.User.ID}}">{{.User.FirstName}}</a>
+            <form method="POST" action="/sign-out">
+                {{genCSRFField}}
+                <input type="submit" value="Sign Out" />
+            </form>
+        </div>
+        {{end}}        
     </header>
     <div>
         {{template "yield" .Yield}}
