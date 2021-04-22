@@ -1,0 +1,106 @@
+{{define "head"}}
+<title>{{.Title}}</title>
+<style>
+    table, th, td {
+        border: 1px solid black;
+    }
+</style>
+{{end}}
+
+{{define "yield"}}
+<h1>
+    <a href="/restaurants/{{.RestaurantID}}">{{.Heading}}</a> Visits
+</h1>
+
+<p>
+    <a href="/r/{{.RestaurantID}}/visits/0">Add Visit</a>
+</p>
+
+<div>
+    <div>
+        <table id="visitTable">
+            <thead>
+              <tr>
+                <th>
+                    <a class="column-sort" href="/r/{{.RestaurantID}}/visits?sort[date]=asc">
+                        Date
+                    </a>
+                </th>
+                <th>
+                    Note
+                </th>
+                <th>
+                    Users Ratings
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {{range .Visits}}
+                <tr class="visit-row">
+                    <td>
+                        <a href="/r/{{.RestaurantID}}/visits/{{.ID}}">
+                            {{.VisitDateTime}}
+                        </a>
+                    </td>
+                    <td>
+                        {{.Note}}
+                    </td>
+                    <td>
+                        {{range .VisitUsers}}
+                            <p>
+                                {{.User.FirstName}} {{.User.LastName}}:
+                                {{if.Rating}}
+                                    {{.Rating}}
+                                {{else}}
+                                    null
+                                {{end}}
+                            </p>                            
+                        {{end}}
+                    </td>
+                </tr>
+              {{end}}
+            </tbody>
+          </table>
+    </div>
+</div>
+{{end}}
+{{define "script"}}
+<script>
+    (function() {
+        setSortParams();
+        function setSortParams() {
+            // get the url parameters
+            let urlParams = new URLSearchParams(window.location.search);
+
+            let columnSorts = document.getElementsByClassName('column-sort');
+            for (let i = 0; i < columnSorts.length; i++) {      
+                let cs = columnSorts[i];
+                let linkURL =  new URL(cs.href);
+                for(const e of linkURL.searchParams.entries()) {
+                    const key = e[0];
+                    // skip query params on the a tag that are not related to sort
+                    if (key.substring(0, 4) != 'sort') {
+                        continue;
+                    }
+
+                    let urlValue = urlParams.get(key);
+                    // reverse the values
+                    switch (urlValue) {
+                        case null:
+                        break;
+                        case 'asc':
+                        linkURL.searchParams.set(key, 'desc');
+                        break;
+                        case 'desc':
+                        linkURL.searchParams.set(key, 'asc');
+                        break;
+                    }
+                }
+
+                // reset the url
+                cs.href = linkURL;
+            }   
+        }
+    })();
+</script>
+{{end}}

@@ -3,11 +3,12 @@
 {{end}}
 
 {{define "yield"}}
-<h1>{{.Header}}</h1>
+<h1>{{.Heading}}</h1>
 <p>
     {{.Text}}
 </p>
-<form method="POST">  
+<form method="POST"> 
+    {{genCSRFField}}
     <div class="form-label-group">
         <label for="inputFirstName">First Name</label>
         <input type="text" id="inputFirstName" name="firstName" class="form-control" placeholder="First Name" required autofocus
@@ -29,4 +30,7 @@
     <a href="/users/{{.User.ID}}/change-password">Change Password</a>
 </p>
 
+{{end}}
+
+{{define "script"}}
 {{end}}

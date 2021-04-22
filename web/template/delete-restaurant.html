@@ -1,0 +1,28 @@
+{{define "head"}}
+<title>{{.Title}}</title>
+{{end}}
+
+{{define "yield"}}
+<h1>{{.Heading}}</h1>
+<p>
+    {{.Text}}
+</p>
+<form id="deleteRestaurantForm" method="POST">
+    {{genCSRFField}}
+    <div class="form-label-group">
+        <input type="hidden" name="name" value="{{.Restaurant.Name}}" />
+    </div>
+    <div class="form-label-group">
+        <label>            
+            <div>Please type <b>{{.Restaurant.Name}}</b> to confirm.</div>
+            <input type="text" name="confirmName" value="" required autofocus />
+        </label>
+    </div>
+    
+    <button class="btn btn-lg btn-primary btn-block" type="submit">Delete It!</button>
+</form>
+
+{{end}}
+
+{{define "script"}}
+{{end}}

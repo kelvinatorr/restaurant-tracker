@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,6 +17,7 @@ import (
 	"github.com/kelvinatorr/restaurant-tracker/internal/adder"
 	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
+	"github.com/kelvinatorr/restaurant-tracker/internal/mapper"
 	"github.com/kelvinatorr/restaurant-tracker/internal/remover"
 	"github.com/kelvinatorr/restaurant-tracker/internal/updater"
 )
@@ -28,7 +30,7 @@ const (
 )
 
 // Handler sets the httprouter routes for the web package
-func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Service, auth auther.Service, verbose bool) http.Handler {
+func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Service, auth auther.Service, m mapper.Service, verbose bool) http.Handler {
 
 	router := httprouter.New()
 
@@ -49,29 +51,29 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	dontLogBodyURLs[signInPath] = true
 
 	homePath := "/"
-	homeGETHandler := authRequired(getHome(), auth)
+	homeGETHandler := authRequired(getHome(l), auth, l)
 	router.GET(homePath, homeGETHandler)
 	router.HEAD(homePath, homeGETHandler)
 
 	userAddPath := "/users-add"
-	userAddGETHandler := authRequired(getUserAdd(), auth)
+	userAddGETHandler := authRequired(getUserAdd(), auth, l)
 	userAddPOSTHandler := authRequired(postUserAdd(a, "Add A New User",
-		"Add another user by adding the information below."), auth)
+		"Add another user by adding the information below."), auth, l)
 	router.GET(userAddPath, userAddGETHandler)
 	router.HEAD(userAddPath, userAddGETHandler)
 	router.POST(userAddPath, userAddPOSTHandler)
 	dontLogBodyURLs[userAddPath] = true
 
 	userPath := "/users/:id"
-	userGETHandler := authRequired(checkUser(getUser(), l, u, auth), auth)
-	userPOSTHandler := authRequired(checkUser(postUser(u), l, u, auth), auth)
+	userGETHandler := authRequired(checkUser(getUser()), auth, l)
+	userPOSTHandler := authRequired(checkUser(postUser(u)), auth, l)
 	router.GET(userPath, userGETHandler)
 	router.HEAD(userPath, userGETHandler)
 	router.POST(userPath, userPOSTHandler)
 
 	changePasswordPath := "/users/:id/change-password"
-	changePasswordGETHandler := authRequired(checkUser(getChangePassword(), l, u, auth), auth)
-	changePasswordPOSTHandler := authRequired(checkUser(postChangePassword(u), l, u, auth), auth)
+	changePasswordGETHandler := authRequired(checkUser(getChangePassword()), auth, l)
+	changePasswordPOSTHandler := authRequired(checkUser(postChangePassword(u)), auth, l)
 	router.GET(changePasswordPath, changePasswordGETHandler)
 	router.HEAD(changePasswordPath, changePasswordGETHandler)
 	router.POST(changePasswordPath, changePasswordPOSTHandler)
@@ -81,10 +83,72 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	signOutPOSTHandler := postSignOut()
 	router.POST(signOutPath, signOutPOSTHandler)
 
+	filterPath := "/filter"
+	filterGETHandler := authRequired(getFilter(l), auth, l)
+	router.GET(filterPath, filterGETHandler)
+	router.HEAD(filterPath, filterGETHandler)
+
+	restaurantPath := "/restaurants/:id"
+	restaurantGETHandler := authRequired(getRestaurant(l, m), auth, l)
+	restaurantPOSTHandler := authRequired(postRestaurant(u, a, m), auth, l)
+	router.GET(restaurantPath, restaurantGETHandler)
+	router.HEAD(restaurantPath, restaurantGETHandler)
+	router.POST(restaurantPath, restaurantPOSTHandler)
+
+	deleteResPath := "/delete-restaurant/:id"
+	deleteResGETHandler := authRequired(getDeleteRestaurant(l), auth, l)
+	deleteResPOSTHandler := authRequired(postDeleteRestaurant(r), auth, l)
+	router.GET(deleteResPath, deleteResGETHandler)
+	router.HEAD(deleteResPath, deleteResGETHandler)
+	router.POST(deleteResPath, deleteResPOSTHandler)
+
+	mapPlaceSearchPath := "/maps/place-search"
+	mapPlaceSearchGETHandler := authRequired(getPlaceSearch(m), auth, l)
+	router.GET(mapPlaceSearchPath, mapPlaceSearchGETHandler)
+	router.HEAD(mapPlaceSearchPath, mapPlaceSearchGETHandler)
+
+	mapPlaceRefreshPath := "/maps/place-refresh/:placeID"
+	mapPlaceRefreshGETHandler := authRequired(getPlaceRefresh(m), auth, l)
+	router.GET(mapPlaceRefreshPath, mapPlaceRefreshGETHandler)
+	router.HEAD(mapPlaceRefreshPath, mapPlaceRefreshGETHandler)
+
+	mapPlacePath := "/maps/place/:id"
+	mapPlaceDELETEHandler := authRequired(deletePlace(r), auth, l)
+	router.DELETE(mapPlacePath, mapPlaceDELETEHandler)
+
+	visitsPath := "/r/:resid/visits"
+	visitsGETHandler := authRequired(getVisits(l), auth, l)
+	router.GET(visitsPath, visitsGETHandler)
+	router.HEAD(visitsPath, visitsGETHandler)
+
+	visitPath := "/r/:resid/visits/:id"
+	visitGETHandler := authRequired(getVisit(l), auth, l)
+	visitPOSTHandler := authRequired(postVisit(u, a, l), auth, l)
+	router.GET(visitPath, visitGETHandler)
+	router.HEAD(visitPath, visitGETHandler)
+	router.POST(visitPath, visitPOSTHandler)
+
+	deleteVisitPath := "/r/:resid/delete-visit/:id"
+	deleteVisitGETHandler := authRequired(getDeleteVisit(l), auth, l)
+	deleteVisitPOSTHandler := authRequired(postDeleteVisit(r), auth, l)
+	router.GET(deleteVisitPath, deleteVisitGETHandler)
+	router.HEAD(deleteVisitPath, deleteVisitGETHandler)
+	router.POST(deleteVisitPath, deleteVisitPOSTHandler)
+
+	// Serve files from the web/static directory
+	router.ServeFiles("/static/*filepath", fileSystem{http.Dir("../../web/static")})
+
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
 		http.Error(w, "The server encountered an error processing your request.", http.StatusInternalServerError)
 	}
+
+	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		v := newView("base", "../../web/template/404.html")
+		data := Data{}
+		v.render(w, r, data)
+		return
+	})
 
 	// Add verbose output
 	var h http.Handler
@@ -141,7 +205,7 @@ func verboseLogger(handler http.Handler, dontLogBodyURLs map[string]bool) http.H
 	})
 }
 
-func authRequired(handler httprouter.Handle, auth auther.Service) httprouter.Handle {
+func authRequired(handler httprouter.Handle, auth auther.Service, l lister.Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		log.Println("Checking rt cookie")
 		rememberTokenCookie, err := r.Cookie("rt")
@@ -159,6 +223,29 @@ func authRequired(handler httprouter.Handle, auth auther.Service) httprouter.Han
 			http.Redirect(w, r, "/sign-in", http.StatusFound)
 			return
 		}
+
+		// Decode the payload (we already know it is valid because it was checked above)
+		signedInUser, err := auth.GetCookiePayload(rememberTokenCookie.Value)
+		if err != nil {
+			log.Println(err.Error())
+			http.Redirect(w, r, "/sign-in", http.StatusFound)
+			return
+		}
+
+		user := l.GetUserByID(signedInUser.ID)
+		// Get the user's info
+		if user.ID == 0 {
+			http.Error(w, fmt.Sprintf("There is no user with id %s", p.ByName("id")), http.StatusBadRequest)
+			return
+		}
+
+		// Save the user to the context
+		ctx := r.Context()
+
+		ctx = context.WithValue(ctx, contextKeyUser, user)
+		// Get new http.Request with the new context
+		r = r.WithContext(ctx)
+
 		// Call the next httprouter.Handle
 		handler(w, r, p)
 	}
@@ -169,6 +256,7 @@ func parseForm(r *http.Request, dest interface{}) error {
 		return err
 	}
 	dec := schema.NewDecoder()
+	dec.IgnoreUnknownKeys(true)
 	if err := dec.Decode(dest, r.PostForm); err != nil {
 		return err
 	}
@@ -187,7 +275,7 @@ func getInitialSignup(l lister.Service) func(w http.ResponseWriter, r *http.Requ
 		data := Data{}
 		data.Head = Head{"Initial Signup"}
 		data.Yield = struct {
-			Header    string
+			Heading   string
 			Text      string
 			FirstName string
 			LastName  string
@@ -199,7 +287,7 @@ func getInitialSignup(l lister.Service) func(w http.ResponseWriter, r *http.Requ
 			"",
 			"",
 		}
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
@@ -214,16 +302,16 @@ func getSignIn(l lister.Service) func(w http.ResponseWriter, r *http.Request, _ 
 		v := newView("base", "../../web/template/sign-in.html")
 		data := Data{}
 		data.Head = Head{Title: "Sign In"}
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
-func postUserAdd(a adder.Service, header string, text string) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func postUserAdd(a adder.Service, heading string, text string) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		var u adder.User
 
 		data := Data{}
-		data.Head = Head{Title: header}
+		data.Head = Head{Title: heading}
 		v := newView("base", "../../web/template/create-user.html")
 
 		if err := parseForm(r, &u); err != nil {
@@ -237,19 +325,19 @@ func postUserAdd(a adder.Service, header string, text string) func(w http.Respon
 			data.Alert = Alert{Message: err.Error()}
 			// Add the data that was submitted for convenience
 			data.Yield = struct {
-				Header    string
+				Heading   string
 				Text      string
 				FirstName string
 				LastName  string
 				Email     string
 			}{
-				header,
+				heading,
 				text,
 				u.FirstName,
 				u.LastName,
 				u.Email,
 			}
-			v.render(w, data)
+			v.render(w, r, data)
 			return
 		}
 		log.Printf("New user created with ID: %d\n", newUserID)
@@ -277,7 +365,7 @@ func postSignIn(a auther.Service) func(w http.ResponseWriter, r *http.Request, _
 			data.Alert = Alert{Message: err.Error()}
 			// Add the email that was submitted for convenience
 			data.Yield = struct{ Email string }{u.Email}
-			v.render(w, data)
+			v.render(w, r, data)
 			return
 		}
 
@@ -298,14 +386,29 @@ func postSignIn(a auther.Service) func(w http.ResponseWriter, r *http.Request, _
 	}
 }
 
-func getHome() httprouter.Handle {
+func getHome(s lister.Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		w.Header().Set("Content-Type", "text/html")
 		v := newView("base", "../../web/template/index.html")
 		// TODO: Pull in Site Name from the database.
+
+		// get the query parameters parameter
+		queryParams := r.URL.Query()
+
 		data := Data{}
 		data.Head = Head{"Our Restaurant Tracker"}
-		v.render(w, data)
+		// Get all restaurants
+		restaurants, err := s.GetRestaurants(queryParams)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, "There was a problem processing your request", http.StatusBadRequest)
+			return
+		}
+		data.Yield = struct {
+			Restaurants []lister.Restaurant
+		}{
+			restaurants,
+		}
+		v.render(w, r, data)
 	}
 }
 
@@ -315,7 +418,7 @@ func getUserAdd() func(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		data := Data{}
 		data.Head = Head{"Add A New User"}
 		data.Yield = struct {
-			Header    string
+			Heading   string
 			Text      string
 			FirstName string
 			LastName  string
@@ -327,11 +430,11 @@ func getUserAdd() func(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 			"",
 			"",
 		}
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
-func checkUser(handler httprouter.Handle, l lister.Service, u updater.Service, auth auther.Service) httprouter.Handle {
+func checkUser(handler httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		// get the route parameter
 		ID, err := strconv.Atoi(p.ByName("id"))
@@ -341,41 +444,18 @@ func checkUser(handler httprouter.Handle, l lister.Service, u updater.Service, a
 			return
 		}
 
-		user := l.GetUserByID(int64(ID))
-		// Check that the user exists.
-		if user.ID == 0 {
-			http.Error(w, fmt.Sprintf("There is no user with id %s", p.ByName("id")), http.StatusBadRequest)
+		user, ok := r.Context().Value(contextKeyUser).(lister.User)
+		if !ok {
+			log.Println("user is not type lister.User")
+			http.Error(w, "A server error occurred", http.StatusInternalServerError)
 			return
 		}
 
-		// Check that the signed in in user is not editing someone else.
-		// First get the cookie
-		rememberTokenCookie, err := r.Cookie("rt")
-		if err != nil {
-			log.Println(err.Error())
-			// Redirect to sign in page
-			http.Redirect(w, r, "/sign-in", http.StatusFound)
-			return
-		}
-		// Decode the payload (we already know it is valid because it was checked by the auth middleware)
-		signedInUser, err := auth.GetCookiePayload(rememberTokenCookie.Value)
-		if err != nil {
-			log.Println(err.Error())
-			http.Redirect(w, r, "/sign-in", http.StatusFound)
-			return
-		}
 		// Then compare that the ids are the same
-		if user.ID != signedInUser.ID {
+		if user.ID != int64(ID) {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-
-		// Save the user to the context
-		ctx := r.Context()
-
-		ctx = context.WithValue(ctx, contextKeyUser, user)
-		// Get new http.Request with the new context
-		r = r.WithContext(ctx)
 
 		// Call the next httprouter.Handle
 		handler(w, r, p)
@@ -397,16 +477,16 @@ func getUser() httprouter.Handle {
 		data := Data{}
 		data.Head = Head{fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName)}
 		data.Yield = struct {
-			Header string
-			Text   string
-			User   lister.User
+			Heading string
+			Text    string
+			User    lister.User
 		}{
 			fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName),
 			"Edit your profile by changing the information below.",
 			user,
 		}
 
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
@@ -437,15 +517,15 @@ func postUser(u updater.Service) httprouter.Handle {
 			data.Alert = Alert{err.Error()}
 			// Fill in the form again for convenience
 			data.Yield = struct {
-				Header string
-				Text   string
-				User   updater.User
+				Heading string
+				Text    string
+				User    updater.User
 			}{
 				fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName),
 				"Edit your profile by changing the information below.",
 				userUpdate,
 			}
-			v.render(w, data)
+			v.render(w, r, data)
 			return
 		}
 		log.Printf("Updated user with ID: %d. %d records affected\n", user.ID, recordsAffected)
@@ -463,13 +543,13 @@ func getChangePassword() httprouter.Handle {
 		data := Data{}
 		data.Head = Head{"Change Password"}
 		data.Yield = struct {
-			Header string
-			Text   string
+			Heading string
+			Text    string
 		}{
 			"ChangePassword",
 			"Change your password by entering your current password and new password below.",
 		}
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
@@ -498,8 +578,8 @@ func postChangePassword(u updater.Service) httprouter.Handle {
 		data := Data{}
 		data.Head = Head{"Change Password"}
 		data.Yield = struct {
-			Header string
-			Text   string
+			Heading string
+			Text    string
 		}{
 			"ChangePassword",
 			"Change your password by entering your current password and new password below.",
@@ -509,14 +589,14 @@ func postChangePassword(u updater.Service) httprouter.Handle {
 
 			// Show the user the error.
 			data.Alert = Alert{err.Error()}
-			v.render(w, data)
+			v.render(w, r, data)
 			return
 		}
 		log.Printf("Updated password for user with ID: %d. %d records affected\n", user.ID, recordsAffected)
 
 		// Display success alert
 		data.Alert = Alert{"Success! Your password has been changed."}
-		v.render(w, data)
+		v.render(w, r, data)
 	}
 }
 
@@ -533,5 +613,715 @@ func postSignOut() httprouter.Handle {
 
 		http.SetCookie(w, &cookie)
 		http.Redirect(w, r, "/sign-in", http.StatusFound)
+	}
+}
+
+func getFilter(s lister.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		// Read the query params to fill up the form
+		queryParams := r.URL.Query()
+
+		v := newView("base", "../../web/template/filter.html")
+
+		data := Data{}
+		data.Head = Head{"Filter Restaurants"}
+		// Get all select filters
+		filterOptions := s.GetFilterOptions(queryParams)
+
+		lastVisitOp := s.GetFilterParam("last_visit", queryParams).Operator
+
+		avgRatingFilterOp := s.GetFilterParam("avg_rating", queryParams)
+
+		avgRating := struct {
+			Operator string
+			Value    string
+		}{Operator: avgRatingFilterOp.Operator, Value: avgRatingFilterOp.Value}
+
+		data.Yield = struct {
+			Heading       string
+			Text          string
+			FilterOptions lister.FilterOptions
+			LastVisitOp   string
+			AvgRating     struct {
+				Operator string
+				Value    string
+			}
+		}{
+			"Filter Restaurants",
+			"Filter the restaurant table by selecting options below.",
+			filterOptions,
+			lastVisitOp,
+			avgRating,
+		}
+		v.render(w, r, data)
+	}
+}
+
+func getRestaurant(s lister.Service, m mapper.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		// get the route parameter
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		v := newView("base", "../../web/template/restaurant.html")
+
+		data := Data{}
+
+		haveGmapsKey := m.HaveGmapsKey()
+
+		var restaurant lister.Restaurant
+		// Get the restaurant requested
+		if ID != 0 {
+			restaurant, err = s.GetRestaurant(int64(ID))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			}
+			data.Head = Head{restaurant.Name}
+			data.Yield = struct {
+				Heading      string
+				Text         string
+				Restaurant   lister.Restaurant
+				HaveGmapsKey bool
+			}{
+				restaurant.Name,
+				"Edit this restaurant's details below",
+				restaurant,
+				haveGmapsKey,
+			}
+		} else {
+			// Adding a new restaurant
+			restaurant = lister.Restaurant{}
+			data.Head = Head{"Add A New Restaurant"}
+			data.Yield = struct {
+				Heading      string
+				Text         string
+				Restaurant   lister.Restaurant
+				HaveGmapsKey bool
+			}{
+				"Add A New Restaurant",
+				"Add the new restaurant's details below",
+				restaurant,
+				haveGmapsKey,
+			}
+		}
+
+		v.render(w, r, data)
+	}
+}
+
+func getPlaceSearch(m mapper.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		if !m.HaveGmapsKey() {
+			http.Error(w, "No Google Maps Key", http.StatusPaymentRequired)
+			return
+		}
+
+		queryParams := r.URL.Query()
+		searchTerm := queryParams.Get("searchTerm")
+		if searchTerm == "" {
+			http.Error(w, "A ?searchTerm query parameter is required", http.StatusBadRequest)
+			return
+		}
+
+		candidates, err := m.PlaceSearch(searchTerm)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(candidates)
+	}
+}
+
+func postRestaurant(u updater.Service, a adder.Service, m mapper.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+		if ID != 0 {
+			updateRestaurant(u, m, w, r)
+		} else {
+			addRestaurant(a, m, w, r)
+		}
+	}
+}
+
+func addRestaurant(a adder.Service, m mapper.Service, w http.ResponseWriter, r *http.Request) {
+	var resNew adder.Restaurant
+	if err := parseForm(r, &resNew); err != nil {
+		log.Println(err)
+		http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
+		return
+	}
+
+	newRestaurantID, err := a.AddRestaurant(resNew)
+	if err != nil {
+		log.Println(err)
+		v := newView("base", "../../web/template/restaurant.html")
+		data := Data{}
+		data.Head = Head{"Add A New Restaurant"}
+		// Show the user the error.
+		data.Alert = Alert{err.Error()}
+
+		// Fill in the form again for convenience. Need lister.Restaurant because we need an ID property for the template
+		restaurant := lister.Restaurant{
+			Name:    resNew.Name,
+			Cuisine: resNew.Cuisine,
+			Note:    resNew.Note,
+			CityState: lister.CityState{
+				Name:  resNew.CityState.Name,
+				State: resNew.CityState.State,
+			},
+		}
+
+		data.Yield = struct {
+			Heading      string
+			Text         string
+			Restaurant   lister.Restaurant
+			HaveGmapsKey bool
+		}{
+			"Add A New Restaurant",
+			"Add the new restaurant's details below",
+			restaurant,
+			m.HaveGmapsKey(),
+		}
+		v.render(w, r, data)
+		return
+	}
+	http.Redirect(w, r, fmt.Sprintf("/restaurants/%d", newRestaurantID), http.StatusFound)
+}
+
+func updateRestaurant(u updater.Service, m mapper.Service, w http.ResponseWriter, r *http.Request) {
+	var resUpdate updater.Restaurant
+	if err := parseForm(r, &resUpdate); err != nil {
+		log.Println(err)
+		http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
+		return
+	}
+
+	recordsAffected, err := u.UpdateRestaurant(resUpdate)
+	if err != nil {
+		log.Println(err)
+		v := newView("base", "../../web/template/restaurant.html")
+		data := Data{}
+		data.Head = Head{resUpdate.Name}
+		// Show the user the error.
+		data.Alert = Alert{err.Error()}
+		// Fill in the form again for convenience
+		data.Yield = struct {
+			Heading      string
+			Text         string
+			Restaurant   updater.Restaurant
+			HaveGmapsKey bool
+		}{
+			resUpdate.Name,
+			"Edit this restuarant's details below",
+			resUpdate,
+			m.HaveGmapsKey(),
+		}
+		v.render(w, r, data)
+		return
+	}
+	log.Printf("Updated restaurant with ID: %d. %d records affected\n", resUpdate.ID, recordsAffected)
+	// Redirect to the same page which will show the changed values.
+	http.Redirect(w, r, fmt.Sprintf("/restaurants/%d", resUpdate.ID), http.StatusFound)
+}
+
+func deletePlace(s remover.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		// get the route parameter
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid Gmaps Place ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		log.Printf("Removing Gmaps Place ID: %d\n", ID)
+		recordsAffected := s.RemoveGmapsPlace(int64(ID))
+		log.Printf("Number of records affected %d", recordsAffected)
+
+		rm := struct {
+			Message string
+		}{
+			Message: fmt.Sprintf("Gmaps Place ID: %d removed", ID),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(rm)
+	}
+}
+
+func getPlaceRefresh(m mapper.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		if !m.HaveGmapsKey() {
+			http.Error(w, "No Google Maps Key", http.StatusPaymentRequired)
+			return
+		}
+
+		placeID := p.ByName("placeID")
+
+		placeDetails, err := m.PlaceDetails(placeID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		pd := struct {
+			PlaceID              string  `json:"placeID"`
+			BusinessStatus       string  `json:"businessStatus"`
+			FormattedPhoneNumber string  `json:"formattedPhoneNumber"`
+			Name                 string  `json:"name"`
+			PriceLevel           int     `json:"priceLevel"`
+			Rating               float32 `json:"rating"`
+			URL                  string  `json:"url"`
+			UserRatingsTotal     int     `json:"userRatingsTotal"`
+			UTCOffset            int     `json:"utcOffset"`
+			Website              string  `json:"website"`
+			Address              string  `json:"address"`
+			ZipCode              string  `json:"zipCode"`
+		}{
+			PlaceID:              placeDetails.Result.PlaceID,
+			BusinessStatus:       placeDetails.Result.BusinessStatus,
+			FormattedPhoneNumber: placeDetails.Result.FormattedPhoneNumber,
+			Name:                 placeDetails.Result.Name,
+			PriceLevel:           placeDetails.Result.PriceLevel,
+			Rating:               placeDetails.Result.Rating,
+			URL:                  placeDetails.Result.URL,
+			UserRatingsTotal:     placeDetails.Result.UserRatingsTotal,
+			UTCOffset:            placeDetails.Result.UTCOffset,
+			Website:              placeDetails.Result.Website,
+			Address:              placeDetails.Result.Address,
+			ZipCode:              placeDetails.Result.ZipCode,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(pd)
+	}
+}
+
+func getDeleteRestaurant(l lister.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		v := newView("base", "../../web/template/delete-restaurant.html")
+
+		data := Data{}
+
+		var restaurant lister.Restaurant
+		// Get the restaurant requested
+		restaurant, err = l.GetRestaurant(int64(ID))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		data.Head = Head{restaurant.Name}
+		data.Yield = struct {
+			Heading    string
+			Text       string
+			Restaurant lister.Restaurant
+		}{
+			fmt.Sprintf("Delete %s", restaurant.Name),
+			fmt.Sprintf("Are you sure you want to delete %s? This will also delete all visit data for this restaurant.", restaurant.Name),
+			restaurant,
+		}
+
+		v.render(w, r, data)
+	}
+}
+
+func postDeleteRestaurant(s remover.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		deleteConfirm := struct {
+			Name        string `schema:"name"`
+			ConfirmName string `schema:"confirmName"`
+		}{
+			"",
+			"",
+		}
+		if err := parseForm(r, &deleteConfirm); err != nil {
+			log.Println(err)
+			http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
+			return
+		}
+
+		if deleteConfirm.Name != deleteConfirm.ConfirmName {
+			log.Printf("Delete requested for %d, but confirmation name %s doesn't match %s", ID, deleteConfirm.ConfirmName,
+				deleteConfirm.Name)
+			v := newView("base", "../../web/template/delete-restaurant.html")
+			data := Data{}
+			data.Head = Head{deleteConfirm.Name}
+			// Show the user the error.
+			data.Alert = Alert{fmt.Sprintf("Input: %s did not match %s", deleteConfirm.ConfirmName, deleteConfirm.Name)}
+			// Fill in the form again for convenience
+			data.Yield = struct {
+				Heading    string
+				Text       string
+				Restaurant lister.Restaurant
+			}{
+				fmt.Sprintf("Delete %s", deleteConfirm.Name),
+				fmt.Sprintf("Are you sure you want to delete %s?", deleteConfirm.Name),
+				lister.Restaurant{Name: deleteConfirm.Name},
+			}
+			v.render(w, r, data)
+			return
+		} else {
+			log.Printf("Confirmed request to remove %s with ID: %d", deleteConfirm.Name, ID)
+			s.RemoveRestaurant(remover.Restaurant{ID: int64(ID)})
+			// Redirect to the list of other restaurants.
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+		}
+	}
+}
+
+func getVisits(l lister.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		ID, err := strconv.Atoi(p.ByName("resid"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("resid")),
+				http.StatusBadRequest)
+			return
+		}
+		resID := int64(ID)
+
+		// Get the restaurant 1st so we can show its name and make sure it exists
+		restaurant, err := l.GetRestaurant(resID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		// get the query parameters parameter
+		queryParams := r.URL.Query()
+
+		// Then we get its visits
+		visits, err := l.GetVisitsByRestaurantID(resID, queryParams)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, "There was a problem processing your request", http.StatusBadRequest)
+			return
+		}
+
+		v := newView("base", "../../web/template/visits.html")
+
+		data := Data{}
+
+		data.Head = Head{fmt.Sprintf("%s Visits", restaurant.Name)}
+		data.Yield = struct {
+			Heading      string
+			RestaurantID int64
+			Visits       []lister.Visit
+		}{
+			fmt.Sprintf("%s", restaurant.Name),
+			restaurant.ID,
+			visits,
+		}
+
+		v.render(w, r, data)
+	}
+}
+
+func getVisit(l lister.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		resID, err := strconv.Atoi(p.ByName("resid"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("resid")),
+				http.StatusBadRequest)
+			return
+		}
+
+		resID64 := int64(resID)
+		// Get the restaurant 1st so we can show its name and make sure it exists
+		restaurant, err := l.GetRestaurant(resID64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid visit ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		v := newView("base", "../../web/template/visit.html")
+
+		title_template := "%s Visit %s"
+		heading_template := "%s Visit to %s"
+		text := "Add the date and optional note for your visit below"
+
+		data := Data{}
+
+		if ID == 0 {
+			visit := lister.Visit{
+				ID:            0,
+				RestaurantID:  restaurant.ID,
+				VisitDateTime: "",
+				Note:          "",
+			}
+			for _, user := range l.GetUsers() {
+				lvu := lister.VisitUser{ID: 0, User: user, Rating: 0}
+				visit.VisitUsers = append(visit.VisitUsers, lvu)
+			}
+
+			data.Head = Head{fmt.Sprintf(title_template, "Add", restaurant.Name)}
+			data.Yield = struct {
+				Heading string
+				Text    string
+				Visit   lister.Visit
+			}{
+				fmt.Sprintf(heading_template, "Add", restaurant.Name),
+				text,
+				visit,
+			}
+
+		} else {
+			visit, err := l.GetVisit(int64(ID), resID64)
+			if err != nil {
+				log.Println(err.Error())
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			}
+
+			data.Head = Head{fmt.Sprintf(title_template, "Edit", restaurant.Name)}
+			data.Yield = struct {
+				Heading string
+				Text    string
+				Visit   lister.Visit
+			}{
+				fmt.Sprintf(heading_template, "Edit", restaurant.Name),
+				text,
+				visit,
+			}
+		}
+
+		v.render(w, r, data)
+	}
+}
+
+func postVisit(u updater.Service, a adder.Service, l lister.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid visit ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+		if ID != 0 {
+			updateVisit(u, l, w, r)
+		} else {
+			addVisit(a, l, w, r)
+		}
+	}
+}
+
+func updateVisit(u updater.Service, l lister.Service, w http.ResponseWriter, r *http.Request) {
+	var visitUpdate updater.Visit
+	if err := parseForm(r, &visitUpdate); err != nil {
+		log.Println(err)
+		http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
+		return
+	}
+	recordsAffected, err := u.UpdateVisit(visitUpdate)
+	if err != nil {
+		updateErrorMsg := err.Error()
+		log.Println(updateErrorMsg)
+
+		restaurant, err := l.GetRestaurant(visitUpdate.RestaurantID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		visit := lister.Visit{
+			ID:            visitUpdate.ID,
+			RestaurantID:  visitUpdate.RestaurantID,
+			VisitDateTime: visitUpdate.VisitDateTime,
+			Note:          visitUpdate.Note,
+		}
+		for _, vu := range visitUpdate.VisitUsers {
+			lvu := lister.VisitUser{ID: vu.ID, User: l.GetUserByID(vu.UserID), Rating: vu.Rating}
+			visit.VisitUsers = append(visit.VisitUsers, lvu)
+		}
+
+		v := newView("base", "../../web/template/visit.html")
+
+		data := Data{}
+		// Show the user the error.
+		data.Alert = Alert{updateErrorMsg}
+		data.Head = Head{fmt.Sprintf("Edit Visit %s", restaurant.Name)}
+		data.Yield = struct {
+			Heading string
+			Text    string
+			Visit   lister.Visit
+		}{
+			fmt.Sprintf("Edit Visit to %s", restaurant.Name),
+			"Add the date and optional note for your visit below",
+			visit,
+		}
+		v.render(w, r, data)
+		return
+	}
+
+	log.Printf("Updated visit with ID: %d. %d records affected\n", visitUpdate.ID, recordsAffected)
+	// Redirect to the same page which will show the changed values.
+	http.Redirect(w, r, fmt.Sprintf("/r/%d/visits/%d", visitUpdate.RestaurantID, visitUpdate.ID), http.StatusFound)
+}
+
+func addVisit(a adder.Service, l lister.Service, w http.ResponseWriter, r *http.Request) {
+	var visitNew adder.Visit
+	if err := parseForm(r, &visitNew); err != nil {
+		log.Println(err)
+		http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
+		return
+	}
+
+	newVisitID, err := a.AddVisit(visitNew)
+	if err != nil {
+		errorMsg := err.Error()
+		log.Println(errorMsg)
+		restaurant, err := l.GetRestaurant(visitNew.RestaurantID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		// Create a new visit but with what the user typed in
+		visit := lister.Visit{
+			ID:            0,
+			RestaurantID:  visitNew.RestaurantID,
+			VisitDateTime: visitNew.VisitDateTime,
+			Note:          visitNew.Note,
+		}
+		for _, vu := range visitNew.VisitUsers {
+			lvu := lister.VisitUser{ID: 0, User: l.GetUserByID(vu.UserID), Rating: vu.Rating}
+			visit.VisitUsers = append(visit.VisitUsers, lvu)
+		}
+
+		v := newView("base", "../../web/template/visit.html")
+
+		data := Data{}
+		// Show the user the error.
+		data.Alert = Alert{errorMsg}
+		data.Head = Head{fmt.Sprintf("Add Visit %s", restaurant.Name)}
+		data.Yield = struct {
+			Heading string
+			Text    string
+			Visit   lister.Visit
+		}{
+			fmt.Sprintf("Add Visit to %s", restaurant.Name),
+			"Add the date and optional note for your visit below",
+			visit,
+		}
+		v.render(w, r, data)
+		return
+	}
+
+	log.Printf("Added new visit to restaurant %d with ID: %d.\n", visitNew.RestaurantID, newVisitID)
+	// Redirect to the list which should show the new entry
+	http.Redirect(w, r, fmt.Sprintf("/r/%d/visits", visitNew.RestaurantID), http.StatusFound)
+}
+
+func getDeleteVisit(l lister.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		resID, err := strconv.Atoi(p.ByName("resid"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("resid")),
+				http.StatusBadRequest)
+			return
+		}
+
+		resID64 := int64(resID)
+		// Get the restaurant 1st so we can show its name and make sure it exists
+		restaurant, err := l.GetRestaurant(resID64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid visit ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		visit, err := l.GetVisit(int64(ID), resID64)
+		if err != nil {
+			log.Println(err.Error())
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		v := newView("base", "../../web/template/delete-visit.html")
+
+		data := Data{}
+		titleHeading := fmt.Sprintf("Delete Visit To %s", restaurant.Name)
+		data.Head = Head{titleHeading}
+		data.Yield = struct {
+			Heading    string
+			Restaurant lister.Restaurant
+			Visit      lister.Visit
+		}{
+			titleHeading,
+			restaurant,
+			visit,
+		}
+
+		v.render(w, r, data)
+	}
+}
+
+func postDeleteVisit(s remover.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		ID, err := strconv.Atoi(p.ByName("id"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("%s is not a valid visit ID, it must be a number.", p.ByName("id")),
+				http.StatusBadRequest)
+			return
+		}
+
+		deleteConfirm := struct {
+			RestaurantName string `schema:"restaurantName"`
+			RestaurantID   int    `schema:"restaurantID"`
+			VisitDateTime  string `schema:"VisitDateTime"`
+		}{
+			"",
+			0,
+			"",
+		}
+		if err := parseForm(r, &deleteConfirm); err != nil {
+			log.Println(err)
+			http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
+			return
+		}
+
+		log.Printf("Confirmed request to remove visit to %s on %s with ID: %d", deleteConfirm.RestaurantName,
+			deleteConfirm.VisitDateTime, ID)
+		s.RemoveVisit(remover.Visit{ID: int64(ID)})
+		// Redirect to the list of other visits.
+		http.Redirect(w, r, fmt.Sprintf("/r/%d/visits", deleteConfirm.RestaurantID), http.StatusSeeOther)
 	}
 }

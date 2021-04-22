@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/auther"
@@ -238,11 +239,12 @@ func generateRestaurantSQL() string {
 			res.id,
     		res.name,
     		cuisine,
-    		note,
+    		COALESCE(res.note, "") as note,
     		COALESCE(address, "") as address,
     		COALESCE(zipcode, "") as zipcode,
     		COALESCE(latitude, 0) as latitude,
 			COALESCE(longitude, 0) as longitude,
+			COALESCE(last_visits.last_visit, "") as last_visit_datetime,
 			city.id as city_id,
 			city.name as city_name,
 			city.state as state_name,
@@ -257,11 +259,31 @@ func generateRestaurantSQL() string {
 			COALESCE(url, "") as url,
 			COALESCE(user_ratings_total, 0) as user_ratings_total,
 			COALESCE(utc_offset, 0) as utc_offset,
-			COALESCE(website, "") as website
+			COALESCE(website, "") as website,
+			COALESCE(ratings.avg_rating, 0) as avg_rating
 		FROM
 			restaurant as res
 			inner join city on city.id = res.city_id
 			left join gmaps_place as gp on gp.restaurant_id = res.id
+			left join (
+				SELECT
+					restaurant_id,
+					max(visit_datetime) as last_visit
+				FROM
+					visit
+				GROUP BY
+					restaurant_id
+			) as last_visits on last_visits.restaurant_id = res.id
+			left join (
+				SELECT
+					v.restaurant_id,
+					avg(rating) as avg_rating
+				FROM
+					visit_user as vu
+					left join visit as v on v.id = vu.visit_id
+				GROUP BY
+					v.restaurant_id
+			) as ratings on ratings.restaurant_id = res.id
 	`
 
 	return sql
@@ -297,6 +319,7 @@ func fillRestaurant(row scanner, r *lister.Restaurant) error {
 		&r.Zipcode,
 		&r.Latitude,
 		&r.Longitude,
+		&r.LastVisitDatetime,
 		&r.CityState.ID,
 		&r.CityState.Name,
 		&r.CityState.State,
@@ -312,7 +335,39 @@ func fillRestaurant(row scanner, r *lister.Restaurant) error {
 		&r.GmapsPlace.UserRatingsTotal,
 		&r.GmapsPlace.UTCOffset,
 		&r.GmapsPlace.Website,
+		&r.AvgRating,
 	)
+}
+
+func addSortOps(sqlStatement string, sortOp lister.SortOperation, last bool) string {
+	formatString := "%s %s"
+	if !last {
+		formatString = formatString + ","
+	}
+	sqlStatement = sqlStatement + fmt.Sprintf(formatString, sortOp.Field, sortOp.Direction) + "\n"
+	return sqlStatement
+}
+
+func addFilterOps(sqlStatement string, filterOp lister.FilterOperation, idx int) string {
+	var formatString string
+	if filterOp.Operator == "is" || filterOp.Operator == "is not" {
+		formatString = "%s %s $%s"
+	} else {
+		formatString = "%s %s CAST($%s as %s)"
+	}
+
+	if idx != 0 {
+		formatString = "AND " + formatString
+	}
+
+	if filterOp.Operator == "is" || filterOp.Operator == "is not" {
+		sqlStatement = sqlStatement + fmt.Sprintf(formatString, filterOp.Field, filterOp.Operator, strconv.Itoa(idx))
+	} else {
+		sqlStatement = sqlStatement + fmt.Sprintf(formatString, filterOp.Field, filterOp.Operator, strconv.Itoa(idx), filterOp.FieldType)
+	}
+
+	sqlStatement = sqlStatement + "\n"
+	return sqlStatement
 }
 
 func fillVisit(row scanner, v *lister.Visit) error {
@@ -343,12 +398,41 @@ func (s Storage) GetRestaurant(id int64) lister.Restaurant {
 }
 
 // GetRestaurants queries the restaurant table for all restaurants.
-func (s Storage) GetRestaurants() []lister.Restaurant {
+func (s Storage) GetRestaurants(sortOps []lister.SortOperation, filterOps []lister.FilterOperation) []lister.Restaurant {
 	var allResturants []lister.Restaurant
 	var r lister.Restaurant
 	// Generate the get sql statement without the where clause.
 	sqlStatement := generateRestaurantSQL()
-	dbRows, err := s.db.Query(sqlStatement)
+
+	var filterValues []interface{}
+	nFilterOps := len(filterOps)
+	if nFilterOps > 0 {
+		sqlStatement = sqlStatement + `
+			WHERE
+		`
+		// add filter statements
+		for i, fo := range filterOps {
+			sqlStatement = addFilterOps(sqlStatement, fo, i)
+			var fv interface{} = fo.Value
+			if fv == "NULL" {
+				fv = nil
+			}
+			filterValues = append(filterValues, fv)
+		}
+	}
+
+	nSortOps := len(sortOps)
+	if nSortOps > 0 {
+		sqlStatement = sqlStatement + `
+			ORDER BY
+		`
+		// add sort statements
+		for i, so := range sortOps {
+			sqlStatement = addSortOps(sqlStatement, so, i == nSortOps-1)
+		}
+	}
+
+	dbRows, err := s.db.Query(sqlStatement, filterValues...)
 	checkAndPanic(err)
 	defer dbRows.Close()
 	for dbRows.Next() {
@@ -428,24 +512,23 @@ func (s Storage) UpdateGmapsPlace(gp updater.GmapsPlace) int64 {
 		UPDATE
 			gmaps_place
 		SET
-			last_updated = CASE WHEN $1 == "" THEN NULL ELSE $1 END,
-			place_id = $2,
-			business_status = CASE WHEN $3 == "" THEN NULL ELSE $3 END,
-			formatted_phone_number = CASE WHEN $4 == "" THEN NULL ELSE $4 END,
-			name = $5,
-			price_level = CASE WHEN $6 == 0 THEN NULL ELSE $6 END,
-			rating = CASE WHEN $7 == 0 THEN NULL ELSE $7 END,
-			url = CASE WHEN $8 == "" THEN NULL ELSE $8 END,
-			user_ratings_total = CASE WHEN $9 == 0 THEN NULL ELSE $9 END,
-			utc_offset = CASE WHEN $10 == 0 THEN NULL ELSE $10 END,
-			website = CASE WHEN $11 == "" THEN NULL ELSE $11 END,
-			restaurant_id = $12
+			place_id = $1,
+			business_status = CASE WHEN $2 == "" THEN NULL ELSE $2 END,
+			formatted_phone_number = CASE WHEN $3 == "" THEN NULL ELSE $3 END,
+			name = $4,
+			price_level = CASE WHEN $5 == 0 THEN NULL ELSE $5 END,
+			rating = CASE WHEN $6 == 0 THEN NULL ELSE $6 END,
+			url = CASE WHEN $7 == "" THEN NULL ELSE $7 END,
+			user_ratings_total = CASE WHEN $8 == 0 THEN NULL ELSE $8 END,
+			utc_offset = CASE WHEN $9 == 0 THEN NULL ELSE $9 END,
+			website = CASE WHEN $10 == "" THEN NULL ELSE $10 END,
+			restaurant_id = $11,
+			last_updated = $12
 		WHERE
 			id = $13
 	`
 
 	res, err := s.tx.Exec(sqlStatement,
-		gp.LastUpdated,
 		gp.PlaceID,
 		gp.BusinessStatus,
 		gp.FormattedPhoneNumber,
@@ -457,6 +540,7 @@ func (s Storage) UpdateGmapsPlace(gp updater.GmapsPlace) int64 {
 		gp.UTCOffset,
 		gp.Website,
 		gp.RestaurantID,
+		gp.LastUpdated,
 		gp.ID,
 	)
 	checkAndPanic(err)
@@ -477,6 +561,10 @@ func (s Storage) RemoveCity(cityID int64) int64 {
 	return s.removeRow("city", cityID)
 }
 
+func (s Storage) RemoveGmapsPlace(gmapsID int64) int64 {
+	return s.removeRow("gmaps_place", gmapsID)
+}
+
 func (s Storage) removeRow(tableName string, rowID int64) int64 {
 	sqlStatement := `
 		DELETE FROM
@@ -494,17 +582,18 @@ func (s Storage) removeRow(tableName string, rowID int64) int64 {
 	return rowsAffected
 }
 
-// GetVisit queries the visit table for a given visit id. If the returned visit has ID = 0 then it is not in
+// GetVisit queries the visit table for a given visit id and restaurant id. If the returned visit has ID = 0 then it is not in
 // the database
-func (s Storage) GetVisit(id int64) lister.Visit {
+func (s Storage) GetVisit(id int64, resID int64) lister.Visit {
 	var v lister.Visit
 	sqlStatement := generateVisitSQL()
 	// Add where clause by id
 	sqlStatement = sqlStatement + `
 		WHERE
 			v.id=$1
+			and v.restaurant_id=$2
 	`
-	row := s.db.QueryRow(sqlStatement, id)
+	row := s.db.QueryRow(sqlStatement, id, resID)
 	err := fillVisit(row, &v)
 	if err != sql.ErrNoRows {
 		checkAndPanic(err)
@@ -513,15 +602,33 @@ func (s Storage) GetVisit(id int64) lister.Visit {
 }
 
 // GetVisitsByRestaurantID gets all the visits for a given restaurant_id
-func (s Storage) GetVisitsByRestaurantID(restaurantID int64) []lister.Visit {
+func (s Storage) GetVisitsByRestaurantID(restaurantID int64, sortOps []lister.SortOperation) []lister.Visit {
 	var allVisits []lister.Visit
 	var v lister.Visit
 	sqlStatement := generateVisitSQL()
+
 	// Add where clause by id
 	sqlStatement = sqlStatement + `
 		WHERE
 			v.restaurant_id=$1
 	`
+
+	sqlStatement = sqlStatement + `
+			ORDER BY
+		`
+	nSortOps := len(sortOps)
+	if nSortOps > 0 {
+		// add sort statements
+		for i, so := range sortOps {
+			sqlStatement = addSortOps(sqlStatement, so, i == nSortOps-1)
+		}
+	} else {
+		// By default sort by this
+		sqlStatement = sqlStatement + `
+			visit_datetime desc
+		`
+	}
+
 	dbRows, err := s.db.Query(sqlStatement, restaurantID)
 	checkAndPanic(err)
 	defer dbRows.Close()
@@ -543,7 +650,7 @@ func (s Storage) GetVisitUsersByVisitID(visitID int64) []lister.VisitUser {
 	sqlStatement := `
 		SELECT
 			vu.id,			
-			COALESCE(vu.rating, "") as rating,
+			COALESCE(vu.rating, 0) as rating,
 			vu.user_id,
 			u.first_name,
 			u.last_name
@@ -659,6 +766,37 @@ func (s Storage) GetUser(id int64) lister.User {
 		checkAndPanic(err)
 	}
 	return u
+}
+
+// GetUsers queries the user table for all the users.
+func (s Storage) GetUsers() []lister.User {
+	var allUsers []lister.User
+	var u lister.User
+	sqlStatement := `
+		SELECT 
+			id,
+			first_name,
+			last_name,
+			email
+		FROM
+			user
+	`
+	dbRows, err := s.db.Query(sqlStatement)
+	checkAndPanic(err)
+	defer dbRows.Close()
+	for dbRows.Next() {
+		err = dbRows.Scan(
+			&u.ID,
+			&u.FirstName,
+			&u.LastName,
+			&u.Email,
+		)
+		checkAndPanic(err)
+		allUsers = append(allUsers, u)
+	}
+	err = dbRows.Err()
+	checkAndPanic(err)
+	return allUsers
 }
 
 // GetUserBy queries the user table for a given user by field and value. Do not pass field arguments from untrusted
@@ -842,7 +980,7 @@ func (s Storage) UpdateVisitUser(vu updater.VisitUser) int64 {
 		SET
 			visit_id = $1,
 			user_id = $2,
-			rating = CASE WHEN $3 == "" THEN NULL ELSE $3 END
+			rating = CASE WHEN $3 == 0 THEN NULL ELSE $3 END
 		WHERE
 			id = $4
 	`
@@ -924,6 +1062,72 @@ func (s Storage) UpdateUserRememberToken(u auther.User) int64 {
 	rowsAffected, err := res.RowsAffected()
 	checkAndPanic(err)
 	return rowsAffected
+}
+
+// GetRestaurantAvgRatingByUser gets a given restaurants average rating group by user. If the returned value for a user
+// is 0 then the restaurant has no ratings for that user.
+func (s Storage) GetRestaurantAvgRatingByUser(restaurantID int64) []lister.AvgUserRating {
+	var allRatings []lister.AvgUserRating
+	var ar lister.AvgUserRating
+	sqlStatement := `
+		SELECT
+			user_id,
+			u.first_name,
+			u.last_name,
+			coalesce(avg(rating), 0) as avg_rating
+		FROM
+			visit_user as vu
+			left join visit as v on v.id = vu.visit_id
+			left join user as u on u.id = vu.user_id
+		WHERE
+			v.restaurant_id = $1
+		GROUP BY
+			u.first_name,
+			u.last_name
+	`
+	dbRows, err := s.db.Query(sqlStatement, restaurantID)
+	checkAndPanic(err)
+	defer dbRows.Close()
+	for dbRows.Next() {
+		err = dbRows.Scan(
+			&ar.ID,
+			&ar.FirstName,
+			&ar.LastName,
+			&ar.AvgRating,
+		)
+		checkAndPanic(err)
+		allRatings = append(allRatings, ar)
+	}
+	err = dbRows.Err()
+	checkAndPanic(err)
+	return allRatings
+}
+
+// GetDistinct returns a list of distinct values for a given column from a given table
+func (s Storage) GetDistinct(columnName string, tableName string) []string {
+	var distinctValues []string
+	sqlStatement := `
+		SELECT
+			distinct %s
+		FROM
+			%s
+		ORDER BY
+			%s asc
+	`
+	// Never pass tableName from user input!
+	sqlStatement = fmt.Sprintf(sqlStatement, columnName, tableName, columnName)
+	dbRows, err := s.db.Query(sqlStatement)
+	checkAndPanic(err)
+	defer dbRows.Close()
+	for dbRows.Next() {
+		var val string
+		err = dbRows.Scan(&val)
+		checkAndPanic(err)
+		distinctValues = append(distinctValues, val)
+	}
+	err = dbRows.Err()
+	checkAndPanic(err)
+	return distinctValues
 }
 
 func checkAndPanic(err error) {

@@ -25,3 +25,6 @@ cmd/api-server/api-server
 cmd/web-server/web-server
 
 insert-initial.sql
+
+# bash script for building and running the web server in development
+build-and-run

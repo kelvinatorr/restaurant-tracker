@@ -4,6 +4,7 @@ package web
 type Data struct {
 	Head
 	Alert Alert
+	User
 	Yield interface{}
 }
 
@@ -15,4 +16,9 @@ type Head struct {
 // Alert is used to render messages in templates
 type Alert struct {
 	Message string
+}
+
+type User struct {
+	ID        int64
+	FirstName string
 }

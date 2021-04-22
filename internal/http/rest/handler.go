@@ -101,7 +101,13 @@ func jsonLogger(handler http.Handler) http.Handler {
 func getRestaurants(s lister.Service) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		w.Header().Set("Content-Type", "application/json")
-		list := s.GetRestaurants()
+		// get the query parameters parameter
+		queryParams := r.URL.Query()
+		list, err := s.GetRestaurants(queryParams)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		json.NewEncoder(w).Encode(list)
 	}
 }

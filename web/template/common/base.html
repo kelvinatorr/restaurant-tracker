@@ -4,10 +4,33 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="shortcut icon" href="/static/icons/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/icons/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/static/icons/favicon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/static/icons/favicon-512x512.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png">
+<link rel="mask-icon" href="/static/icons/safari-pinned-tab.svg" color="#5bbad5">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-config" content="/static/browserconfig.xml">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#ffffff">
 {{template "head" .Head}}
 </head>
 
-<body>    
+<body>
+    <header>
+        <a href="/">Track Restaurants</a>
+        {{if .User}}
+        <div>
+            <a href="/users/{{.User.ID}}">{{.User.FirstName}}</a>
+            <form method="POST" action="/sign-out">
+                {{genCSRFField}}
+                <input type="submit" value="Sign Out" />
+            </form>
+        </div>
+        {{end}}        
+    </header>
     <div>
         {{template "yield" .Yield}}
     </div>
@@ -23,6 +46,7 @@
             </p>
         </footer>  
     </div>
+    {{template "script"}}
 </body>
 
 </html>
