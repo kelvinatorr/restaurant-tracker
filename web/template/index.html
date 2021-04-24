@@ -3,10 +3,59 @@
 <style>
     table, th, td {
         border: 1px solid black;
+        border-collapse: collapse;
+        min-height: 2rem;
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;        
     }
 
     .display-none {
       display: none;
+    }
+
+    @media screen and (max-width: 768px) {
+      table {
+        /* This removes the border between rows so they look more like cards */
+        border: 0;
+        width: 100%;
+      }
+      
+      /* Hide the table header */
+      table thead {
+        border: none;
+        height: 1px;
+        overflow: hidden;
+        position: absolute;
+        width: 1px;
+      }
+      
+      /* Make the table less like a table, this is the stacking */
+      table tr {
+        border-bottom: 3px solid;
+        border-top: 1px solid;
+        display: block;
+        margin-bottom: .625rem;
+      }
+      
+      table td {
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        text-align: left;
+        align-items: center;
+        justify-content: space-between;
+      }
+      
+      /* This is the row label */
+      table td::before {
+        content: attr(data-label);
+        float: left;
+        font-weight: bold;
+        padding-right: 0.5rem;
+      }
+      
+      table td:last-child {
+        border-bottom: 0;
+      }
     }
 </style>
 {{end}}
@@ -36,41 +85,41 @@
         <table id="restaurantTable">
             <thead>
               <tr>
-                <th class="display-none">
+                <th scope="col" class="display-none">
                   Search Value
                 </th>
-                <th>
+                <th scope="col">
                   <a class="column-sort" href="/?sort[name]=asc">
                     Name
                   </a>
                 </th>
-                <th>
+                <th scope="col">
                   <a class="column-sort" href="/?sort[cuisine]=asc">
                     Cuisine
                   </a>
                 </th>
-                <th>
+                <th scope="col">
                   <a class="column-sort" href="/?sort[city]=asc">
                     City
                   </a>
                 </th>
-                <th>
+                <th scope="col">
                   <a class="column-sort" href="/?sort[state]=asc">
                     State
                   </a>
                 </th>
-                <th>
+                <th scope="col">
                     Note
                 </th>
-                <th>
+                <th scope="col">
                   <a class="column-sort" href="/?sort[last_visit]=asc">
                     Last Visit
                   </a>
                 </th>
-                <th>
+                <th scope="col">
                     User's Average Rating
                 </th>
-                <th>
+                <th scope="col">
                   <a class="column-sort" href="/?sort[avg_rating]=asc">
                     Average Rating
                   </a>
@@ -80,16 +129,16 @@
             <tbody>
               {{range .Restaurants}}
               <tr class="restaurant-row">
-                <td class="search-value display-none">{{.SearchValue}}</td>
-                <td>
+                <td data-label="Search Value" class="search-value display-none">{{.SearchValue}}</td>
+                <td data-label="Name">
                   <a href="/restaurants/{{.ID}}">{{.Name}}</a>
                 </td>
-                <td>{{.Cuisine}}</td>
-                <td>{{.CityState.Name}}</td>
-                <td>{{.CityState.State}}</td>
-                <td>{{.Note}}</td>
-                <td>{{.LastVisitDatetime}}</td>
-                <td>
+                <td data-label="Cuisine">{{.Cuisine}}</td>
+                <td data-label="City">{{.CityState.Name}}</td>
+                <td data-label="State">{{.CityState.State}}</td>
+                <td data-label="Note">{{.Note}}</td>
+                <td data-label="Last Visit">{{.LastVisitDatetime}}</td>
+                <td data-label="User's Average Rating">
                     {{range .AvgUserRatings}}
                     <p>
                       {{.FirstName}} {{.LastName}}: 
@@ -101,7 +150,7 @@
                     </p>
                     {{end}}
                 </td>
-                <td>
+                <td data-label="Average Rating">
                   {{if .AvgRating}}
                   {{.AvgRating}}
                   {{end}}
