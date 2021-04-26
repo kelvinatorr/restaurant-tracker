@@ -277,7 +277,7 @@ func generateRestaurantSQL() string {
 			left join (
 				SELECT
 					v.restaurant_id,
-					avg(rating) as avg_rating
+					round(avg(rating), 1) as avg_rating
 				FROM
 					visit_user as vu
 					left join visit as v on v.id = vu.visit_id
@@ -1074,7 +1074,7 @@ func (s Storage) GetRestaurantAvgRatingByUser(restaurantID int64) []lister.AvgUs
 			user_id,
 			u.first_name,
 			u.last_name,
-			coalesce(avg(rating), 0) as avg_rating
+			coalesce(round(avg(rating), 1), 0) as avg_rating
 		FROM
 			visit_user as vu
 			left join visit as v on v.id = vu.visit_id
