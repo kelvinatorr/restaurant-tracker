@@ -21,16 +21,34 @@
 
 <body>
     <header>
-        <a href="/">Track Restaurants</a>
-        {{if .User}}
-        <div>
-            <a href="/users/{{.User.ID}}">{{.User.FirstName}}</a>
-            <form method="POST" action="/sign-out">
-                {{genCSRFField}}
-                <input type="submit" value="Sign Out" />
-            </form>
-        </div>
-        {{end}}        
+        <nav class="navbar fixed-top navbar-dark bg-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">Track Restaurants</a>
+                {{if ne .User.ID 0}}
+                <div class="dropdown text-end">
+                    <a href="#" class="d-block link-light text-decoration-none dropdown-toggle" id="dropdownUser" data-bs-toggle="dropdown" 
+                        aria-expanded="false">
+                        {{.User.FirstName}}
+                    </a>
+                    <ul class="dropdown-menu text-small" aria-labelledby="dropdownUser" data-popper-placement="bottom-end" 
+                        style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate(-91px, 24px);">
+                        <li>
+                            <a class="dropdown-item" href="/users/{{.User.ID}}">{{.User.FirstName}}</a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form id="signOutForm" method="POST" action="/sign-out">
+                                {{genCSRFField}}
+                                <a class="dropdown-item" href="javascript:{}" onclick="document.getElementById('signOutForm').submit();">
+                                    Sign Out
+                                </a>
+                            </form>
+                        </li>
+                    </ul>               
+                </div>
+                {{end}}
+            </div>
+        </nav>
     </header>
     <div>
         {{template "yield" .Yield}}
