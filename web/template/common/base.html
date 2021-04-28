@@ -16,22 +16,26 @@
 <link rel="manifest" href="/static/manifest.json">
 <meta name="theme-color" content="#ffffff">
 <link href="/static/bootstrap-5.0.0-beta3-dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    main {
+        background-color: #eeeeee;
+    }
+</style>
 {{template "head" .Head}}
 </head>
-
-<body>
-    <header>
-        <nav class="navbar fixed-top navbar-dark bg-dark">
+<body class="d-flex flex-column min-vh-100">
+    <header class="sticky-top">
+        <nav class="navbar navbar-dark bg-dark">
             <div class="container-fluid">
                 <a class="navbar-brand" href="/">Track Restaurants</a>
                 {{if ne .User.ID 0}}
                 <div class="dropdown text-end">
-                    <a href="#" class="d-block link-light text-decoration-none dropdown-toggle" id="dropdownUser" data-bs-toggle="dropdown" 
+                    <a href="#" class="d-block link-light text-decoration-none dropdown-toggle text-capitalize" id="dropdownUser" data-bs-toggle="dropdown" 
                         aria-expanded="false">
-                        {{.User.FirstName}}
+                        {{slice .User.FirstName 0 1}}
                     </a>
-                    <ul class="dropdown-menu text-small" aria-labelledby="dropdownUser" data-popper-placement="bottom-end" 
-                        style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate(-91px, 24px);">
+                    <ul class="dropdown-menu text-small position-absolute m-0" aria-labelledby="dropdownUser" data-popper-placement="bottom-end" 
+                        style="inset: 0px auto auto 0px; transform: translate(-131px, 24px);">
                         <li>
                             <a class="dropdown-item" href="/users/{{.User.ID}}">{{.User.FirstName}}</a>
                         </li>
@@ -50,24 +54,32 @@
             </div>
         </nav>
     </header>
-    <div>
-        {{template "yield" .Yield}}
-    </div>
-    <div>
-        {{if .Alert}}
-            {{template "alert" .Alert}}
-        {{end}}
-    </div>
-    <div>
-        <footer>
-            <p>
-              Made with ❤ in the USA. For everyone, everywhere.
-            </p>
-        </footer>  
-    </div>
+    <main class="flex-grow-1 pt-3">
+        <div class="container">
+            {{template "yield" .Yield}}
+        </div>
+        <div class="container">
+            {{if .Alert}}
+                {{template "alert" .Alert}}
+            {{end}}
+        </div>
+    </main>    
+    <footer class="footer bg-dark text-white mt-auto pt-3">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col">
+                    <p>
+                        Made with ❤ in the USA.
+                    </p>
+                </div>
+                <div class="col text-end">
+                    <a href="https://github.com">View Source</a>
+                </div>
+            </div>
+        </div>
+    </footer>
     <script src="/static/bootstrap-5.0.0-beta3-dist/js/bootstrap.bundle.min.js"></script>
     {{template "script"}}
 </body>
-
 </html>
 {{end}}
