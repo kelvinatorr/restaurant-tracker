@@ -16,6 +16,7 @@ type Head struct {
 // Alert is used to render messages in templates
 type Alert struct {
 	Message string
+	Class   string
 }
 
 type User struct {

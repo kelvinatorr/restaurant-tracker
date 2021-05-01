@@ -514,7 +514,7 @@ func postUser(u updater.Service) httprouter.Handle {
 			data := Data{}
 			data.Head = Head{fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName)}
 			// Show the user the error.
-			data.Alert = Alert{err.Error()}
+			data.Alert = Alert{Message: err.Error(), Class: AlertClassError}
 			// Fill in the form again for convenience
 			data.Yield = struct {
 				Heading string
@@ -588,14 +588,14 @@ func postChangePassword(u updater.Service) httprouter.Handle {
 			log.Println(err)
 
 			// Show the user the error.
-			data.Alert = Alert{err.Error()}
+			data.Alert = Alert{Message: err.Error(), Class: AlertClassError}
 			v.render(w, r, data)
 			return
 		}
 		log.Printf("Updated password for user with ID: %d. %d records affected\n", user.ID, recordsAffected)
 
 		// Display success alert
-		data.Alert = Alert{"Success! Your password has been changed."}
+		data.Alert = Alert{Message: "Success! Your password has been changed.", Class: AlertClassSuccess}
 		v.render(w, r, data)
 	}
 }
@@ -770,7 +770,7 @@ func addRestaurant(a adder.Service, m mapper.Service, w http.ResponseWriter, r *
 		data := Data{}
 		data.Head = Head{"Add A New Restaurant"}
 		// Show the user the error.
-		data.Alert = Alert{err.Error()}
+		data.Alert = Alert{Message: err.Error(), Class: AlertClassError}
 
 		// Fill in the form again for convenience. Need lister.Restaurant because we need an ID property for the template
 		restaurant := lister.Restaurant{
@@ -815,7 +815,7 @@ func updateRestaurant(u updater.Service, m mapper.Service, w http.ResponseWriter
 		data := Data{}
 		data.Head = Head{resUpdate.Name}
 		// Show the user the error.
-		data.Alert = Alert{err.Error()}
+		data.Alert = Alert{Message: err.Error(), Class: AlertClassError}
 		// Fill in the form again for convenience
 		data.Yield = struct {
 			Heading      string
@@ -973,7 +973,8 @@ func postDeleteRestaurant(s remover.Service) httprouter.Handle {
 			data := Data{}
 			data.Head = Head{deleteConfirm.Name}
 			// Show the user the error.
-			data.Alert = Alert{fmt.Sprintf("Input: %s did not match %s", deleteConfirm.ConfirmName, deleteConfirm.Name)}
+			data.Alert = Alert{Message: fmt.Sprintf("Input: %s did not match %s", deleteConfirm.ConfirmName, deleteConfirm.Name),
+				Class: AlertClassError}
 			// Fill in the form again for convenience
 			data.Yield = struct {
 				Heading    string
@@ -1170,7 +1171,7 @@ func updateVisit(u updater.Service, l lister.Service, w http.ResponseWriter, r *
 
 		data := Data{}
 		// Show the user the error.
-		data.Alert = Alert{updateErrorMsg}
+		data.Alert = Alert{Message: updateErrorMsg, Class: AlertClassError}
 		data.Head = Head{fmt.Sprintf("Edit Visit %s", restaurant.Name)}
 		data.Yield = struct {
 			Heading string
@@ -1224,7 +1225,7 @@ func addVisit(a adder.Service, l lister.Service, w http.ResponseWriter, r *http.
 
 		data := Data{}
 		// Show the user the error.
-		data.Alert = Alert{errorMsg}
+		data.Alert = Alert{Message: errorMsg, Class: AlertClassError}
 		data.Head = Head{fmt.Sprintf("Add Visit %s", restaurant.Name)}
 		data.Yield = struct {
 			Heading string
