@@ -425,7 +425,7 @@ func getUserAdd() func(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 			Email     string
 		}{
 			"Add A New User",
-			"Add another user by adding the information below.",
+			"Add another user by adding their information below.",
 			"",
 			"",
 			"",
