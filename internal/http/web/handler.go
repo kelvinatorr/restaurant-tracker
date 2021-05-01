@@ -546,8 +546,8 @@ func getChangePassword() httprouter.Handle {
 			Heading string
 			Text    string
 		}{
-			"ChangePassword",
-			"Change your password by entering your current password and new password below.",
+			"Change Password",
+			"Change your password by entering your current password and your new password below.",
 		}
 		v.render(w, r, data)
 	}
@@ -581,8 +581,8 @@ func postChangePassword(u updater.Service) httprouter.Handle {
 			Heading string
 			Text    string
 		}{
-			"ChangePassword",
-			"Change your password by entering your current password and new password below.",
+			"Change Password",
+			"Change your password by entering your current password and your new password below.",
 		}
 		if err != nil {
 			log.Println(err)
