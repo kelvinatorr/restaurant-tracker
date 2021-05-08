@@ -20,213 +20,220 @@
 {{end}}
 
 {{define "yield"}}
-<h1>{{.Heading}}</h1>
-<p>
-    {{.Text}}
-</p>
+<div class="row">
+    <h1>{{.Heading}}</h1>
+    <p>
+        {{.Text}}
+    </p>
+</div>
+
 {{if ne .Restaurant.ID 0}}
-<p>
+<div class="row">
     <a href="/r/{{.Restaurant.ID}}/visits/0">Add Visit</a>
-</p>
+</div>
 {{end}}
-<form method="POST">
-    {{genCSRFField}}
-    {{if ne .Restaurant.ID 0}}
-    <div class="form-label-group">
-        <input type="hidden" name="id" id="idInput" value="{{.Restaurant.ID}}" />
-    </div>
-    {{end}}
 
-    <div class="form-label-group">
-        <label for="nameInput">Name</label>
-        <input type="text" name="name" id="nameInput" value="{{.Restaurant.Name}}" required />
-    </div>
-    <div class="form-label-group">
-        <label for="cuisineInput">Cuisine</label>
-        <input type="text" name="cuisine" id="cuisineInput" value="{{.Restaurant.Cuisine}}" required />
-    </div>
-    <div class="form-label-group">
-        <label for="cityInput">City</label>
-        <input type="text" name="cityState.city" id="cityInput" value="{{.Restaurant.CityState.Name}}" required />
-    </div>
-    <div class="form-label-group">
-        <label for="stateInput">State</label>
-        <input type="text" name="cityState.state" id="stateInput" value="{{.Restaurant.CityState.State}}" required />
-    </div>
-    <div class="form-label-group">
-        <label for="noteText">Note</label>
-        <textarea name="note" id="noteText">{{.Restaurant.Note}}</textarea>
-    </div>
-
-    {{if ne .Restaurant.ID 0}}
-    <div class="form-label-group">
-        <label for="lastVisitInput">Last Visit</label>
-        <input type="date" id="lastVisitInput" readonly value="{{.Restaurant.LastVisitDatetime}}" />
-    </div>
-
-    <div>
-        <a href="/r/{{.Restaurant.ID}}/visits">View Visits</a>
-    </div>
-    {{end}}
-
-    <br/>
-    <div class="form-label-group">        
-        <fieldset>
-            <legend>Google Maps Data</legend>
-            {{if ne .Restaurant.GmapsPlace.ID 0}}
-            <div>
-                <input type="hidden" name="gmapsPlace.gmapsPlaceID" id="gmapsPlaceIDInput" readonly
-                    value="{{.Restaurant.GmapsPlace.ID}}" />
+<div class="row mb-4">
+    <div class="col">
+        <form method="POST">
+            {{genCSRFField}}
+            {{if ne .Restaurant.ID 0}}
+            <div class="mb-3">
+                <input type="hidden" name="id" id="idInput" value="{{.Restaurant.ID}}" />
             </div>
-
-            <div>
-                <input type="hidden" name="gmapsPlace.placeID" id="placeIDInput" readonly
-                    value="{{.Restaurant.GmapsPlace.PlaceID}}" />
+            {{end}}
+            <div class="mb-3">
+                <label class="form-label" for="nameInput">Name</label>
+                <input class="form-control" type="text" name="name" id="nameInput" value="{{.Restaurant.Name}}" required />
             </div>
-
-            <div>
-                <label for="mapsURLLink">Maps URL</label>
-                <a href="{{.Restaurant.GmapsPlace.URL}}" id="mapsURLLink">{{.Restaurant.GmapsPlace.URL}}</a>
-                <input type="hidden" name="gmapsPlace.url" id="mapsURLInput" readonly value="{{.Restaurant.GmapsPlace.URL}}" />
+            <div class="mb-3">
+                <label class="form-label" for="cuisineInput">Cuisine</label>
+                <input class="form-control" type="text" name="cuisine" id="cuisineInput" value="{{.Restaurant.Cuisine}}" required />
             </div>
-
-            <div>
-                <label for="addressInput">Address</label>
-                <input type="text" name="address" id="addressInput" readonly value="{{.Restaurant.Address}}"/>
-            </div>
-            
-            <div>
-                <label for="zipCodeInput">ZipCode</label>
-                <input type="tel" name="zipCode" id="zipCodeInput" readonly value="{{.Restaurant.Zipcode}}"/>
-            </div>
-
-            <div>
-                <label for="gmapsNameInput">Google Maps Name</label>
-                <input type="text" name="gmapsPlace.gmapsName" id="gmapsNameInput" readonly value="{{.Restaurant.GmapsPlace.Name}}"/>
-            </div>           
-
-            <div>
-                <label for="websiteLink">Website</label>
-                <a href="{{.Restaurant.GmapsPlace.Website}}" id="websiteLink">{{.Restaurant.GmapsPlace.Website}}</a>
-                <input type="hidden" name="gmapsPlace.website" id="websiteInput" readonly value="{{.Restaurant.GmapsPlace.Website}}" />
-            </div>
-
-            <div>
-                <label for="phoneInput">Phone Number</label>
-                <input type="tel" name="gmapsPlace.phone" id="phoneInput" readonly value="{{.Restaurant.GmapsPlace.FormattedPhoneNumber}}"/>
+            <div class="mb-3 row">
+                <div class="col">
+                    <label class="form-label" for="cityInput">City</label>
+                    <input class="form-control" type="text" name="cityState.city" id="cityInput" value="{{.Restaurant.CityState.Name}}" required />
+                </div>
+                <div class="col">
+                    <label class="form-label" for="stateInput">State</label>
+                    <input class="form-control" type="text" name="cityState.state" id="stateInput" value="{{.Restaurant.CityState.State}}" required />
+                </div>
             </div>            
-
-            <div>
-                <label for="gmapsRatingInput">Google Maps Rating</label>
-                <input type="number" name="gmapsPlace.gmapsRating" id="gmapsRatingInput" readonly 
-                    value="{{.Restaurant.GmapsPlace.Rating}}"/>
+            <div class="mb-3">
+                <label class="form-label" for="noteText">Note</label>
+                <textarea class="form-control" name="note" id="noteText">{{.Restaurant.Note}}</textarea>
             </div>
 
-            <div>
-                <label for="nUserRatingsInput">Number of User Ratings</label>
-                <input type="number" name="gmapsPlace.nUserRatings" id="nUserRatingsInput" readonly 
-                    value="{{.Restaurant.GmapsPlace.UserRatingsTotal}}"/>
+            {{if ne .Restaurant.ID 0}}
+            <div class="mb-3">
+                <label class="form-label" for="lastVisitInput">Last Visit</label>
+                <input class="form-control" type="date" id="lastVisitInput" readonly value="{{.Restaurant.LastVisitDatetime}}" />
             </div>
 
-            <div>
-                <label for="priceLevelInput">Price Level</label>
-                <input type="number" name="gmapsPlace.priceLevel" id="priceLevelInput" readonly 
-                    value="{{.Restaurant.GmapsPlace.PriceLevel}}"/>
-            </div>
-            
-            <div>
-                <label for="businessStatusInput">Business Status</label>
-                <input type="text" name="gmapsPlace.businessStatus" id="businessStatusInput" readonly 
-                    value="{{.Restaurant.GmapsPlace.BusinessStatus}}"/>
-            </div>                        
-
-            <div>
-                <label for="latitudeInput">Latitude</label>
-                <input type="text" name="latitude" id="latitudeInput" readonly value="{{.Restaurant.Latitude}}"/>
-            </div>
-            
-            <div>
-                <label for="longitudeInput">Longitude</label>
-                <input type="text" name="longitude" id="longitudeInput" readonly value="{{.Restaurant.Longitude}}"/>
-            </div>
-
-            <div>
-                <label for="utcOffsetInput">UTC Offset</label>
-                <input type="number" name="gmapsPlace.utcOffset" id="utcOffsetInput" readonly 
-                    value="{{.Restaurant.GmapsPlace.UTCOffset}}"/>
-            </div>
-
-            <div>
-                <label for="lastUpdated">Last Updated</label>
-                <input type="date" name="gmapsPlace.lastUpdated" id="lastUpdated" readonly 
-                    value="{{.Restaurant.GmapsPlace.LastUpdated}}"/>
-            </div>
-
-            <div>
-                <button type="button" id="refreshGmapsDataBtn" {{if not .HaveGmapsKey}} disabled {{end}}>
-                    Refresh Data
-                </button>
-                {{if not .HaveGmapsKey}} 
-                <span>
-                    No Google Maps API Key
-                </span>
-                {{end}}
-                <span id="gmapsRefreshErrorText">
-                </span>
-            </div>
-
-            <div>
-                <button type="button" id="deleteGmapsDataBtn">
-                    Delete Data
-                </button>
-                <span id="gmapsDeleteErrorText">
-                </span>
+            <div class="mb-3">
+                <a href="/r/{{.Restaurant.ID}}/visits">View Visits</a>
             </div>
             {{end}}
 
-            {{if eq .Restaurant.GmapsPlace.ID 0}}
-            <div>
-                <label for="addSearchTermInput">Additional Search Terms (Optional)</label>
-                <input type="text" id="addSearchTermInput" />
-            </div>
-            <div id="gmapsSearchDataContainer">
-                
-            </div>
-            <div>
-                <button type="button" id="getGmapsDataBtn" {{if not .HaveGmapsKey}} disabled {{end}}>
-                    Get Data
-                </button>
-                {{if not .HaveGmapsKey}} 
-                <span>
-                    No Google Maps API Key
-                </span>
-                {{end}}
-                <span id="gmapsErrorText">
+            <div class="mb-3">
+                <fieldset class="border border-dark p-3">
+                    <legend>Google Maps Data</legend>
+                    {{if ne .Restaurant.GmapsPlace.ID 0}}
+                    <div>
+                        <input type="hidden" name="gmapsPlace.gmapsPlaceID" id="gmapsPlaceIDInput" readonly
+                            value="{{.Restaurant.GmapsPlace.ID}}" />
+                    </div>
+                    <div>
+                        <input type="hidden" name="gmapsPlace.placeID" id="placeIDInput" readonly
+                            value="{{.Restaurant.GmapsPlace.PlaceID}}" />
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label" for="mapsURLLink">Maps URL:</label>
+                        <a href="{{.Restaurant.GmapsPlace.URL}}" id="mapsURLLink">{{.Restaurant.GmapsPlace.URL}}</a>
+                        <input type="hidden" name="gmapsPlace.url" id="mapsURLInput" readonly value="{{.Restaurant.GmapsPlace.URL}}" />
+                    </div>
+                    <div class="mb-3 row">
+                        <div class="col-xs-12 mb-3 col-md-6 mb-md-0">
+                            <label class="form-label" for="addressInput">Address</label>
+                            <input class="form-control" type="text" name="address" id="addressInput" readonly value="{{.Restaurant.Address}}"/>
+                        </div>
+                        <div class="col-xs-12 col-md-6">
+                            <label class="form-label" for="zipCodeInput">ZipCode</label>
+                            <input class="form-control" type="tel" name="zipCode" id="zipCodeInput" readonly value="{{.Restaurant.Zipcode}}"/>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="gmapsNameInput">Google Maps Name</label>
+                        <input class="form-control" type="text" name="gmapsPlace.gmapsName" id="gmapsNameInput" readonly value="{{.Restaurant.GmapsPlace.Name}}"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="websiteLink">Website:</label>
+                        <a href="{{.Restaurant.GmapsPlace.Website}}" id="websiteLink">{{.Restaurant.GmapsPlace.Website}}</a>
+                        <input type="hidden" name="gmapsPlace.website" id="websiteInput" readonly value="{{.Restaurant.GmapsPlace.Website}}" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="phoneInput">Phone Number</label>
+                        <input class="form-control" type="tel" name="gmapsPlace.phone" id="phoneInput" readonly value="{{.Restaurant.GmapsPlace.FormattedPhoneNumber}}"/>
+                    </div>
+                    <div class="mb-3 row">
+                        <div class="col-xs-12 mb-3 col-md-6 mb-md-0">
+                            <label class="form-label" for="gmapsRatingInput">Google Maps Rating</label>
+                            <input class="form-control" type="number" name="gmapsPlace.gmapsRating" id="gmapsRatingInput" readonly
+                                value="{{.Restaurant.GmapsPlace.Rating}}"/>
+                        </div>
+                        <div class="col-xs-12 col-md-6">
+                            <label class="form-label" for="nUserRatingsInput">Number of User Ratings</label>
+                            <input class="form-control" type="number" name="gmapsPlace.nUserRatings" id="nUserRatingsInput" readonly
+                                value="{{.Restaurant.GmapsPlace.UserRatingsTotal}}"/>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="priceLevelInput">Price Level</label>
+                        <input class="form-control" type="number" name="gmapsPlace.priceLevel" id="priceLevelInput" readonly
+                            value="{{.Restaurant.GmapsPlace.PriceLevel}}"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="businessStatusInput">Business Status</label>
+                        <input class="form-control" type="text" name="gmapsPlace.businessStatus" id="businessStatusInput" readonly
+                            value="{{.Restaurant.GmapsPlace.BusinessStatus}}"/>
+                    </div>
+                    <div class="mb-3 row">
+                        <div class="col">
+                            <label class="form-label" for="latitudeInput">Latitude</label>
+                            <input class="form-control" type="text" name="latitude" id="latitudeInput" readonly value="{{.Restaurant.Latitude}}"/>
+                        </div>
+                        <div class="col">
+                            <label class="form-label" for="longitudeInput">Longitude</label>
+                            <input class="form-control" type="text" name="longitude" id="longitudeInput" readonly value="{{.Restaurant.Longitude}}"/>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="utcOffsetInput">UTC Offset</label>
+                        <input class="form-control" type="number" name="gmapsPlace.utcOffset" id="utcOffsetInput" readonly
+                            value="{{.Restaurant.GmapsPlace.UTCOffset}}"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="lastUpdated">Last Updated</label>
+                        <input class="form-control" type="date" name="gmapsPlace.lastUpdated" id="lastUpdated" readonly
+                            value="{{.Restaurant.GmapsPlace.LastUpdated}}"/>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <button class="btn btn-outline-secondary w-100" type="button" id="refreshGmapsDataBtn" {{if not .HaveGmapsKey}} disabled {{end}}>
+                                Refresh Data
+                            </button>
+                            {{if not .HaveGmapsKey}}
+                            <span>
+                                No Google Maps API Key
+                            </span>
+                            {{end}}
+                            <span id="gmapsRefreshErrorText">
+                            </span>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-danger w-100" type="button" id="deleteGmapsDataBtn">
+                                Delete Data
+                            </button>
+                            <span id="gmapsDeleteErrorText">
+                            </span>
+                        </div>
+                    </div>
+                    {{end}}
 
-                </span>
+                    {{if eq .Restaurant.GmapsPlace.ID 0}}
+                    <div class="mb-3">
+                        <label class="from-label" for="addSearchTermInput">Additional Search Terms (Optional)</label>
+                        <input class="form-control" type="text" id="addSearchTermInput" />
+                    </div>
+                    <div class="mb-3" id="gmapsSearchDataContainer">
+                    </div>
+                    <div class="mb-3">
+                        <button class="btn btn-secondary btn-block" type="button"
+                            id="getGmapsDataBtn" {{if not .HaveGmapsKey}} disabled {{end}}>
+                            Get Data
+                        </button>
+                        {{if not .HaveGmapsKey}}
+                        <span>
+                            No Google Maps API Key
+                        </span>
+                        {{end}}
+                        <span id="gmapsErrorText">
+                        </span>
+                    </div>
+                    {{end}}
+                </fieldset>
             </div>
-            {{end}}
-            
-        </fieldset>
-        
+            <div class="row">
+                <div class="col">
+                    <button class="btn btn-secondary w-100" type="button" id="backBtn">
+                        Back
+                    </button>
+                </div>
+                <div class="col">
+                    <button class="btn btn-primary w-100" type="submit">Save</button>
+                </div>
+            </div>
+        </form>
     </div>
-    <br/>
-    <button class="btn btn-lg btn-block" type="button" id="backBtn">
-        Back
-    </button>
-    <button class="btn btn-lg btn-primary btn-block" type="submit">Save</button>
-</form>
-<br/>
+</div>
+
+
 {{if ne .Restaurant.ID 0}}
-<div>
-    <button type="button" class="btn btn-lg btn-block" id="deleteResBtn" data-id="{{.Restaurant.ID}}">
-        Delete Restaurant
-    </button>
+<div class="row">
+    <h2>Danger Zone</h2>
+</div>
+<div class="row">
+    <div class="col-6">
+        <button type="button" class="btn btn-danger w-100" id="deleteResBtn" data-id="{{.Restaurant.ID}}">
+            Delete Restaurant
+        </button>
+    </div>
 </div>
 {{end}}
 
 <template id="gmapsSearchDataDiv">
-    <div>                    
+    <div>
         <label>
             <input type="radio" name="gmapsPlace.placeID" value="" />
             <span class="hidden-visually">                
