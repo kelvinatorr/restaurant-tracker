@@ -6,6 +6,7 @@ import (
 	"log"
 	"regexp"
 	"time"
+	"unicode/utf8"
 
 	"github.com/kelvinatorr/restaurant-tracker/internal/lister"
 	"github.com/kelvinatorr/restaurant-tracker/internal/mapper"
@@ -306,6 +307,10 @@ func checkRestaurantData(r Restaurant) error {
 	// Check that CityState is not null
 	if r.CityState.Name == "" || r.CityState.State == "" {
 		return fmt.Errorf("You must provide a city and state for %s", r.Name)
+	}
+
+	if utf8.RuneCountInString(r.CityState.State) > 2 {
+		return fmt.Errorf("State is limited to 2 characters")
 	}
 
 	// Check that Cuisine is not null

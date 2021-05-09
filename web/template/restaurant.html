@@ -57,7 +57,8 @@
                 </div>
                 <div class="col">
                     <label class="form-label" for="stateInput">State</label>
-                    <input class="form-control" type="text" name="cityState.state" id="stateInput" value="{{.Restaurant.CityState.State}}" required />
+                    <input class="form-control" type="text" name="cityState.state" id="stateInput" 
+                        value="{{.Restaurant.CityState.State}}" required maxlength="2" />
                 </div>
             </div>            
             <div class="mb-3">
