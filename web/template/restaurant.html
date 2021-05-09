@@ -44,7 +44,8 @@
             {{end}}
             <div class="mb-3">
                 <label class="form-label" for="nameInput">Name</label>
-                <input class="form-control" type="text" name="name" id="nameInput" value="{{.Restaurant.Name}}" required />
+                <input class="form-control" type="text" name="name" id="nameInput" value="{{.Restaurant.Name}}" required
+                    {{if eq .Restaurant.ID 0}}autofocus{{end}} />
             </div>
             <div class="mb-3">
                 <label class="form-label" for="cuisineInput">Cuisine</label>
