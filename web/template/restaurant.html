@@ -234,16 +234,14 @@
 {{end}}
 
 <template id="gmapsSearchDataDiv">
-    <div>
-        <label>
+    <div class="mb-3">
+        <label class="d-flex">
             <input type="radio" name="gmapsPlace.placeID" value="" />
             <span class="hidden-visually">                
             </span>
-            <div class="inline-block" aria-hidden="true">
-                <h3>
-                    <a target="_blank"></a>
-                </h3>
-                <p></p>
+            <div class="inline-block ms-3" aria-hidden="true">
+                <a target="_blank"></a>
+                <p class="mb-0"></p>
             </div>                        
         </label>
     </div>
@@ -413,7 +411,7 @@
                 const clonedDiv = gmapsSearchDataDiv.content.cloneNode(true);
                 const input = clonedDiv.querySelectorAll('input')[0];
                 const span =  clonedDiv.querySelectorAll('span')[0];
-                const nameLink = clonedDiv.querySelectorAll('h3>a')[0];
+                const nameLink = clonedDiv.querySelectorAll('a')[0];
                 const p = clonedDiv.querySelectorAll('p')[0];
                 input.value = e.place_id;
                 span.textContent = `${e.name}: ${e.formatted_address}`;                
