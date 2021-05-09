@@ -88,7 +88,7 @@
                         <input type="hidden" name="gmapsPlace.placeID" id="placeIDInput" readonly
                             value="{{.Restaurant.GmapsPlace.PlaceID}}" />
                     </div>
-                    <div class="mb-1">
+                    <div class="mb-1 text-truncate">
                         <label class="form-label" for="mapsURLLink">Maps URL:</label>
                         <a href="{{.Restaurant.GmapsPlace.URL}}" id="mapsURLLink">{{.Restaurant.GmapsPlace.URL}}</a>
                         <input type="hidden" name="gmapsPlace.url" id="mapsURLInput" readonly value="{{.Restaurant.GmapsPlace.URL}}" />
@@ -107,7 +107,7 @@
                         <label class="form-label" for="gmapsNameInput">Google Maps Name</label>
                         <input class="form-control" type="text" name="gmapsPlace.gmapsName" id="gmapsNameInput" readonly value="{{.Restaurant.GmapsPlace.Name}}"/>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 text-truncate">
                         <label class="form-label" for="websiteLink">Website:</label>
                         <a href="{{.Restaurant.GmapsPlace.Website}}" id="websiteLink">{{.Restaurant.GmapsPlace.Website}}</a>
                         <input type="hidden" name="gmapsPlace.website" id="websiteInput" readonly value="{{.Restaurant.GmapsPlace.Website}}" />
