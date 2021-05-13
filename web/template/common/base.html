@@ -59,9 +59,7 @@
             {{template "yield" .Yield}}
         </div>
         <div class="container mt-3">
-            {{if .Alert}}
-                {{template "alert" .Alert}}
-            {{end}}
+            {{template "alert" .Alert}}
         </div>
     </main>    
     <footer class="footer bg-dark text-white mt-auto pt-3">
@@ -83,5 +81,14 @@
     <script src="/static/bootstrap-5.0.0-beta3-dist/js/bootstrap.bundle.min.js"></script>
     {{template "script"}}
 </body>
+<script>
+    (function(){
+        // If the alert div has content then scroll it into view so the user sees it.
+        const bottomAlertDiv = document.getElementById('bottomAlertDiv');
+        if (bottomAlertDiv.innerHTML.trim() != '') {
+            bottomAlertDiv.scrollIntoView();
+        }
+    })();
+</script>
 </html>
 {{end}}
