@@ -175,7 +175,8 @@
                             </span>
                         </div>
                         <div class="col-6">
-                            <button class="btn btn-outline-danger w-100" type="button" id="deleteGmapsDataBtn">
+                            <button class="btn btn-outline-danger w-100" type="button" data-bs-toggle="modal" 
+                                data-bs-target="#deleteGMapsModal">
                                 Delete Data
                             </button>
                             <span class="text-danger" id="gmapsDeleteErrorText">
@@ -248,6 +249,27 @@
         </label>
     </div>
 </template>
+
+<!-- Modal -->
+<div class="modal" id="deleteGMapsModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Delete Google Maps Data</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete the Google Maps data for {{.Restaurant.Name}}?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="deleteGmapsDataBtn">Yes, Delete It</button>
+        </div>
+      </div>
+    </div>
+</div>
+<!-- End of Modal -->
+
 {{end}}
 
 {{define "script"}}
