@@ -5,68 +5,84 @@
 {{end}}
 
 {{define "yield"}}
-<h1>{{.Heading}}</h1>
-
-<p>
-    {{.Text}}
-</p>
-
-<form method="POST">
-    {{genCSRFField}}
-    
-    {{if ne .Visit.ID 0}}
-    <div class="form-label-group">
-        <input type="hidden" name="id" id="idInput" value="{{.Visit.ID}}" />
+<div class="row">
+    <h1>{{.Heading}}</h1>
+    <p>
+        {{.Text}}
+    </p>
+</div>
+<div class="row mb-4">
+    <div class="col">
+        <form method="POST">
+            {{genCSRFField}}
+            
+            {{if ne .Visit.ID 0}}
+            <input type="hidden" name="id" id="idInput" value="{{.Visit.ID}}" />
+            {{end}}
+        
+            <input type="hidden" name="restaurantID" id="idInput" value="{{.Visit.RestaurantID}}" />
+        
+            <div class="mb-3">
+                <label class="form-label" for="visitDateTimeInput">Date</label>
+                <input class="form-control" type="date" id="visitDateTimeInput" name="visitDateTime" value="{{.Visit.VisitDateTime}}" required autofocus />
+            </div>
+        
+            <div class="mb-3">
+                <label class="form-label" for="noteText">Note</label>
+                <textarea class="form-control" name="note" id="noteText">{{.Visit.Note}}</textarea>
+            </div>
+        
+            <div class="mb-3">
+                <fieldset class="border border-dark p-3">
+                    <div class="row">
+                        <legend>Ratings (1-5)</legend>
+                    </div>              
+                    {{range $index, $element := .Visit.VisitUsers}}
+                    {{if ne $element.ID 0}}
+                    <input type="hidden" name="visitUsers.{{$index}}.id" value="{{$element.ID}}" />
+                    {{end}}
+                    <input type="hidden" name="visitUsers.{{$index}}.userID" value="{{$element.User.ID}}" />
+                    <div class="mb-3">
+                        <label class="row">
+                            <div class="col-4 col-md-2 d-flex align-items-center">
+                                {{$element.User.FirstName}} {{$element.User.LastName}}
+                            </div>
+                            <div class="col">
+                                <input class="form-control" type="number" min="1" max="5" name="visitUsers.{{$index}}.rating" 
+                                    value="{{if eq $element.Rating 0}}null{{else}}{{$element.Rating}}{{end}}" />
+                            </div>
+                        </label>
+                    </div>
+                    {{end}}
+                </fieldset> 
+            </div>
+            <div class="row">
+                <div class="col">
+                    <button class="btn btn-secondary w-100" type="button" id="backBtn" data-restaurant-id="{{.Visit.RestaurantID}}">
+                        Back
+                    </button>
+                </div>
+                <div class="col">
+                    <button class="btn btn-primary w-100" type="submit">
+                        Save {{if eq .Visit.ID 0}}New Visit{{end}}
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
-    {{end}}
+</div>
 
-    <div class="form-label-group">
-        <input type="hidden" name="restaurantID" id="idInput" value="{{.Visit.RestaurantID}}" />
-    </div>
-
-    <div class="form-label-group">
-        <label for="visitDateTimeInput">Date</label>
-        <input type="date" id="visitDateTimeInput" name="visitDateTime" value="{{.Visit.VisitDateTime}}" required autofocus />
-    </div>
-
-    <div class="form-label-group">
-        <label for="noteText">Note</label>
-        <textarea name="note" name="note" id="noteText">{{.Visit.Note}}</textarea>
-    </div>
-
-    <fieldset>
-        <legend>Ratings (1-5)</legend>
-        {{range $index, $element := .Visit.VisitUsers}}
-        {{if ne $element.ID 0}}
-        <input type="hidden" name="visitUsers.{{$index}}.id" value="{{$element.ID}}" />
-        {{end}}
-        <input type="hidden" name="visitUsers.{{$index}}.userID" value="{{$element.User.ID}}" />
-        <div class="form-label-group">
-            <label>
-                {{$element.User.FirstName}} {{$element.User.LastName}}
-                <input type="number" min="1" max="5" name="visitUsers.{{$index}}.rating" 
-                    value="{{if eq $element.Rating 0}}null{{else}}{{$element.Rating}}{{end}}" />
-            </label>     
-        </div>
-        {{end}}
-    </fieldset>    
-
-    <br/>
-    <button class="btn btn-lg btn-block" type="button" id="backBtn" data-restaurant-id="{{.Visit.RestaurantID}}">
-        Back
-    </button>
-    <button class="btn btn-lg btn-primary btn-block" type="submit">
-        Save {{if eq .Visit.ID 0}}New Visit{{end}}
-    </button>
-</form>
-
-<br/>
 {{if ne .Visit.ID 0}}
-<div>    
-    <button type="button" class="btn btn-lg btn-block" id="deleteVisitBtn" data-id="{{.Visit.ID}}" 
-        data-restaurant-id="{{.Visit.RestaurantID}}">
-        Delete Visit
-    </button>
+<div class="row">
+    <h2>Danger Zone</h2>
+</div>
+<div class="row">
+    <div class="col-6">
+        <button type="button" class="btn btn-danger w-100" id="deleteVisitBtn" data-id="{{.Visit.ID}}" 
+            data-restaurant-id="{{.Visit.RestaurantID}}">
+            Delete Visit
+        </button>
+    </div>
 </div>
 {{end}}
 

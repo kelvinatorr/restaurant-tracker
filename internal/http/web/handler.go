@@ -1070,7 +1070,7 @@ func getVisit(l lister.Service) httprouter.Handle {
 		v := newView("base", "../../web/template/visit.html")
 
 		title_template := "%s Visit %s"
-		heading_template := "%s Visit to %s"
+		heading_template := "%s a Visit to %s"
 		text := "Add the date and optional note for your visit below"
 
 		data := Data{}
@@ -1232,7 +1232,7 @@ func addVisit(a adder.Service, l lister.Service, w http.ResponseWriter, r *http.
 			Text    string
 			Visit   lister.Visit
 		}{
-			fmt.Sprintf("Add Visit to %s", restaurant.Name),
+			fmt.Sprintf("Add a Visit to %s", restaurant.Name),
 			"Add the date and optional note for your visit below",
 			visit,
 		}
