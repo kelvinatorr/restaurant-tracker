@@ -24,7 +24,8 @@
         
             <div class="mb-3">
                 <label class="form-label" for="visitDateTimeInput">Date</label>
-                <input class="form-control" type="date" id="visitDateTimeInput" name="visitDateTime" value="{{.Visit.VisitDateTime}}" required autofocus />
+                <input class="form-control" type="date" id="visitDateTimeInput" name="visitDateTime" value="{{.Visit.VisitDateTime}}" required 
+                    {{if eq .Visit.ID 0}}autofocus{{end}} />
             </div>
         
             <div class="mb-3">
