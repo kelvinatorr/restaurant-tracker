@@ -20,6 +20,12 @@
     main {
         background-color: #eeeeee;
     }
+
+    /* Disable Bootstrap's btn:hover behavior */
+    #backToTopBtn:hover {
+        background-color: #212529;
+        border-color: #212529;
+    }
 </style>
 {{template "head" .Head}}
 </head>
@@ -28,6 +34,13 @@
         <nav class="navbar navbar-dark bg-dark">
             <div class="container-fluid">
                 <a class="navbar-brand" href="/">Track Restaurants</a>
+                <button class="btn btn-dark invisible" id="backToTopBtn">
+                    <!-- Use the svg so it does not flicker as much on page reload -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-up-circle-fill" viewBox="0 0 16 16">
+                        <path d="M16 8A8 8 0 1 0 0 8a8 8 0 0 0 16 0zm-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11.5z"/>
+                    </svg>
+                </button>
+                <div class="flex-grow-1"></div>
                 {{if ne .User.ID 0}}
                 <div class="dropdown text-end">
                     <a href="#" class="d-block link-light text-decoration-none dropdown-toggle text-capitalize" id="dropdownUser" data-bs-toggle="dropdown" 
@@ -88,6 +101,64 @@
         if (bottomAlertDiv.innerHTML.trim() != '') {
             bottomAlertDiv.scrollIntoView();
         }
+
+        setupBackToTopBtn();
+
+        function setupBackToTopBtn() {
+            const pageHeadingH1 = document.getElementById('pageHeadingH1');
+            if (document.body.scrollHeight <= window.innerHeight * 2 || !pageHeadingH1) {
+                // Don't activate the button if the body height is less than twice the window height
+                // or if there is no page heading since there is nothing whose visibility we should check
+                return;
+            }
+
+            // Setup the backToTopBtn button so it scrolls to the top on click
+            const backToTopBtn = document.getElementById('backToTopBtn');
+            backToTopBtn.addEventListener('click', backToTop);
+
+            function backToTop() {
+                window.scrollTo({'top': 0});
+            }            
+
+            // Show the button on initial page load if we are scrolled down
+            if (!isScrolledIntoView(pageHeadingH1)) {
+                backToTopBtn.classList.remove('invisible');
+            }
+
+            // Figure out the current scroll
+            let lastScrollTop = window.pageYOffset || document.documentElement.scrollTop;            
+            // Then listen for scroll events, and show the button if we are not at the top
+            window.addEventListener('scroll', scrollHandler);
+
+            function scrollHandler() {
+                // credit: https://stackoverflow.com/questions/31223341/detecting-scroll-direction
+                let st = window.pageYOffset || document.documentElement.scrollTop;
+                let headingVisible = isScrolledIntoView(pageHeadingH1);
+                if (st > lastScrollTop){
+                    // downscroll code
+                    if (!headingVisible) {
+                        backToTopBtn.classList.remove('invisible');
+                    }
+                } else {
+                    // upscroll code
+                    if (headingVisible) {
+                        backToTopBtn.classList.add('invisible');
+                    }
+                }
+                lastScrollTop = st <= 0 ? 0 : st; // For Mobile or negative scrolling
+            }
+
+            function isScrolledIntoView(el) {
+                // credit: https://stackoverflow.com/a/22480938
+                let rect = el.getBoundingClientRect();
+                let elemTop = rect.top;
+                let elemBottom = rect.bottom;
+                // Only completely visible elements return true:
+                let isVisible = (elemTop >= 0) && (elemBottom <= window.innerHeight);
+                return isVisible;
+            }
+        }
+
     })();
 </script>
 </html>
