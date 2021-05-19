@@ -150,6 +150,13 @@ func (s service) GetVisitsByRestaurantID(restaurantID int64, qp url.Values) ([]V
 	for i, v := range allVisits {
 		// For each visit get the users who were there and their rating.
 		allVisits[i].VisitUsers = s.r.GetVisitUsersByVisitID(v.ID)
+
+		// Format the last visit to just the date
+		visitDateTime, err := time.Parse(time.RFC3339, v.VisitDateTime)
+		if err != nil {
+			return allVisits, err
+		}
+		allVisits[i].VisitDateTime = visitDateTime.Format("2006-01-02")
 	}
 	return allVisits, nil
 }
