@@ -1,10 +1,5 @@
 {{define "head"}}
 <title>{{.Title}}</title>
-<style>
-    .fs-7 {
-        font-size: 0.75rem;
-    }
-</style>
 {{end}}
 
 {{define "yield"}}
@@ -56,11 +51,11 @@
                 </select>
             </div>
             <div class="mb-3">
-                <fieldset>
-                    <legend class="fs-6">Average Rating</legend>
+                <fieldset class="border border-dark p-3">
+                    <legend>Average Rating</legend>
                     <div class="row gx-1 gx-sm-3">
-                        <div class="col-8 col-md-6">
-                            <label class="form-label fs-7" for="avgRatingOpSelect">Operator</label>
+                        <div class="col-9 col-md-6">
+                            <label class="form-label" for="avgRatingOpSelect">Operator</label>
                             <select class="form-select" name="last_visit" id="avgRatingOpSelect">
                                 <option {{if eq .AvgRating.Operator "lt"}} selected {{end}} value="lt">Less Than</option>
                                 <option {{if eq .AvgRating.Operator "lteq"}} selected {{end}} value="lteq">Less Than Or Equal To</option>
@@ -68,8 +63,8 @@
                                 <option {{if eq .AvgRating.Operator "gteq"}} selected {{end}} value="gteq">Greater Than Or Equal To</option>
                             </select>
                         </div>
-                        <div class="col-4 col-md-6">
-                            <label class="form-label fs-7" for="avgRatingInput">Value</label>
+                        <div class="col-3 col-md-6">
+                            <label class="form-label" for="avgRatingInput">Value</label>
                             <input class="form-control" type="number" name="avg_rating" id="avgRatingInput" value={{.AvgRating.Value}}
                                 min=1 max=5 step=1/>
                         </div>
@@ -77,7 +72,7 @@
                 </fieldset>
             </div>
             <div>
-                <button class="btn btn-primary btn-block" type="submit">Apply</button>
+                <button class="btn btn-primary w-100" type="submit">Apply</button>
             </div>
         </form>
     </div>
