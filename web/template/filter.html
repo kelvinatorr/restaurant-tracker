@@ -92,7 +92,7 @@
             
             let destUrl = new URL('/', baseURL);            
 
-            const filterFormFields = document.querySelectorAll('#filterForm > div > .filter-field');
+            const filterFormFields = document.querySelectorAll('#filterForm .filter-field');
             filterFormFields.forEach((e) => {
                 if (e.value === '') {
                     // skip it.
