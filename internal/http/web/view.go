@@ -22,7 +22,7 @@ const (
 )
 
 func newView(layout string, files ...string) *view {
-	commonFiles := []string{"../../web/template/common/base.html", "../../web/template/alert.html"}
+	commonFiles := []string{"./web/template/common/base.html", "./web/template/alert.html"}
 	files = append(files, commonFiles...)
 	// Add a genCSRFField function to the template so we can change it in the render function
 	t, err := template.New("").Funcs(template.FuncMap{

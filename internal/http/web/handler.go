@@ -136,7 +136,7 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.POST(deleteVisitPath, deleteVisitPOSTHandler)
 
 	// Serve files from the web/static directory
-	router.ServeFiles("/static/*filepath", fileSystem{http.Dir("../../web/static")})
+	router.ServeFiles("/static/*filepath", fileSystem{http.Dir("./web/static")})
 
 	router.PanicHandler = func(w http.ResponseWriter, r *http.Request, err interface{}) {
 		log.Printf("ERROR http rest handler: %s\n", err)
@@ -144,7 +144,7 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	}
 
 	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		v := newView("base", "../../web/template/404.html")
+		v := newView("base", "./web/template/404.html")
 		data := Data{}
 		v.render(w, r, data)
 		return
@@ -271,7 +271,7 @@ func getInitialSignup(l lister.Service) func(w http.ResponseWriter, r *http.Requ
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
-		v := newView("base", "../../web/template/create-user.html")
+		v := newView("base", "./web/template/create-user.html")
 		data := Data{}
 		data.Head = Head{"Initial Signup"}
 		data.Yield = struct {
@@ -299,7 +299,7 @@ func getSignIn(l lister.Service) func(w http.ResponseWriter, r *http.Request, _ 
 			http.Redirect(w, r, "/initial-signup", http.StatusFound)
 			return
 		}
-		v := newView("base", "../../web/template/sign-in.html")
+		v := newView("base", "./web/template/sign-in.html")
 		data := Data{}
 		data.Head = Head{Title: "Sign In"}
 		v.render(w, r, data)
@@ -312,7 +312,7 @@ func postUserAdd(a adder.Service, heading string, text string) func(w http.Respo
 
 		data := Data{}
 		data.Head = Head{Title: heading}
-		v := newView("base", "../../web/template/create-user.html")
+		v := newView("base", "./web/template/create-user.html")
 
 		if err := parseForm(r, &u); err != nil {
 			log.Println(err)
@@ -352,7 +352,7 @@ func postSignIn(a auther.Service) func(w http.ResponseWriter, r *http.Request, _
 
 		data := Data{}
 		data.Head = Head{Title: "Sign In"}
-		v := newView("base", "../../web/template/sign-in.html")
+		v := newView("base", "./web/template/sign-in.html")
 
 		if err := parseForm(r, &u); err != nil {
 			log.Println(err)
@@ -388,7 +388,7 @@ func postSignIn(a auther.Service) func(w http.ResponseWriter, r *http.Request, _
 
 func getHome(s lister.Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		v := newView("base", "../../web/template/index.html")
+		v := newView("base", "./web/template/index.html")
 		// TODO: Pull in Site Name from the database.
 
 		// get the query parameters parameter
@@ -414,7 +414,7 @@ func getHome(s lister.Service) httprouter.Handle {
 
 func getUserAdd() func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		v := newView("base", "../../web/template/create-user.html")
+		v := newView("base", "./web/template/create-user.html")
 		data := Data{}
 		data.Head = Head{"Add A New User"}
 		data.Yield = struct {
@@ -472,7 +472,7 @@ func getUser() httprouter.Handle {
 			return
 		}
 
-		v := newView("base", "../../web/template/user.html")
+		v := newView("base", "./web/template/user.html")
 
 		data := Data{}
 		data.Head = Head{fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName)}
@@ -510,7 +510,7 @@ func postUser(u updater.Service) httprouter.Handle {
 		recordsAffected, err := u.UpdateUser(userUpdate)
 		if err != nil {
 			log.Println(err)
-			v := newView("base", "../../web/template/user.html")
+			v := newView("base", "./web/template/user.html")
 			data := Data{}
 			data.Head = Head{fmt.Sprintf("Profile: %s %s", user.FirstName, user.LastName)}
 			// Show the user the error.
@@ -538,7 +538,7 @@ func postUser(u updater.Service) httprouter.Handle {
 func getChangePassword() httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
-		v := newView("base", "../../web/template/change-password.html")
+		v := newView("base", "./web/template/change-password.html")
 
 		data := Data{}
 		data.Head = Head{"Change Password"}
@@ -573,7 +573,7 @@ func postChangePassword(u updater.Service) httprouter.Handle {
 
 		recordsAffected, err := u.UpdateUserPassword(uCP)
 
-		v := newView("base", "../../web/template/change-password.html")
+		v := newView("base", "./web/template/change-password.html")
 
 		data := Data{}
 		data.Head = Head{"Change Password"}
@@ -621,7 +621,7 @@ func getFilter(s lister.Service) httprouter.Handle {
 		// Read the query params to fill up the form
 		queryParams := r.URL.Query()
 
-		v := newView("base", "../../web/template/filter.html")
+		v := newView("base", "./web/template/filter.html")
 
 		data := Data{}
 		data.Head = Head{"Filter Restaurants"}
@@ -667,7 +667,7 @@ func getRestaurant(s lister.Service, m mapper.Service) httprouter.Handle {
 			return
 		}
 
-		v := newView("base", "../../web/template/restaurant.html")
+		v := newView("base", "./web/template/restaurant.html")
 
 		data := Data{}
 
@@ -766,7 +766,7 @@ func addRestaurant(a adder.Service, m mapper.Service, w http.ResponseWriter, r *
 	newRestaurantID, err := a.AddRestaurant(resNew)
 	if err != nil {
 		log.Println(err)
-		v := newView("base", "../../web/template/restaurant.html")
+		v := newView("base", "./web/template/restaurant.html")
 		data := Data{}
 		data.Head = Head{"Add A New Restaurant"}
 		// Show the user the error.
@@ -811,7 +811,7 @@ func updateRestaurant(u updater.Service, m mapper.Service, w http.ResponseWriter
 	recordsAffected, err := u.UpdateRestaurant(resUpdate)
 	if err != nil {
 		log.Println(err)
-		v := newView("base", "../../web/template/restaurant.html")
+		v := newView("base", "./web/template/restaurant.html")
 		data := Data{}
 		data.Head = Head{resUpdate.Name}
 		// Show the user the error.
@@ -918,7 +918,7 @@ func getDeleteRestaurant(l lister.Service) httprouter.Handle {
 			return
 		}
 
-		v := newView("base", "../../web/template/delete-restaurant.html")
+		v := newView("base", "./web/template/delete-restaurant.html")
 
 		data := Data{}
 
@@ -969,7 +969,7 @@ func postDeleteRestaurant(s remover.Service) httprouter.Handle {
 		if deleteConfirm.Name != deleteConfirm.ConfirmName {
 			log.Printf("Delete requested for %d, but confirmation name %s doesn't match %s", ID, deleteConfirm.ConfirmName,
 				deleteConfirm.Name)
-			v := newView("base", "../../web/template/delete-restaurant.html")
+			v := newView("base", "./web/template/delete-restaurant.html")
 			data := Data{}
 			data.Head = Head{deleteConfirm.Name}
 			// Show the user the error.
@@ -1024,7 +1024,7 @@ func getVisits(l lister.Service) httprouter.Handle {
 			return
 		}
 
-		v := newView("base", "../../web/template/visits.html")
+		v := newView("base", "./web/template/visits.html")
 
 		data := Data{}
 
@@ -1067,7 +1067,7 @@ func getVisit(l lister.Service) httprouter.Handle {
 			return
 		}
 
-		v := newView("base", "../../web/template/visit.html")
+		v := newView("base", "./web/template/visit.html")
 
 		title_template := "%s Visit %s"
 		heading_template := "%s a Visit to %s"
@@ -1167,7 +1167,7 @@ func updateVisit(u updater.Service, l lister.Service, w http.ResponseWriter, r *
 			visit.VisitUsers = append(visit.VisitUsers, lvu)
 		}
 
-		v := newView("base", "../../web/template/visit.html")
+		v := newView("base", "./web/template/visit.html")
 
 		data := Data{}
 		// Show the user the error.
@@ -1221,7 +1221,7 @@ func addVisit(a adder.Service, l lister.Service, w http.ResponseWriter, r *http.
 			visit.VisitUsers = append(visit.VisitUsers, lvu)
 		}
 
-		v := newView("base", "../../web/template/visit.html")
+		v := newView("base", "./web/template/visit.html")
 
 		data := Data{}
 		// Show the user the error.
@@ -1276,7 +1276,7 @@ func getDeleteVisit(l lister.Service) httprouter.Handle {
 			return
 		}
 
-		v := newView("base", "../../web/template/delete-visit.html")
+		v := newView("base", "./web/template/delete-visit.html")
 
 		data := Data{}
 		titleHeading := fmt.Sprintf("Delete Visit To %s", restaurant.Name)

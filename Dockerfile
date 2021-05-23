@@ -1,4 +1,4 @@
-FROM golang:1.14
+FROM golang:1.15
 
 WORKDIR /go/src/app
 COPY . .
@@ -6,4 +6,4 @@ COPY . .
 RUN go get -d -v ./...
 RUN go install -v ./...
 
-CMD ["./start-api-server.sh"]
+CMD ["./start-server.sh"]
