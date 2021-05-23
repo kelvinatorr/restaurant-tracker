@@ -15,8 +15,14 @@
     <input type="hidden" name="restaurantName" value="{{.Restaurant.Name}}" />
     <input type="hidden" name="restaurantID" id="restaurantIDInput" value="{{.Restaurant.ID}}" />
     <input type="hidden" name="visitDateTime" value="{{.Visit.VisitDateTime}}" />
-    <button id="backBtn" class="btn btn-lg btn-block" type="button" data-id="{{.Visit.ID}}">Nevermind</button>
-    <button class="btn btn-lg btn-primary btn-block" type="submit">Delete It!</button>
+    <div class="mb-3 row">
+        <div class="col">
+            <button id="backBtn" class="btn btn-secondary w-100" type="button" data-id="{{.Visit.ID}}">Nevermind</button>
+        </div>
+        <div class="col">
+            <button class="btn btn-danger w-100" type="submit">Delete It!</button>
+        </div>
+    </div>
 </form>
 
 {{end}}

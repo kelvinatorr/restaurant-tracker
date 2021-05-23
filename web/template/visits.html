@@ -2,65 +2,132 @@
 <title>{{.Title}}</title>
 <style>
     table, th, td {
-        border: 1px solid black;
+        border-collapse: collapse;
+        min-height: 2rem;
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+
+    .table thead {
+      border-bottom-width: 2px;
+    }
+
+    @media screen and (max-width: 992px) {
+      table {
+        /* This removes the border between rows so they look more like cards */
+        border: 0;
+        width: 100%;        
+      }
+
+      /* Need higher specificity to overcome the border-start border-end classes */
+      #visitTable {
+        border-left: none !important;
+        border-right: none !important;
+      }
+      
+      /* Hide the table header */
+      table thead {
+        border: none;
+        height: 1px;
+        overflow: hidden;
+        position: absolute;
+        width: 1px;
+      }
+      
+      /* Make the table less like a table, this is the stacking */
+      table tr {
+        border: 1px solid;
+        display: block;
+        margin-bottom: 1rem;
+      }
+      
+      table td {
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        text-align: right;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      /* Override the bootstrap style for p that adds margin-bottom */
+      table td p {
+        margin-bottom: 0;
+      }
+      
+      /* This is the row label */
+      table td::before {
+        content: attr(data-label);
+        float: left;
+        font-weight: bold;
+        padding-right: 0.5rem;
+        text-align: left;
+      }
+      
+      table td:last-child {
+        border-bottom: 0;
+      }
     }
 </style>
 {{end}}
 
 {{define "yield"}}
-<h1>
-    <a href="/restaurants/{{.RestaurantID}}">{{.Heading}}</a> Visits
-</h1>
+<div class="row mb-2">
+    <h1 id="pageHeadingH1">
+        <a href="/restaurants/{{.RestaurantID}}">{{.Heading}}</a> Visits
+    </h1>
+</div>
 
-<p>
+<div class="row mb-3">
     <a href="/r/{{.RestaurantID}}/visits/0">Add Visit</a>
-</p>
+</div>
 
-<div>
-    <div>
-        <table id="visitTable">
-            <thead>
-              <tr>
-                <th>
-                    <a class="column-sort" href="/r/{{.RestaurantID}}/visits?sort[date]=asc">
-                        Date
-                    </a>
-                </th>
-                <th>
-                    Note
-                </th>
-                <th>
-                    Users Ratings
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {{range .Visits}}
-                <tr class="visit-row">
-                    <td>
-                        <a href="/r/{{.RestaurantID}}/visits/{{.ID}}">
-                            {{.VisitDateTime}}
+<div class="row">
+    <div class="col">
+        <div class="table-responsive">
+            <table class="table border-start border-end border-dark" id="visitTable">
+                <thead class="bg-dark bg-gradient text-light">
+                  <tr>
+                    <th scope="col">
+                        <a class="column-sort" href="/r/{{.RestaurantID}}/visits?sort[date]=asc">
+                            Date
                         </a>
-                    </td>
-                    <td>
-                        {{.Note}}
-                    </td>
-                    <td>
-                        {{range .VisitUsers}}
-                            <p>
-                                {{.User.FirstName}} {{.User.LastName}}:
-                                {{if.Rating}}
-                                    {{.Rating}}
-                                {{else}}
-                                    null
-                                {{end}}
-                            </p>                            
-                        {{end}}
-                    </td>
-                </tr>
-              {{end}}
-            </tbody>
-          </table>
+                    </th>
+                    <th scope="col">
+                        Note
+                    </th>
+                    <th scope="col">
+                        Users Ratings
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{range .Visits}}
+                    <tr class="visit-row">
+                        <td data-label="Date">
+                            <a href="/r/{{.RestaurantID}}/visits/{{.ID}}">
+                                {{.VisitDateTime}}
+                            </a>
+                        </td>
+                        <td data-label="Note">
+                            {{.Note}}
+                        </td>
+                        <td data-label="Users Ratings">
+                            {{range .VisitUsers}}
+                                <p>
+                                    {{.User.FirstName}}
+                                    {{if.Rating}}
+                                        {{.Rating}}
+                                    {{else}}
+                                        null
+                                    {{end}}
+                                </p>
+                            {{end}}
+                        </td>
+                    </tr>
+                  {{end}}
+                </tbody>
+              </table>
+        </div>
     </div>
 </div>
 {{end}}

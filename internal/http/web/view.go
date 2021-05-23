@@ -17,6 +17,8 @@ const (
 	// is encountered by our backend.
 	AlertErrorMsgGeneric       = "Sorry; something went wrong."
 	AlertFormParseErrorGeneric = "Sorry; there was a problem parsing your form."
+	AlertClassError            = "alert-danger"
+	AlertClassSuccess          = "alert-success"
 )
 
 func newView(layout string, files ...string) *view {

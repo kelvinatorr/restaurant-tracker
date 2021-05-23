@@ -2,115 +2,190 @@
 <title>{{.Title}}</title>
 <style>
     table, th, td {
-        border: 1px solid black;
+        border-collapse: collapse;
+        min-height: 2rem;
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;        
+    }
+
+    .table thead {
+      border-bottom-width: 2px;
     }
 
     .display-none {
       display: none;
     }
+
+    @media screen and (max-width: 992px) {
+      table {
+        /* This removes the border between rows so they look more like cards */
+        border: 0;
+        width: 100%;        
+      }
+
+      /* Need higher specificity to overcome the border-start border-end classes */
+      #restaurantTable {
+        border-left: none !important;
+        border-right: none !important;
+      }
+      
+      /* Hide the table header */
+      table thead {
+        border: none;
+        height: 1px;
+        overflow: hidden;
+        position: absolute;
+        width: 1px;
+      }
+      
+      /* Make the table less like a table, this is the stacking */
+      table tr {
+        border: 1px solid;
+        display: block;
+        margin-bottom: 1rem;
+      }
+      
+      table td {
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        text-align: right;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      /* Override the bootstrap style for p that adds margin-bottom */
+      table td p {
+        margin-bottom: 0;
+      }
+      
+      /* This is the row label */
+      table td::before {
+        content: attr(data-label);
+        float: left;
+        font-weight: bold;
+        padding-right: 0.5rem;
+        text-align: left;
+      }
+      
+      table td:last-child {
+        border-bottom: 0;
+      }
+    }
 </style>
 {{end}}
 
 {{define "yield"}}
-<h1>Home Page</h1>
-<br/>
-<form>
-  <div>
-    <label for="searchInput">Search</label>
-    <input id="searchInput" type="text" placeholder="Search" />    
-  </div>
-  <div>
-    <label for="matchCase">Match Case</label>
-    <input type="checkbox" id="matchCase">    
-  </div>  
-</form>
-<br/>
-<a id="filterLink" href="/filter">Filter</a>
-<a id="clearFilterLink" class="display-none" href="/">Clear Filter</a>
-<br/>
-<div>
-  <a id="addRestaurantLink" href="/restaurants/0">Add Restaurant</a>
+<div class="row mb-2">
+  <h1 id="pageHeadingH1">Restaurants</h1>
 </div>
-<div>
-    <div>
-        <table id="restaurantTable">
-            <thead>
-              <tr>
-                <th class="display-none">
-                  Search Value
-                </th>
-                <th>
-                  <a class="column-sort" href="/?sort[name]=asc">
-                    Name
-                  </a>
-                </th>
-                <th>
-                  <a class="column-sort" href="/?sort[cuisine]=asc">
-                    Cuisine
-                  </a>
-                </th>
-                <th>
-                  <a class="column-sort" href="/?sort[city]=asc">
-                    City
-                  </a>
-                </th>
-                <th>
-                  <a class="column-sort" href="/?sort[state]=asc">
-                    State
-                  </a>
-                </th>
-                <th>
-                    Note
-                </th>
-                <th>
-                  <a class="column-sort" href="/?sort[last_visit]=asc">
-                    Last Visit
-                  </a>
-                </th>
-                <th>
-                    User's Average Rating
-                </th>
-                <th>
-                  <a class="column-sort" href="/?sort[avg_rating]=asc">
-                    Average Rating
-                  </a>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {{range .Restaurants}}
-              <tr class="restaurant-row">
-                <td class="search-value display-none">{{.SearchValue}}</td>
-                <td>
-                  <a href="/restaurants/{{.ID}}">{{.Name}}</a>
-                </td>
-                <td>{{.Cuisine}}</td>
-                <td>{{.CityState.Name}}</td>
-                <td>{{.CityState.State}}</td>
-                <td>{{.Note}}</td>
-                <td>{{.LastVisitDatetime}}</td>
-                <td>
-                    {{range .AvgUserRatings}}
-                    <p>
-                      {{.FirstName}} {{.LastName}}: 
-                      {{if .AvgRating}}
-                      {{.AvgRating}}
-                      {{else}}
-                      null
-                      {{end}}
-                    </p>
+
+<div class="row mb-2">
+  <div class="col">
+    <form>
+      <div class="form-floating mb-1">
+        <input class="form-control" id="searchInput" type="input" placeholder="Type to search..." />
+        <label class="" for="searchInput">Search</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="matchCase">
+        <label class="form-check-label" for="matchCase">Match Case</label>
+      </div>
+    </form>
+  </div>  
+</div>
+
+<div class="row mb-1">
+  <div class="col">
+    <a id="filterLink" href="/filter">Filter</a>
+    <a id="clearFilterLink" class="display-none ms-3" href="/">Clear Filter</a>
+  </div>
+  <div class="col text-end">
+    <a id="addRestaurantLink" href="/restaurants/0">Add Restaurant</a>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col">
+    <div class="table-responsive">
+      <table class="table border-start border-end border-dark" id="restaurantTable">
+          <thead class="bg-dark bg-gradient text-light">
+            <tr>
+              <th scope="col" class="display-none">
+                Search Value
+              </th>
+              <th scope="col">
+                <a class="column-sort" href="/?sort[name]=asc">
+                  Name
+                </a>
+              </th>
+              <th scope="col">
+                <a class="column-sort" href="/?sort[cuisine]=asc">
+                  Cuisine
+                </a>
+              </th>
+              <th scope="col">
+                <a class="column-sort" href="/?sort[city]=asc">
+                  City
+                </a>
+              </th>
+              <th scope="col">
+                <a class="column-sort" href="/?sort[state]=asc">
+                  State
+                </a>
+              </th>
+              <th scope="col">
+                  Note
+              </th>
+              <th scope="col">
+                <a class="column-sort" href="/?sort[last_visit]=asc">
+                  Last Visit
+                </a>
+              </th>
+              <th scope="col">
+                  User's Average Ratings
+              </th>
+              <th scope="col">
+                <a class="column-sort" href="/?sort[avg_rating]=asc">
+                  Average Rating
+                </a>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Restaurants}}
+            <tr class="restaurant-row">
+              <td data-label="Search Value" class="search-value display-none">{{.SearchValue}}</td>
+              <td data-label="Name">
+                <a href="/restaurants/{{.ID}}">{{.Name}}</a>
+              </td>
+              <td data-label="Cuisine">{{.Cuisine}}</td>
+              <td data-label="City">{{.CityState.Name}}</td>
+              <td data-label="State">{{.CityState.State}}</td>
+              <td data-label="Note">{{.Note}}</td>
+              <td data-label="Last Visit">{{.LastVisitDatetime}}</td>
+              <td data-label="User's Average Rating">
+                  {{range .AvgUserRatings}}
+                  <p>
+                    {{.FirstName}}:
+                    {{if .AvgRating}}
+                    {{.AvgRating}}
+                    {{else}}
+                    null
                     {{end}}
-                </td>
-                <td>
-                  {{if .AvgRating}}
-                  {{.AvgRating}}
+                  </p>
                   {{end}}
-                </td>
-              </tr>
-              {{end}}
-            </tbody>
-          </table>
+              </td>
+              <td data-label="Average Rating">
+                {{if .AvgRating}}
+                {{.AvgRating}}
+                {{end}}
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
     </div>
+  </div>
 </div>
 {{end}}
 

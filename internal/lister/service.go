@@ -97,8 +97,8 @@ func (s service) GetRestaurants(qp url.Values) ([]Restaurant, error) {
 	}
 
 	rs = s.r.GetRestaurants(sops, fops)
-	// Get ratings for each restaurant
 	for i, r := range rs {
+		// // Get ratings for each restaurant
 		rs[i].AvgUserRatings = s.r.GetRestaurantAvgRatingByUser(r.ID)
 		var lastVisitHumanDate string = ""
 		if r.LastVisitDatetime != "" {
@@ -107,6 +107,9 @@ func (s service) GetRestaurants(qp url.Values) ([]Restaurant, error) {
 				return rs, err
 			}
 			lastVisitHumanDate = lastVisitDate.Format("January 2, 2006")
+
+			// Format the last visit to just the date
+			rs[i].LastVisitDatetime = lastVisitDate.Format("2006-01-02")
 		}
 		// Add search value property
 		rs[i].SearchValue = fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s", r.Name, r.Cuisine, r.CityState.Name, r.CityState.State,
@@ -147,6 +150,13 @@ func (s service) GetVisitsByRestaurantID(restaurantID int64, qp url.Values) ([]V
 	for i, v := range allVisits {
 		// For each visit get the users who were there and their rating.
 		allVisits[i].VisitUsers = s.r.GetVisitUsersByVisitID(v.ID)
+
+		// Format the last visit to just the date
+		visitDateTime, err := time.Parse(time.RFC3339, v.VisitDateTime)
+		if err != nil {
+			return allVisits, err
+		}
+		allVisits[i].VisitDateTime = visitDateTime.Format("2006-01-02")
 	}
 	return allVisits, nil
 }

@@ -9,17 +9,13 @@
 </p>
 <form id="deleteRestaurantForm" method="POST">
     {{genCSRFField}}
-    <div class="form-label-group">
-        <input type="hidden" name="name" value="{{.Restaurant.Name}}" />
-    </div>
-    <div class="form-label-group">
-        <label>            
-            <div>Please type <b>{{.Restaurant.Name}}</b> to confirm.</div>
-            <input type="text" name="confirmName" value="" required autofocus />
-        </label>
+    <input type="hidden" name="name" value="{{.Restaurant.Name}}" />
+    <div class="mb-3">
+        <label class="form-label" for="confirmNameInput">Please type <b>{{.Restaurant.Name}}</b> to confirm.</label>            
+        <input class="form-control" type="text" name="confirmName" id="confirmNameInput" value="" required autofocus />        
     </div>
     
-    <button class="btn btn-lg btn-primary btn-block" type="submit">Delete It!</button>
+    <button class="btn btn-danger w-100" type="submit">Delete It!</button>
 </form>
 
 {{end}}
