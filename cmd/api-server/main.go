@@ -39,8 +39,8 @@ func main() {
 	// set up the HTTP server
 	router := rest.Handler(list, add, update, remove, verbose)
 
-	log.Println("The restaurant tracker api server is on tap now: http://localhost:8888")
-	log.Fatal(http.ListenAndServe(":8888", router))
+	log.Println("The restaurant tracker api server is on tap now: http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", router))
 
 	log.Println("Done with api server")
 }

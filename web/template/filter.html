@@ -1,0 +1,127 @@
+{{define "head"}}
+<title>{{.Title}}</title>
+{{end}}
+
+{{define "yield"}}
+<div class="row">
+    <h1>{{.Heading}}</h1>
+    <p>
+        {{.Text}}
+    </p>
+</div>
+
+<div class="row">
+    <div class="col">
+        <form id="filterForm">
+            <div class="mb-3">
+                <label class="form-label" for="cuisineSelect">Cuisine</label>
+                <select class="filter-field form-select" name="cuisine" id="cuisineSelect" data-operator="eq">
+                    <option value="">Any</option>
+                    {{range .FilterOptions.Cuisine}}
+                    <option {{if .Selected}} selected {{end}} value="{{.Value}}">{{.Value}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <div class="mb-3 row">
+                <div class="col">
+                    <label class="form-label" for="citySelect">City</label>
+                    <select class="filter-field form-select" name="city" id="citySelect" data-operator="eq">
+                        <option value="">Any</option>
+                        {{range .FilterOptions.City}}
+                        <option {{if .Selected}} selected {{end}} value="{{.Value}}">{{.Value}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div class="col">
+                    <label class="form-label" for="stateSelect">State</label>
+                    <select class="filter-field form-select" name="state" id="stateSelect" data-operator="eq">
+                        <option value="">Any</option>
+                        {{range .FilterOptions.State}}
+                        <option {{if .Selected}} selected {{end}} value="{{.Value}}">{{.Value}}</option>
+                        {{end}}
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="visitedSelect">Visited</label>
+                <select class="filter-field form-select" name="last_visit" id="visitedSelect" data-operator="is">
+                    <option {{if eq .LastVisitOp ""}} selected {{end}} value="">Any</option>
+                    <option {{if eq .LastVisitOp "isnt"}} selected {{end}} value="True">True</option>
+                    <option {{if eq .LastVisitOp "is"}} selected {{end}} value="False">False</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <fieldset class="border border-dark p-3">
+                    <legend>Average Rating</legend>
+                    <div class="row gx-1 gx-sm-3">
+                        <div class="col-9 col-md-6">
+                            <label class="form-label" for="avgRatingOpSelect">Operator</label>
+                            <select class="form-select" name="last_visit" id="avgRatingOpSelect">
+                                <option {{if eq .AvgRating.Operator "lt"}} selected {{end}} value="lt">Less Than</option>
+                                <option {{if eq .AvgRating.Operator "lteq"}} selected {{end}} value="lteq">Less Than Or Equal To</option>
+                                <option {{if eq .AvgRating.Operator "gt"}} selected {{end}} value="gt">Greater Than</option>
+                                <option {{if eq .AvgRating.Operator "gteq"}} selected {{end}} value="gteq">Greater Than Or Equal To</option>
+                            </select>
+                        </div>
+                        <div class="col-3 col-md-6">
+                            <label class="form-label" for="avgRatingInput">Value</label>
+                            <input class="form-control" type="number" name="avg_rating" id="avgRatingInput" value={{.AvgRating.Value}}
+                                min=1 max=5 step=1/>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+            <div>
+                <button class="btn btn-primary w-100" type="submit">Apply</button>
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}
+
+{{define "script"}}
+<script>
+    (function() {
+        const baseURL = window.location.origin;
+
+        const filterForm = document.getElementById('filterForm');
+        filterForm.addEventListener('submit', submitHandler);
+
+        function submitHandler(e) {
+            e.preventDefault();
+            
+            let destUrl = new URL('/', baseURL);            
+
+            const filterFormFields = document.querySelectorAll('#filterForm .filter-field');
+            filterFormFields.forEach((e) => {
+                if (e.value === '') {
+                    // skip it.
+                    return;
+                }
+                let operator = e.dataset.operator;
+                let value = e.value;
+                if (e.id === 'visitedSelect') {
+                    if (value === 'True') {
+                        operator = 'isnt'
+                    }
+                    value = "NULL";
+                }
+                const key = `filter[${e.name}|${operator}]`
+                destUrl.searchParams.set(key, value);
+            });
+
+            // Handle Average Rating
+            const avgRatingInput = document.getElementById('avgRatingInput');
+            if (avgRatingInput.value !== "") {
+                const avgRatingOpSelect = document.getElementById('avgRatingOpSelect');
+                const key = `filter[${avgRatingInput.name}|${avgRatingOpSelect.value}]`
+                destUrl.searchParams.set(key, avgRatingInput.value);
+            }
+            
+            // Go to the formed url
+            window.location.href =  destUrl;
+        }
+
+    })();
+</script>
+{{end}}

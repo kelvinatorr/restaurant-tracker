@@ -1,0 +1,123 @@
+{{define "head"}}
+<title>{{.Title}}</title>
+<style>
+    #noteText {
+        height: 12rem;
+    }
+</style>
+{{end}}
+
+{{define "yield"}}
+<div class="row">
+    <h1>{{.Heading}}</h1>
+    <p>
+        {{.Text}}
+    </p>
+</div>
+<div class="row mb-4">
+    <div class="col">
+        <form method="POST">
+            {{genCSRFField}}
+            
+            {{if ne .Visit.ID 0}}
+            <input type="hidden" name="id" id="idInput" value="{{.Visit.ID}}" />
+            {{end}}
+        
+            <input type="hidden" name="restaurantID" id="idInput" value="{{.Visit.RestaurantID}}" />
+        
+            <div class="mb-3">
+                <label class="form-label" for="visitDateTimeInput">Date</label>
+                <input class="form-control" type="date" id="visitDateTimeInput" name="visitDateTime" value="{{.Visit.VisitDateTime}}" required 
+                    {{if eq .Visit.ID 0}}autofocus{{end}} />
+            </div>
+        
+            <div class="mb-3">
+                <label class="form-label" for="noteText">Note</label>
+                <textarea class="form-control" name="note" id="noteText">{{.Visit.Note}}</textarea>
+            </div>
+        
+            <div class="mb-3">
+                <fieldset class="border border-dark p-3">
+                    <div class="row">
+                        <legend>Ratings (1-5)</legend>
+                    </div>              
+                    {{range $index, $element := .Visit.VisitUsers}}
+                    {{if ne $element.ID 0}}
+                    <input type="hidden" name="visitUsers.{{$index}}.id" value="{{$element.ID}}" />
+                    {{end}}
+                    <input type="hidden" name="visitUsers.{{$index}}.userID" value="{{$element.User.ID}}" />
+                    <div class="mb-3">
+                        <label class="row">
+                            <div class="col-4 col-md-2 d-flex align-items-center">
+                                {{$element.User.FirstName}} {{$element.User.LastName}}
+                            </div>
+                            <div class="col">
+                                <input class="form-control" type="number" min="1" max="5" name="visitUsers.{{$index}}.rating" 
+                                    value="{{if eq $element.Rating 0}}null{{else}}{{$element.Rating}}{{end}}" />
+                            </div>
+                        </label>
+                    </div>
+                    {{end}}
+                </fieldset> 
+            </div>
+            <div class="row">
+                <div class="col">
+                    <button class="btn btn-secondary w-100" type="button" id="backBtn" data-restaurant-id="{{.Visit.RestaurantID}}">
+                        Back
+                    </button>
+                </div>
+                <div class="col">
+                    <button class="btn btn-primary w-100" type="submit">
+                        Save {{if eq .Visit.ID 0}}New Visit{{end}}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{if ne .Visit.ID 0}}
+<div class="row">
+    <h2>Danger Zone</h2>
+</div>
+<div class="row">
+    <div class="col-6">
+        <button type="button" class="btn btn-danger w-100" id="deleteVisitBtn" data-id="{{.Visit.ID}}" 
+            data-restaurant-id="{{.Visit.RestaurantID}}">
+            Delete Visit
+        </button>
+    </div>
+</div>
+{{end}}
+
+
+{{end}}
+{{define "script"}}
+<script>
+    (function() {
+        const baseURL = window.location.origin;
+        const deleteVisitBtn = document.getElementById('deleteVisitBtn');
+        if (deleteVisitBtn) {
+            deleteVisitBtn.addEventListener('click', deleteVisit);
+        }
+
+        const backBtn = document.getElementById('backBtn');
+        backBtn.addEventListener('click', goBack);
+
+        function goBack() {
+            const restaurantID = backBtn.dataset.restaurantId;
+            const destUrl = new URL(`/r/${restaurantID}/visits`, baseURL);
+            // Go to the formed url. Don't use back because then the page won't be refreshed
+            window.location.href =  destUrl;
+        }
+
+        function deleteVisit() {
+            const visitID = deleteVisitBtn.dataset.id;
+            const restaurantID = deleteVisitBtn.dataset.restaurantId;
+            const destUrl = new URL(`/r/${restaurantID}/delete-visit/${visitID}`, baseURL);
+            // Go to the formed url
+            window.location.href =  destUrl;
+        }
+    })();
+</script>
+{{end}}

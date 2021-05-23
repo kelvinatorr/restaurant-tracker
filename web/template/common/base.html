@@ -1,0 +1,165 @@
+{{define "base"}}
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="shortcut icon" href="/static/icons/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/icons/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/static/icons/favicon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/static/icons/favicon-512x512.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png">
+<link rel="mask-icon" href="/static/icons/safari-pinned-tab.svg" color="#5bbad5">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="msapplication-config" content="/static/browserconfig.xml">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#ffffff">
+<link href="/static/bootstrap-5.0.0-beta3-dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    main {
+        background-color: #eeeeee;
+    }
+
+    /* Disable Bootstrap's btn:hover behavior */
+    #backToTopBtn:hover {
+        background-color: #212529;
+        border-color: #212529;
+    }
+</style>
+{{template "head" .Head}}
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <header class="sticky-top">
+        <nav class="navbar navbar-dark bg-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">Track Restaurants</a>
+                <button class="btn btn-dark invisible" id="backToTopBtn">
+                    <!-- Use the svg so it does not flicker as much on page reload -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-up-circle-fill" viewBox="0 0 16 16">
+                        <path d="M16 8A8 8 0 1 0 0 8a8 8 0 0 0 16 0zm-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11.5z"/>
+                    </svg>
+                </button>
+                <div class="flex-grow-1"></div>
+                {{if ne .User.ID 0}}
+                <div class="dropdown text-end">
+                    <a href="#" class="d-block link-light text-decoration-none dropdown-toggle text-capitalize" id="dropdownUser" data-bs-toggle="dropdown" 
+                        aria-expanded="false">
+                        {{slice .User.FirstName 0 1}}
+                    </a>
+                    <ul class="dropdown-menu text-small position-absolute m-0" aria-labelledby="dropdownUser" data-popper-placement="bottom-end" 
+                        style="inset: 0px auto auto 0px; transform: translate(-131px, 24px);">
+                        <li>
+                            <a class="dropdown-item" href="/users/{{.User.ID}}">{{.User.FirstName}}</a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form id="signOutForm" method="POST" action="/sign-out">
+                                {{genCSRFField}}
+                                <a class="dropdown-item" href="javascript:{}" onclick="document.getElementById('signOutForm').submit();">
+                                    Sign Out
+                                </a>
+                            </form>
+                        </li>
+                    </ul>               
+                </div>
+                {{end}}
+            </div>
+        </nav>
+    </header>
+    <main class="flex-grow-1 pt-3">
+        <div class="container">
+            {{template "yield" .Yield}}
+        </div>
+        <div class="container mt-3">
+            {{template "alert" .Alert}}
+        </div>
+    </main>    
+    <footer class="footer bg-dark text-white mt-auto pt-3">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col">
+                    <p>
+                        Made with <span class="text-danger">❤</span> in the USA.
+                    </p>
+                </div>
+                <div class="col text-end">
+                    <a target="_blank" href="https://github.com/kelvinatorr/restaurant-tracker/issues/new">
+                        Submit Feedback
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <script src="/static/bootstrap-5.0.0-beta3-dist/js/bootstrap.bundle.min.js"></script>
+    {{template "script"}}
+</body>
+<script>
+    (function(){
+        // If the alert div has content then scroll it into view so the user sees it.
+        const bottomAlertDiv = document.getElementById('bottomAlertDiv');
+        if (bottomAlertDiv.innerHTML.trim() != '') {
+            bottomAlertDiv.scrollIntoView();
+        }
+
+        setupBackToTopBtn();
+
+        function setupBackToTopBtn() {
+            const pageHeadingH1 = document.getElementById('pageHeadingH1');
+            if (document.body.scrollHeight <= window.innerHeight * 2 || !pageHeadingH1) {
+                // Don't activate the button if the body height is less than twice the window height
+                // or if there is no page heading since there is nothing whose visibility we should check
+                return;
+            }
+
+            // Setup the backToTopBtn button so it scrolls to the top on click
+            const backToTopBtn = document.getElementById('backToTopBtn');
+            backToTopBtn.addEventListener('click', backToTop);
+
+            function backToTop() {
+                window.scrollTo({'top': 0});
+            }            
+
+            // Show the button on initial page load if we are scrolled down
+            if (!isScrolledIntoView(pageHeadingH1)) {
+                backToTopBtn.classList.remove('invisible');
+            }
+
+            // Figure out the current scroll
+            let lastScrollTop = window.pageYOffset || document.documentElement.scrollTop;            
+            // Then listen for scroll events, and show the button if we are not at the top
+            window.addEventListener('scroll', scrollHandler);
+
+            function scrollHandler() {
+                // credit: https://stackoverflow.com/questions/31223341/detecting-scroll-direction
+                let st = window.pageYOffset || document.documentElement.scrollTop;
+                let headingVisible = isScrolledIntoView(pageHeadingH1);
+                if (st > lastScrollTop){
+                    // downscroll code
+                    if (!headingVisible) {
+                        backToTopBtn.classList.remove('invisible');
+                    }
+                } else {
+                    // upscroll code
+                    if (headingVisible) {
+                        backToTopBtn.classList.add('invisible');
+                    }
+                }
+                lastScrollTop = st <= 0 ? 0 : st; // For Mobile or negative scrolling
+            }
+
+            function isScrolledIntoView(el) {
+                // credit: https://stackoverflow.com/a/22480938
+                let rect = el.getBoundingClientRect();
+                let elemTop = rect.top;
+                let elemBottom = rect.bottom;
+                // Only completely visible elements return true:
+                let isVisible = (elemTop >= 0) && (elemBottom <= window.innerHeight);
+                return isVisible;
+            }
+        }
+
+    })();
+</script>
+</html>
+{{end}}

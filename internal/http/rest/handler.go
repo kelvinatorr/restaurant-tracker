@@ -47,7 +47,7 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	}
 
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"https://postwoman.io", "https://hoppscotch.io/"},
+		AllowedOrigins: []string{"https://hoppscotch.io"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 		// Enable Debugging for testing, consider disabling in production
 		Debug: false,
@@ -101,7 +101,13 @@ func jsonLogger(handler http.Handler) http.Handler {
 func getRestaurants(s lister.Service) func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		w.Header().Set("Content-Type", "application/json")
-		list := s.GetRestaurants()
+		// get the query parameters parameter
+		queryParams := r.URL.Query()
+		list, err := s.GetRestaurants(queryParams)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		json.NewEncoder(w).Encode(list)
 	}
 }

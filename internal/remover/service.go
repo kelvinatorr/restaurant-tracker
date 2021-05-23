@@ -10,6 +10,7 @@ import (
 type Service interface {
 	RemoveRestaurant(Restaurant) int64
 	RemoveVisit(Visit) int64
+	RemoveGmapsPlace(int64) int64
 }
 
 // Repository provides access to restaurant repository.
@@ -22,6 +23,7 @@ type Repository interface {
 	GetRestaurant(int64) lister.Restaurant
 	RemoveCity(int64) int64
 	RemoveVisit(int64) int64
+	RemoveGmapsPlace(int64) int64
 }
 
 type service struct {
@@ -75,6 +77,17 @@ func (s service) RemoveVisit(v Visit) int64 {
 	s.r.Commit()
 	// Return the total records affected
 	return visitRecordsAffected
+}
+
+func (s service) RemoveGmapsPlace(gpID int64) int64 {
+	s.r.Begin()
+	defer s.r.Rollback()
+
+	gmapsPlaceRecordsAffected := s.r.RemoveGmapsPlace(gpID)
+
+	s.r.Commit()
+	return gmapsPlaceRecordsAffected
+
 }
 
 // NewService returns a new remover.service

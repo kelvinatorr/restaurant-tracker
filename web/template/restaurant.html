@@ -1,0 +1,486 @@
+{{define "head"}}
+<title>{{.Title}}</title>
+<style>
+    .hidden-visually {
+        border: 0;
+        clip: rect(0, 0, 0, 0);
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        padding: 0;
+        position: absolute;
+        white-space: nowrap;
+        width: 1px;
+    }
+
+    .inline-block {
+        display: inline-block;
+    }
+
+    #noteText {
+        height: 6rem;
+    }
+</style>
+{{end}}
+
+{{define "yield"}}
+<div class="row">
+    <h1>{{.Heading}}</h1>
+    <p>
+        {{.Text}}
+    </p>
+</div>
+
+{{if ne .Restaurant.ID 0}}
+<div class="row">
+    <a href="/r/{{.Restaurant.ID}}/visits/0">Add Visit</a>
+</div>
+{{end}}
+
+<div class="row mb-4">
+    <div class="col">
+        <form method="POST">
+            {{genCSRFField}}
+            {{if ne .Restaurant.ID 0}}
+            <div class="mb-3">
+                <input type="hidden" name="id" id="idInput" value="{{.Restaurant.ID}}" />
+            </div>
+            {{end}}
+            <div class="mb-3">
+                <label class="form-label" for="nameInput">Name</label>
+                <input class="form-control" type="text" name="name" id="nameInput" value="{{.Restaurant.Name}}" required
+                    {{if eq .Restaurant.ID 0}}autofocus{{end}} />
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="cuisineInput">Cuisine</label>
+                <input class="form-control" type="text" name="cuisine" id="cuisineInput" value="{{.Restaurant.Cuisine}}" required />
+            </div>
+            <div class="mb-3 row">
+                <div class="col">
+                    <label class="form-label" for="cityInput">City</label>
+                    <input class="form-control" type="text" name="cityState.city" id="cityInput" value="{{.Restaurant.CityState.Name}}" required />
+                </div>
+                <div class="col">
+                    <label class="form-label" for="stateInput">State</label>
+                    <input class="form-control" type="text" name="cityState.state" id="stateInput" 
+                        value="{{.Restaurant.CityState.State}}" required maxlength="2" />
+                </div>
+            </div>            
+            <div class="mb-3">
+                <label class="form-label" for="noteText">Note</label>
+                <textarea class="form-control" name="note" id="noteText">{{.Restaurant.Note}}</textarea>
+            </div>
+
+            {{if ne .Restaurant.ID 0}}
+            <div class="mb-3">
+                <label class="form-label" for="lastVisitInput">Last Visit</label>
+                <input class="form-control" type="date" id="lastVisitInput" readonly value="{{.Restaurant.LastVisitDatetime}}" />
+            </div>
+
+            <div class="mb-3">
+                <a href="/r/{{.Restaurant.ID}}/visits">View Visits</a>
+            </div>
+            {{end}}
+
+            <div class="mb-3">
+                <fieldset class="border border-dark p-3">
+                    <legend>Google Maps Data</legend>
+                    {{if ne .Restaurant.GmapsPlace.ID 0}}
+                    <div>
+                        <input type="hidden" name="gmapsPlace.gmapsPlaceID" id="gmapsPlaceIDInput" readonly
+                            value="{{.Restaurant.GmapsPlace.ID}}" />
+                    </div>
+                    <div>
+                        <input type="hidden" name="gmapsPlace.placeID" id="placeIDInput" readonly
+                            value="{{.Restaurant.GmapsPlace.PlaceID}}" />
+                    </div>
+                    <div class="mb-1 text-truncate">
+                        <label class="form-label" for="mapsURLLink">Maps URL:</label>
+                        <a href="{{.Restaurant.GmapsPlace.URL}}" id="mapsURLLink">{{.Restaurant.GmapsPlace.URL}}</a>
+                        <input type="hidden" name="gmapsPlace.url" id="mapsURLInput" readonly value="{{.Restaurant.GmapsPlace.URL}}" />
+                    </div>
+                    <div class="mb-3 row">
+                        <div class="col-xs-12 mb-3 col-md-6 mb-md-0">
+                            <label class="form-label" for="addressInput">Address</label>
+                            <input class="form-control" type="text" name="address" id="addressInput" readonly value="{{.Restaurant.Address}}"/>
+                        </div>
+                        <div class="col-xs-12 col-md-6">
+                            <label class="form-label" for="zipCodeInput">ZipCode</label>
+                            <input class="form-control" type="tel" name="zipCode" id="zipCodeInput" readonly value="{{.Restaurant.Zipcode}}"/>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="gmapsNameInput">Google Maps Name</label>
+                        <input class="form-control" type="text" name="gmapsPlace.gmapsName" id="gmapsNameInput" readonly value="{{.Restaurant.GmapsPlace.Name}}"/>
+                    </div>
+                    <div class="mb-3 text-truncate">
+                        <label class="form-label" for="websiteLink">Website:</label>
+                        <a href="{{.Restaurant.GmapsPlace.Website}}" id="websiteLink">{{.Restaurant.GmapsPlace.Website}}</a>
+                        <input type="hidden" name="gmapsPlace.website" id="websiteInput" readonly value="{{.Restaurant.GmapsPlace.Website}}" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="phoneInput">Phone Number:</label>
+                        <a href="tel:{{.Restaurant.GmapsPlace.FormattedPhoneNumber}}">{{.Restaurant.GmapsPlace.FormattedPhoneNumber}}</a>
+                        <input type="hidden" name="gmapsPlace.phone" id="phoneInput" readonly value="{{.Restaurant.GmapsPlace.FormattedPhoneNumber}}"/>
+                    </div>
+                    <div class="mb-3 row">
+                        <div class="col-xs-12 mb-3 col-md-6 mb-md-0">
+                            <label class="form-label" for="gmapsRatingInput">Google Maps Rating</label>
+                            <input class="form-control" type="number" name="gmapsPlace.gmapsRating" id="gmapsRatingInput" readonly
+                                value="{{.Restaurant.GmapsPlace.Rating}}"/>
+                        </div>
+                        <div class="col-xs-12 col-md-6">
+                            <label class="form-label" for="nUserRatingsInput">Number of User Ratings</label>
+                            <input class="form-control" type="number" name="gmapsPlace.nUserRatings" id="nUserRatingsInput" readonly
+                                value="{{.Restaurant.GmapsPlace.UserRatingsTotal}}"/>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="priceLevelInput">Price Level</label>
+                        <input class="form-control" type="number" name="gmapsPlace.priceLevel" id="priceLevelInput" readonly
+                            value="{{.Restaurant.GmapsPlace.PriceLevel}}"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="businessStatusInput">Business Status</label>
+                        <input class="form-control" type="text" name="gmapsPlace.businessStatus" id="businessStatusInput" readonly
+                            value="{{.Restaurant.GmapsPlace.BusinessStatus}}"/>
+                    </div>
+                    <div class="mb-3 row">
+                        <div class="col">
+                            <label class="form-label" for="latitudeInput">Latitude</label>
+                            <input class="form-control" type="text" name="latitude" id="latitudeInput" readonly value="{{.Restaurant.Latitude}}"/>
+                        </div>
+                        <div class="col">
+                            <label class="form-label" for="longitudeInput">Longitude</label>
+                            <input class="form-control" type="text" name="longitude" id="longitudeInput" readonly value="{{.Restaurant.Longitude}}"/>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="utcOffsetInput">UTC Offset</label>
+                        <input class="form-control" type="number" name="gmapsPlace.utcOffset" id="utcOffsetInput" readonly
+                            value="{{.Restaurant.GmapsPlace.UTCOffset}}"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="lastUpdated">Last Updated</label>
+                        <input class="form-control" type="date" name="gmapsPlace.lastUpdated" id="lastUpdated" readonly
+                            value="{{.Restaurant.GmapsPlace.LastUpdated}}"/>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <button class="btn btn-outline-secondary w-100" type="button" id="refreshGmapsDataBtn" {{if not .HaveGmapsKey}} disabled {{end}}>
+                                Refresh Data
+                                <div class="spinner-border spinner-border-sm text-secondary d-none" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </button>
+                            {{if not .HaveGmapsKey}}
+                            <span>
+                                No Google Maps API Key
+                            </span>
+                            {{end}}
+                            <span class="text-danger" id="gmapsRefreshErrorText">
+                            </span>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-danger w-100" type="button" data-bs-toggle="modal" 
+                                data-bs-target="#deleteGMapsModal">
+                                Delete Data
+                            </button>
+                            <span class="text-danger" id="gmapsDeleteErrorText">
+                            </span>
+                        </div>
+                    </div>
+                    {{end}}
+
+                    {{if eq .Restaurant.GmapsPlace.ID 0}}
+                    <div class="mb-3">
+                        <label class="from-label" for="addSearchTermInput">Additional Search Terms (Optional)</label>
+                        <input class="form-control" type="text" id="addSearchTermInput" />
+                    </div>
+                    <div class="mb-3" id="gmapsSearchDataContainer">
+                    </div>
+                    <div class="mb-3">
+                        <button class="btn btn-outline-secondary btn-block" type="button"
+                            id="getGmapsDataBtn" {{if not .HaveGmapsKey}} disabled {{end}}>
+                            Get Data
+                            <div class="spinner-border spinner-border-sm text-secondary d-none" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </button>
+                        {{if not .HaveGmapsKey}}
+                        <span>
+                            No Google Maps API Key
+                        </span>
+                        {{end}}
+                        <span id="gmapsErrorText">
+                        </span>
+                    </div>
+                    {{end}}
+                </fieldset>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <button class="btn btn-secondary w-100" type="button" id="backBtn">
+                        Back
+                    </button>
+                </div>
+                <div class="col">
+                    <button class="btn btn-primary w-100" type="submit">Save</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+{{if ne .Restaurant.ID 0}}
+<div class="row">
+    <h2>Danger Zone</h2>
+</div>
+<div class="row">
+    <div class="col-6">
+        <button type="button" class="btn btn-danger w-100" id="deleteResBtn" data-id="{{.Restaurant.ID}}">
+            Delete Restaurant
+        </button>
+    </div>
+</div>
+{{end}}
+
+<template id="gmapsSearchDataDiv">
+    <div class="mb-3">
+        <label class="d-flex">
+            <input type="radio" name="gmapsPlace.placeID" value="" />
+            <span class="hidden-visually">                
+            </span>
+            <div class="inline-block ms-3" aria-hidden="true">
+                <a target="_blank"></a>
+                <p class="mb-0"></p>
+            </div>                        
+        </label>
+    </div>
+</template>
+
+<!-- Modal -->
+<div class="modal" id="deleteGMapsModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Delete Google Maps Data</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete the Google Maps data for {{.Restaurant.Name}}?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="deleteGmapsDataBtn">Yes, Delete It</button>
+        </div>
+      </div>
+    </div>
+</div>
+<!-- End of Modal -->
+
+{{end}}
+
+{{define "script"}}
+<script>
+    (function() {
+        const baseURL = window.location.origin;
+        const getGmapsDataBtn = document.getElementById('getGmapsDataBtn');
+        if (getGmapsDataBtn) {
+            getGmapsDataBtn.addEventListener('click', getGmapsData);
+        }        
+
+        const deleteGmapsDataBtn = document.getElementById('deleteGmapsDataBtn');
+        if (deleteGmapsDataBtn) {
+            deleteGmapsDataBtn.addEventListener('click', deleteGmapsData);
+        }
+
+        const refreshGmapsDataBtn = document.getElementById('refreshGmapsDataBtn');
+        if (refreshGmapsDataBtn) {
+            refreshGmapsDataBtn.addEventListener('click', refreshGmapsData);
+        }
+
+        const deleteResBtn = document.getElementById('deleteResBtn');
+        if (deleteResBtn) {
+            deleteResBtn.addEventListener('click', deleteRestaurant)
+        }
+
+        const backBtn = document.getElementById('backBtn');
+        backBtn.addEventListener('click', goBack);
+
+        function goBack() {
+            const destUrl = new URL(`/`, baseURL);
+            // Go to the formed url. Don't use back because then the page won't be refreshed
+            window.location.href =  destUrl;
+        }
+
+        function deleteRestaurant() {
+            const restaurantID = deleteResBtn.dataset.id;
+            const destUrl = new URL(`/delete-restaurant/${restaurantID}`, baseURL);
+            // Go to the formed url
+            window.location.href =  destUrl;
+        }
+
+        function refreshGmapsData(e) {
+            const errorText = disableBtnClearErr(e.target, 'gmapsRefreshErrorText');
+
+            // show the spinner
+            const spinner = refreshGmapsDataBtn.querySelectorAll('div.spinner-border')[0];
+            spinner.classList.remove('d-none');
+
+            const placeID = document.getElementById('placeIDInput').value;
+            const url = new URL(`/maps/place-refresh/${placeID}`, baseURL);
+            fetch(url).then(resp => {
+                if(!resp.ok) {
+                    throw new Error(`The server responded with ${resp.status}: ${resp.statusText}`);
+                }
+                return resp.json();
+            }).then(data => {
+                displayGmapsData(data);
+                // update last updated
+                document.getElementById('lastUpdated').value = new Date().toISOString().substr(0, 10);
+            }).catch(err => {
+                console.log(err);
+                errorText.textContent = err;
+            }).finally(() => {
+                e.target.disabled = false;
+                // Hide the spinner
+                spinner.classList.add('d-none');
+            });
+        }
+
+        function displayGmapsData(data) {
+            document.getElementById('placeIDInput').value = data.placeID;
+            document.getElementById('addressInput').value = data.address;
+            document.getElementById('businessStatusInput').value = data.businessStatus;
+            document.getElementById('phoneInput').value = data.formattedPhoneNumber;
+            document.getElementById('gmapsNameInput').value = data.name;
+            document.getElementById('priceLevelInput').value = data.priceLevel;
+            document.getElementById('gmapsRatingInput').value = data.rating;
+            document.getElementById('mapsURLInput').value = data.url;
+            document.getElementById('nUserRatingsInput').value = data.userRatingsTotal;
+            document.getElementById('utcOffsetInput').value = data.utcOffset;
+            document.getElementById('websiteInput').value = data.website;
+            document.getElementById('zipCodeInput').value = data.zipCode;
+
+            document.getElementById('mapsURLLink').href = data.url;
+            document.getElementById('mapsURLLink').textContent = data.url;
+
+            document.getElementById('websiteLink').href = data.website;
+            document.getElementById('websiteLink').textContent = data.website;
+        }
+        
+
+        function deleteGmapsData(e) {
+            // Disable to prevent multiple clicks
+            const errorText = disableBtnClearErr(e.target, 'gmapsDeleteErrorText');
+
+            const gmapsPlaceID = document.getElementById('gmapsPlaceIDInput').value;
+            const url = new URL(`/maps/place/${gmapsPlaceID}`, baseURL);
+            const csrfToken = document.getElementsByName("gorilla.csrf.Token")[0].value
+            const fetchOptions = {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-Token': csrfToken                    
+                }
+            }
+            fetch(url, fetchOptions).then(resp => {
+                if(!resp.ok) {
+                    throw new Error(`The server responded with ${resp.status}: ${resp.statusText}`);
+                }
+                return resp.json();
+            }).then(() => {
+                // Reload the page
+                window.location.reload();
+            }).catch(err => {
+                console.log(err);
+                errorText.textContent = err;
+            }).finally(() => {
+                deleteGmapsDataBtn.disabled = false;
+            });      
+        }
+
+        function getGmapsData(e) {
+            // Disable to prevent multiple clicks            
+            const gmapsErrorText = disableBtnClearErr(e.target, 'gmapsErrorText');
+
+            // show the spinner
+            const spinner = getGmapsDataBtn.querySelectorAll('div.spinner-border')[0];
+            spinner.classList.remove('d-none');
+            // Form the url
+            let url = new URL('/maps/place-search', baseURL);
+            const nameInput = document.getElementById('nameInput');
+            const cityInput = document.getElementById('cityInput');
+            const stateInput = document.getElementById('stateInput');
+            const addSearchTermInput = document.getElementById('addSearchTermInput');
+            const searchTerm = `${nameInput.value} ${cityInput.value} ${stateInput.value} ${addSearchTermInput.value}`.trim();            
+            if (searchTerm === '') {
+                errorMsg = 'We need at least a name before getting Google Maps data.';
+                gmapsErrorText.textContent = errorMsg;
+                return;
+            }
+
+            url.searchParams.set('searchTerm', searchTerm);
+            // Make the query
+            fetch(url).then(resp => {
+                if(!resp.ok) {
+                    throw new Error(`The server responded with ${resp.status}: ${resp.statusText}`);
+                }
+                return resp.json();
+            }).then(data => {
+                if (data.length > 0) {
+                    // Display the results
+                    makeDataDivHTML(data);
+                } else {
+                    gmapsErrorText.textContent = `No results for: ${searchTerm}`;
+                }                
+            }).catch(err => {
+                console.log(err);
+                gmapsErrorText.textContent = err;
+            }).finally(() => {
+                // Enable button again.
+                getGmapsDataBtn.disabled = false;
+                // Hide the spinner
+                spinner.classList.add('d-none');
+            });
+        }
+
+        function makeDataDivHTML(data) {
+            const gmapsSearchDataContainer = document.getElementById('gmapsSearchDataContainer');
+            const gmapsSearchDataDiv = document.getElementById('gmapsSearchDataDiv');
+            const frag = new DocumentFragment();
+            let nameURL = new URL('https://www.google.com/maps/search/');
+            nameURL.searchParams.set('api', 1);
+            data.forEach(e => {
+                const clonedDiv = gmapsSearchDataDiv.content.cloneNode(true);
+                const input = clonedDiv.querySelectorAll('input')[0];
+                const span =  clonedDiv.querySelectorAll('span')[0];
+                const nameLink = clonedDiv.querySelectorAll('a')[0];
+                const p = clonedDiv.querySelectorAll('p')[0];
+                input.value = e.place_id;
+                span.textContent = `${e.name}: ${e.formatted_address}`;                
+                nameURL.searchParams.set('query', e.name);
+                nameURL.searchParams.set('query_place_id', e.place_id);
+                nameLink.textContent = e.name;
+                nameLink.href = nameURL;
+                p.textContent = e.formatted_address;
+                frag.appendChild(clonedDiv);
+            });
+            // Remove any old results
+            while(gmapsSearchDataContainer.lastChild) {
+                gmapsSearchDataContainer.lastChild.remove();
+            }
+            gmapsSearchDataContainer.appendChild(frag);
+        }
+
+        function disableBtnClearErr(buttonElement, errorTextID) {
+            buttonElement.disabled = true;
+            const errorText = document.getElementById(errorTextID);
+            errorText.textContent = '';
+            return errorText
+        }
+
+    })();
+</script>
+{{end}}
