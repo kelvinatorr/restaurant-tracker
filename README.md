@@ -43,9 +43,19 @@ You can follow logs by running `docker logs -f restaurant-tracker-1` when the co
     cd cmd/api-server
     go build ./..
     ```
-2. The build and run the api-server
+2. Then build the web-server
     ```
-    cd cmd/api-server
-    go build .
-    ./api-server -db ../../database/your-sqlite3.db -v
+    cd cmd/web-server
+    go build . -o ../../web-server
+    ```
+3. Set the required environment variables
+    ```
+    export SECRETKEY=your-secret-key-for-authentication-cookies
+    export GMAPSKEY=your-google-maps-api-key
+    export CSRFKEY=your-csrf-key
+    ```
+3. Then run it from the root directory of this project
+    ```
+    cd ../../
+    ./web-server -db ./database/dev-kelvin-4.db -v -csrf $CSRFKEY
     ```
