@@ -25,13 +25,16 @@ I was using a shared Google Sheet before to do this. But I wanted a more mobile 
 
 ```
 export DBPATH=/var/db/restaurant-tracker/your-sqlite3.db
+export SECRETKEY=your-secret-key-for-authentication-cookies
+export GMAPSKEY=your-google-maps-api-key
+export CSRFKEY=your-csrf-key
 docker build -t restaurant-tracker .
-docker run --name restaurant-tracker-0 -p 3002:8888 -v /var/db/restaurant-tracker:/var/db/restaurant-tracker -d -e DBPATH --log-opt max-size=100m --log-opt max-file=12 --log-opt compress=true restaurant-tracker
+docker run --name restaurant-tracker-1 -p 3002:8080 -v /var/db/restaurant-tracker:/var/db/restaurant-tracker -d -e DBPATH -e SECRETKEY -e GMAPSKEY -e CSRFKEY --log-opt max-size=100m --log-opt max-file=12 --log-opt compress=true restaurant-tracker
 ```
 
 The DBPATH environment variable should be the path to your database in the container. The first part of the `-v` option is the directory of your database on your host. The second part is the directory in your container where you want to have your database. In other words, it is the directory of $DBPATH. 
 
-You can follow logs by running `docker logs -f restaurant-tracker-0` when the container is running.
+You can follow logs by running `docker logs -f restaurant-tracker-1` when the container is running.
 
 ## Running for development
 
@@ -40,9 +43,19 @@ You can follow logs by running `docker logs -f restaurant-tracker-0` when the co
     cd cmd/api-server
     go get ./...
     ```
-2. The build and run the api-server
+2. Then build the web-server
     ```
-    cd cmd/api-server
-    go build .
-    ./api-server -db ../../database/your-sqlite3.db -v
+    cd cmd/web-server
+    go build . -o ../../web-server
+    ```
+3. Set the required environment variables
+    ```
+    export SECRETKEY=your-secret-key-for-authentication-cookies
+    export GMAPSKEY=your-google-maps-api-key
+    export CSRFKEY=your-csrf-key
+    ```
+3. Then run it from the root directory of this project
+    ```
+    cd ../../
+    ./web-server -db ./database/dev-kelvin-4.db -v -csrf $CSRFKEY
     ```
