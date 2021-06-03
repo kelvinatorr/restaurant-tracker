@@ -77,7 +77,7 @@
 
 <div class="row mb-2">
   <div class="col">
-    <form>
+    <form id="searchForm">
       <div class="form-floating mb-1">
         <input class="form-control" id="searchInput" type="input" placeholder="Type to search..." />
         <label class="" for="searchInput">Search</label>
@@ -191,6 +191,7 @@
     const searchInput = document.getElementById('searchInput');
     const searchMatchCase = document.getElementById("matchCase");
     const clearFilterLink = document.getElementById('clearFilterLink');
+    const searchForm = document.getElementById('searchForm');
     
     setSortParams();
     setSearchParam();
@@ -199,6 +200,7 @@
 
     searchInput.addEventListener('keyup', debounce(searchTable, 250));
     searchMatchCase.addEventListener('change', searchTable);
+    searchForm.addEventListener('submit', searchTable);
 
     // If the url search parms contain a filter, show the clear filter link, otherwise keep it hidden
     function toggleClearFilterVisibility() {
@@ -240,6 +242,9 @@
     }
 
     function searchTable(e) {
+      // Prevents the submission of the form which causes a reload
+      e.preventDefault();
+
       const searchTerm = searchInput.value      
 
       const matchCase = searchMatchCase.checked
