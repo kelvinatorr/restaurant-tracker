@@ -95,6 +95,15 @@
 {{define "script"}}
 <script>
     (function() {
+        const visitID = window.location.pathname.split('/').pop();
+        // If this is a new visit, set the date to be today's date in localtime as a convenience
+        if (visitID === '0') {
+            const now = new Date();
+            const day = ('0' + now.getDate()).slice(-2);
+            const month = ('0' + (now.getMonth() + 1)).slice(-2);
+            document.getElementById('visitDateTimeInput').value = `${now.getFullYear()}-${month}-${day}`;
+        }
+
         const baseURL = window.location.origin;
         const deleteVisitBtn = document.getElementById('deleteVisitBtn');
         if (deleteVisitBtn) {
