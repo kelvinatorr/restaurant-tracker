@@ -12,10 +12,6 @@
       border-bottom-width: 2px;
     }
 
-    .display-none {
-      display: none;
-    }
-
     @media screen and (max-width: 992px) {
       table {
         /* This removes the border between rows so they look more like cards */
@@ -97,7 +93,7 @@
 <div class="row mb-1">
   <div class="col">
     <a id="filterLink" href="/filter">Filter</a>
-    <a id="clearFilterLink" class="display-none ms-3" href="/">Clear Filter</a>
+    <a id="clearFilterLink" class="d-none ms-3" href="/">Clear Filter</a>
   </div>
   <div class="col text-end">
     <a id="addRestaurantLink" href="/restaurants/0">Add Restaurant</a>
@@ -110,7 +106,7 @@
       <table class="table border-start border-end border-dark" id="restaurantTable">
           <thead class="bg-dark bg-gradient text-light">
             <tr>
-              <th scope="col" class="display-none">
+              <th scope="col" class="d-none">
                 Search Value
               </th>
               <th scope="col">
@@ -154,7 +150,7 @@
           <tbody>
             {{range .Restaurants}}
             <tr class="restaurant-row">
-              <td data-label="Search Value" class="search-value display-none">{{.SearchValue}}</td>
+              <td data-label="Search Value" class="search-value d-none">{{.SearchValue}}</td>
               <td data-label="Name">
                 <a href="/restaurants/{{.ID}}">{{.Name}}</a>
               </td>
@@ -209,11 +205,11 @@
       const urlParams = new URLSearchParams(window.location.search);
       for(var key of urlParams.keys()) {
         if (key.substring(0, 6) === 'filter') {
-          clearFilterLink.classList.remove('display-none');
+          clearFilterLink.classList.remove('d-none');
           return;
         }
       }
-      clearFilterLink.classList.add('display-none');
+      clearFilterLink.classList.add('d-none');
     }    
 
     // Take all the filters in the current url and then add it to the filter page link
@@ -256,9 +252,9 @@
       restaurantRows.forEach((e) => {
         const searchValue = e.querySelector('.search-value').innerHTML;
         if (!searchTermRex.test(searchValue)) {
-          e.classList.add('display-none');
+          e.classList.add('d-none');
         } else {
-          e.classList.remove('display-none');
+          e.classList.remove('d-none');
         }
       });
 
