@@ -33,7 +33,9 @@
 
 {{if ne .Restaurant.ID 0}}
 <div class="row">
-    <a href="/r/{{.Restaurant.ID}}/visits/0">Add Visit</a>
+    <div class="col">
+        <a href="/r/{{.Restaurant.ID}}/visits/0">Add Visit</a>
+    </div>
 </div>
 {{end}}
 
