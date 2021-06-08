@@ -138,9 +138,6 @@
                 </a>
               </th>
               <th scope="col">
-                  User's Average Ratings
-              </th>
-              <th scope="col">
                 <a class="column-sort" href="/?sort[avg_rating]=asc">
                   Average Rating
                 </a>
@@ -157,12 +154,18 @@
               <td data-label="Cuisine">{{.Cuisine}}</td>
               <td data-label="City">{{.CityState.Name}}</td>
               <td data-label="State">{{.CityState.State}}</td>
-              <td data-label="Note">{{.Note}}</td>
-              <td data-label="Last Visit">{{.LastVisitDatetime}}</td>
-              <td data-label="User's Average Rating">
+              <td data-label="Note" class="col-lg-3">{{.Note}}</td>
+              <td data-label="Last Visit" class="col-lg-1">{{.LastVisitDatetime}}</td>
+              <td data-label="Average Rating">
+                <div>
+                  {{if .AvgRating}}
+                  {{.AvgRating}}
+                  {{end}}
+                </div>
+                <div>
                   {{range .AvgUserRatings}}
-                  <p>
-                    {{.FirstName}}:
+                  <p class="mb-0 text-start">
+                    <span class="d-none d-lg-inline">↳</span>{{.FirstName}}:
                     {{if .AvgRating}}
                     {{.AvgRating}}
                     {{else}}
@@ -170,11 +173,7 @@
                     {{end}}
                   </p>
                   {{end}}
-              </td>
-              <td data-label="Average Rating">
-                {{if .AvgRating}}
-                {{.AvgRating}}
-                {{end}}
+                </div>
               </td>
             </tr>
             {{end}}
