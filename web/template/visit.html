@@ -61,14 +61,15 @@
                 </fieldset> 
             </div>
             <div class="row">
-                <div class="col">
-                    <button class="btn btn-secondary w-100" type="button" id="backBtn" data-restaurant-id="{{.Visit.RestaurantID}}">
-                        Back
-                    </button>
-                </div>
-                <div class="col">
+                <!-- Ordered this way so the tabbing goes to Save first, but then use the order classes to show Back first -->
+                <div class="col order-2">
                     <button class="btn btn-primary w-100" type="submit">
                         Save {{if eq .Visit.ID 0}}New Visit{{end}}
+                    </button>
+                </div>
+                <div class="col order-1">
+                    <button class="btn btn-secondary w-100" type="button" id="backBtn" data-restaurant-id="{{.Visit.RestaurantID}}">
+                        Back
                     </button>
                 </div>
             </div>
