@@ -55,17 +55,34 @@
             </div>
             <div class="mb-3">
                 <label class="form-label" for="cuisineInput">Cuisine</label>
-                <input class="form-control" type="text" name="cuisine" id="cuisineInput" value="{{.Restaurant.Cuisine}}" required />
+                <input class="form-control" list="cuisineOptions" name="cuisine" id="cuisineInput" value="{{.Restaurant.Cuisine}}" 
+                    required autocomplete="off"/>
+                <datalist id="cuisineOptions">
+                    {{range .Cuisines}}
+                    <option value="{{.}}">
+                    {{end}}
+                </datalist>
             </div>
             <div class="mb-3 row">
                 <div class="col">
                     <label class="form-label" for="cityInput">City</label>
-                    <input class="form-control" type="text" name="cityState.city" id="cityInput" value="{{.Restaurant.CityState.Name}}" required />
+                    <input class="form-control" list="cityOptions" name="cityState.city" id="cityInput" value="{{.Restaurant.CityState.Name}}" 
+                        required autocomplete="off"/>
+                    <datalist id="cityOptions">
+                        {{range .Cities}}
+                        <option value="{{.}}">
+                        {{end}}
+                    </datalist>
                 </div>
                 <div class="col">
                     <label class="form-label" for="stateInput">State</label>
-                    <input class="form-control" type="text" name="cityState.state" id="stateInput" 
-                        value="{{.Restaurant.CityState.State}}" required maxlength="2" />
+                    <input class="form-control" list="stateOptions" name="cityState.state" id="stateInput" 
+                        value="{{.Restaurant.CityState.State}}" required maxlength="2" autocomplete="off"/>
+                    <datalist id="stateOptions">
+                        {{range .States}}
+                        <option value="{{.}}">
+                        {{end}}
+                    </datalist>
                 </div>
             </div>            
             <div class="mb-3">

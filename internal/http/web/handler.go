@@ -671,6 +671,10 @@ func getRestaurant(s lister.Service, m mapper.Service) httprouter.Handle {
 
 		data := Data{}
 
+		cuisines := s.GetDistinct("cuisine", "restaurant")
+		cities := s.GetDistinct("name", "city")
+		states := s.GetDistinct("state", "city")
+
 		haveGmapsKey := m.HaveGmapsKey()
 
 		var restaurant lister.Restaurant
@@ -686,11 +690,17 @@ func getRestaurant(s lister.Service, m mapper.Service) httprouter.Handle {
 				Heading      string
 				Text         string
 				Restaurant   lister.Restaurant
+				Cuisines     []string
+				Cities       []string
+				States       []string
 				HaveGmapsKey bool
 			}{
 				restaurant.Name,
 				"Edit this restaurant's details below",
 				restaurant,
+				cuisines,
+				cities,
+				states,
 				haveGmapsKey,
 			}
 		} else {
@@ -701,11 +711,17 @@ func getRestaurant(s lister.Service, m mapper.Service) httprouter.Handle {
 				Heading      string
 				Text         string
 				Restaurant   lister.Restaurant
+				Cuisines     []string
+				Cities       []string
+				States       []string
 				HaveGmapsKey bool
 			}{
 				"Add A New Restaurant",
 				"Add the new restaurant's details below",
 				restaurant,
+				cuisines,
+				cities,
+				states,
 				haveGmapsKey,
 			}
 		}
