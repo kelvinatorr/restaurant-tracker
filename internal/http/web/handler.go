@@ -394,6 +394,12 @@ func getHome(s lister.Service) httprouter.Handle {
 		// get the query parameters parameter
 		queryParams := r.URL.Query()
 
+		// By default, sort by last_visit desc unless a last_visit sort is specified
+		lastVisitSortParam := s.GetSortParam("last_visit", queryParams)
+		if lastVisitSortParam.Field == "" {
+			queryParams.Add("sort[last_visit]", "desc")
+		}
+
 		data := Data{}
 		data.Head = Head{"Our Restaurant Tracker"}
 		// Get all restaurants

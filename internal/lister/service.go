@@ -31,6 +31,7 @@ type Service interface {
 	GetUserByID(int64) User
 	GetFilterOptions(url.Values) FilterOptions
 	GetFilterParam(string, url.Values) FilterOperation
+	GetSortParam(string, url.Values) SortOperation
 	GetUsers() []User
 	GetDistinct(string, string) []string
 }
