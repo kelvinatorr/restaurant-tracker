@@ -195,7 +195,7 @@
     const sortLink = document.getElementById('sortLink');
     const searchForm = document.getElementById('searchForm');
     
-    setSortParams();
+    // Don't need to run setSortParams on load because setSearchParam calls it.
     setSearchParam();
     toggleEditClearVisibility(document.getElementById('clearFilterLink'), 'filter', filterLink);
     toggleEditClearVisibility(document.getElementById('clearSortLink'), 'sort', sortLink);
@@ -227,6 +227,11 @@
 
       let linkURL = new URL(link.href);
 
+      // Delete the current params and start fresh, the url bar is the source of truth
+      for(let pair of linkURL.searchParams.entries()) {
+        linkURL.searchParams.delete(pair[0]);
+      }
+
       for(let pair of urlSearchParams.entries()) {
         linkURL.searchParams.set(pair[0], pair[1]);
       }
@@ -245,11 +250,13 @@
 
     function searchTable(e) {
       // Prevents the submission of the form which causes a reload
-      e.preventDefault();
+      if (e) {
+        e.preventDefault();
+      }
 
-      const searchTerm = searchInput.value      
-
-      const matchCase = searchMatchCase.checked
+      const searchTerm = searchInput.value;
+      
+      const matchCase = searchMatchCase.checked;
 
       const searchTermRex = new RegExp(searchTerm, matchCase ? '' : 'i');
 
@@ -264,12 +271,23 @@
           e.classList.remove('d-none');
         }
       });
-
+      
       // Get the current url
       let url = new URL(window.location.href);
-      url.searchParams.set('search', searchTerm);
+      if (searchTerm !== '') {
+        url.searchParams.set('search', searchTerm);
+      } else {
+        url.searchParams.delete('search');
+      }
+      
       // Add the param to the url
-      window.history.replaceState('', '', url)
+      window.history.replaceState('', '', url);
+      // Set the filter link
+      setQueryParams(filterLink);
+      // Set the sort link
+      setQueryParams(sortLink);
+      // Set the sort params on the desktop table
+      setSortParams();
     }
 
     function debounce(func, wait, immediate) {
@@ -319,7 +337,7 @@
         for (const e  of urlParams.entries()) {
           const key = e[0];
           const val = e[1];
-          if (key.substring(0, 6) !== 'filter') {
+          if (key.substring(0, 6) !== 'filter' && key !== 'search') {
             continue;
           }
           linkURL.searchParams.set(key, val);
