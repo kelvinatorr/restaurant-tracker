@@ -92,8 +92,10 @@
 
 <div class="row mb-1">
   <div class="col">
-    <a id="filterLink" href="/filter">Filter</a>
-    <a id="clearFilterLink" class="d-none ms-3" href="/">Clear Filter</a>
+    <a id="filterLink" href="/filter"><span class="d-none">Edit</span> Filter</a>
+    <a id="clearFilterLink" class="ms-3 d-none" href="/">Clear Filter</a>
+    <a id="sortLink" class="ms-3" href="/sort"><span class="d-none">Edit</span> Sort</a>
+    <a id="clearSortLink" class="ms-3 d-none" href="/">Clear Sort</a>
   </div>
   <div class="col text-end">
     <a id="addRestaurantLink" href="/restaurants/0">Add Restaurant</a>
@@ -189,45 +191,46 @@
   (function() {
     const searchInput = document.getElementById('searchInput');
     const searchMatchCase = document.getElementById("matchCase");
-    const clearFilterLink = document.getElementById('clearFilterLink');
+    const filterLink = document.getElementById('filterLink');
+    const sortLink = document.getElementById('sortLink');
     const searchForm = document.getElementById('searchForm');
     
     setSortParams();
     setSearchParam();
-    toggleClearFilterVisibility();
-    setFilterParams();
+    toggleEditClearVisibility(document.getElementById('clearFilterLink'), 'filter', filterLink);
+    toggleEditClearVisibility(document.getElementById('clearSortLink'), 'sort', sortLink);
+    setQueryParams(filterLink);
+    setQueryParams(sortLink);
 
     searchInput.addEventListener('keyup', debounce(searchTable, 250));
     searchMatchCase.addEventListener('change', searchTable);
     searchForm.addEventListener('submit', searchTable);
 
-    // If the url search parms contain a filter, show the clear filter link, otherwise keep it hidden
-    function toggleClearFilterVisibility() {
+    // If the url search parms contain the given type, show the clear link and edit span, otherwise keep it hidden
+    function toggleEditClearVisibility(clearLink, type, link) {
       const urlParams = new URLSearchParams(window.location.search);
       for(var key of urlParams.keys()) {
-        if (key.substring(0, 6) === 'filter') {
-          clearFilterLink.classList.remove('d-none');
+        if (key.substring(0, type.length) === type) {
+          link.querySelector('span').classList.remove('d-none');
+          clearLink.classList.add('d-md-inline');
           return;
         }
       }
-      clearFilterLink.classList.add('d-none');
-    }    
+      link.querySelector('span').classList.add('d-none');
+      clearLink.classList.remove('d-md-inline');
+    }
 
-    // Take all the filters in the current url and then add it to the filter page link
-    function setFilterParams() {      
+
+    // Take all the search params in the current url and then add it to the filter or sort page link
+    function setQueryParams(link) {
       const urlSearchParams = new URLSearchParams(window.location.search);
-      const filterLink = document.getElementById('filterLink');
 
-      let linkURL = new URL(filterLink.href);
+      let linkURL = new URL(link.href);
 
-      for(var pair of urlSearchParams.entries()) {
-        const key = pair[0];
-        const value = pair[1];
-        if (key.substring(0, 6) === 'filter') {
-          linkURL.searchParams.set(key, value);
-        }
+      for(let pair of urlSearchParams.entries()) {
+        linkURL.searchParams.set(pair[0], pair[1]);
       }
-      filterLink.href = linkURL;
+      link.href = linkURL;
     }
 
     // Take the search query parameter if any and apply it to the table

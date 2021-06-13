@@ -71,8 +71,11 @@
                     </div>
                 </fieldset>
             </div>
-            <div>
+            <div class="mb-3">
                 <button class="btn btn-primary w-100" type="submit">Apply</button>
+            </div>
+            <div>
+                <button type="button" class="btn btn-danger w-100" id="clearFilterBtn">Clear Filter</button>
             </div>
         </form>
     </div>
@@ -86,6 +89,9 @@
 
         const filterForm = document.getElementById('filterForm');
         filterForm.addEventListener('submit', submitHandler);
+
+        const clearFilterBtn = document.getElementById('clearFilterBtn');
+        clearFilterBtn.addEventListener('click', clearFilterHandler);
 
         function submitHandler(e) {
             e.preventDefault();
@@ -118,8 +124,29 @@
                 destUrl.searchParams.set(key, avgRatingInput.value);
             }
             
+            // Get all the search params that are not filter in the url and apply them to the destUrl
+            destUrl = applyOtherParams(destUrl, 'filter');
             // Go to the formed url
             window.location.href =  destUrl;
+        }
+
+        function clearFilterHandler() {
+            let destUrl = new URL('/', baseURL);
+            // Get all the search params not filter in the url and apply them
+            destUrl = applyOtherParams(destUrl, 'filter');
+            // Go to the formed url
+            window.location.href =  destUrl;
+        }
+
+        function applyOtherParams(url, typeToSkip) {
+            const urlSearchParams = new URLSearchParams(window.location.search); 
+            for(let pair of urlSearchParams.entries()) {
+                const key = pair[0];
+                if (key.substring(0, typeToSkip.length) != typeToSkip) {
+                    url.searchParams.set(key, pair[1]);
+                }
+            }
+            return url
         }
 
     })();

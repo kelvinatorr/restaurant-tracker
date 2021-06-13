@@ -1,0 +1,136 @@
+{{define "head"}}
+<title>{{.Title}}</title>
+{{end}}
+
+{{define "yield"}}
+<div class="row">
+    <h1>{{.Heading}}</h1>
+    <p>
+        {{.Text}}
+    </p>
+</div>
+
+<div class="row">
+    <div class="col">
+        <form id="sortForm">
+            <div class="mb-3 row">
+                <div class="col">
+                    <label class="form-label" for="nameSelect">Name</label>
+                    <select class="sort-field form-select" name="name" id="nameSelect">
+                        <option {{if eq .Name.Direction ""}} selected {{end}} value="">None</option>
+                        <option {{if eq .Name.Direction "asc"}} selected {{end}} value="asc">Ascending</option>
+                        <option {{if eq .Name.Direction "desc"}} selected {{end}} value="desc">Descending</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <label class="form-label" for="cuisineSelect">Cuisine</label>
+                    <select class="sort-field form-select" name="cuisine" id="cuisineSelect">
+                        <option {{if eq .Cuisine.Direction ""}} selected {{end}} value="">None</option>
+                        <option {{if eq .Cuisine.Direction "asc"}} selected {{end}} value="asc">Ascending</option>
+                        <option {{if eq .Cuisine.Direction "desc"}} selected {{end}} value="desc">Descending</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3 row">
+                <div class="col">
+                    <label class="form-label" for="citySelect">City</label>
+                    <select class="sort-field form-select" name="city" id="citySelect">
+                        <option {{if eq .City.Direction ""}} selected {{end}} value="">None</option>
+                        <option {{if eq .City.Direction "asc"}} selected {{end}} value="asc">Ascending</option>
+                        <option {{if eq .City.Direction "desc"}} selected {{end}} value="desc">Descending</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <label class="form-label" for="stateSelect">State</label>
+                    <select class="sort-field form-select" name="state" id="stateSelect">
+                        <option {{if eq .State.Direction ""}} selected {{end}} value="">None</option>
+                        <option {{if eq .State.Direction "asc"}} selected {{end}} value="asc">Ascending</option>
+                        <option {{if eq .State.Direction "desc"}} selected {{end}} value="desc">Descending</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3 row">
+                <div class="col">
+                    <label class="form-label" for="lastVisitSelect">Last Visit</label>
+                    <select class="sort-field form-select" name="last_visit" id="lastVisitSelect">
+                        <option {{if eq .LastVisit.Direction ""}} selected {{end}} value="">None</option>
+                        <option {{if eq .LastVisit.Direction "asc"}} selected {{end}} value="asc">Ascending</option>
+                        <option {{if eq .LastVisit.Direction "desc"}} selected {{end}} value="desc">Descending</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <label class="form-label" for="avgRatingSelect">Average Rating</label>
+                    <select class="sort-field form-select" name="avg_rating" id="avgRatingSelect">
+                        <option {{if eq .AvgRating.Direction ""}} selected {{end}} value="">None</option>
+                        <option {{if eq .AvgRating.Direction "asc"}} selected {{end}} value="asc">Ascending</option>
+                        <option {{if eq .AvgRating.Direction "desc"}} selected {{end}} value="desc">Descending</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <button class="btn btn-primary w-100" type="submit">Apply</button>
+            </div>
+            <div>
+                <button type="button" class="btn btn-danger w-100" id="clearSortBtn">Clear Sort</button>
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}
+
+{{define "script"}}
+<script>
+    (function() {
+        const baseURL = window.location.origin;
+
+        const sortForm = document.getElementById('sortForm');
+        sortForm.addEventListener('submit', submitHandler);
+
+        const clearSortBtn = document.getElementById('clearSortBtn');
+        clearSortBtn.addEventListener('click', clearSortHandler);
+
+        function submitHandler(e) {
+            e.preventDefault();
+            
+            let destUrl = new URL('/', baseURL);
+
+            const sortFormFields = document.querySelectorAll('#sortForm .sort-field');
+            sortFormFields.forEach((e) => {
+                if (e.value === '') {
+                    // skip it.
+                    return;
+                }
+                if (e.name === 'state') {
+                    console.log(e);
+                }
+                const key = `sort[${e.name}]`
+                destUrl.searchParams.set(key, e.value);
+            });
+
+            // Get all the search params that are not sort in the url and apply them to the destUrl
+            destUrl = applyOtherParams(destUrl, 'sort');
+            // Go to the formed url
+            window.location.href =  destUrl;
+        }
+
+        function clearSortHandler() {
+            let destUrl = new URL('/', baseURL);
+            // Get all the search params not sort in the url and apply them
+            destUrl = applyOtherParams(destUrl, 'sort');
+            // Go to the formed url
+            window.location.href =  destUrl;
+        }
+
+        function applyOtherParams(url, typeToSkip) {
+            const urlSearchParams = new URLSearchParams(window.location.search); 
+            for(let pair of urlSearchParams.entries()) {
+                const key = pair[0];
+                if (key.substring(0, typeToSkip.length) != typeToSkip) {
+                    url.searchParams.set(key, pair[1]);
+                }
+            }
+            return url
+        }
+    })();
+</script>
+{{end}}

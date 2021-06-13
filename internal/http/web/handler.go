@@ -88,6 +88,11 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.GET(filterPath, filterGETHandler)
 	router.HEAD(filterPath, filterGETHandler)
 
+	sortPath := "/sort"
+	sortGETHandler := authRequired(getSort(l), auth, l)
+	router.GET(sortPath, sortGETHandler)
+	router.HEAD(sortPath, sortGETHandler)
+
 	restaurantPath := "/restaurants/:id"
 	restaurantGETHandler := authRequired(getRestaurant(l, m), auth, l)
 	restaurantPOSTHandler := authRequired(postRestaurant(u, a, m), auth, l)
@@ -658,6 +663,39 @@ func getFilter(s lister.Service) httprouter.Handle {
 			filterOptions,
 			lastVisitOp,
 			avgRating,
+		}
+		v.render(w, r, data)
+	}
+}
+
+func getSort(s lister.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		// Read the query params to fill up the form
+		queryParams := r.URL.Query()
+
+		v := newView("base", "./web/template/sort.html")
+
+		data := Data{}
+		data.Head = Head{"Sort Restaurants"}
+
+		data.Yield = struct {
+			Heading   string
+			Text      string
+			Name      lister.SortOperation
+			Cuisine   lister.SortOperation
+			City      lister.SortOperation
+			State     lister.SortOperation
+			LastVisit lister.SortOperation
+			AvgRating lister.SortOperation
+		}{
+			"Sort Restaurants",
+			"Sort the restaurant table by selecting options below.",
+			s.GetSortParam("name", queryParams),
+			s.GetSortParam("cuisine", queryParams),
+			s.GetSortParam("city", queryParams),
+			s.GetSortParam("state", queryParams),
+			s.GetSortParam("last_visit", queryParams),
+			s.GetSortParam("avg_rating", queryParams),
 		}
 		v.render(w, r, data)
 	}
