@@ -192,15 +192,19 @@
     const searchInput = document.getElementById('searchInput');
     const searchMatchCase = document.getElementById("matchCase");
     const filterLink = document.getElementById('filterLink');
+    const clearFilterLink = document.getElementById('clearFilterLink');
     const sortLink = document.getElementById('sortLink');
+    const clearSortLink = document.getElementById('clearSortLink');
     const searchForm = document.getElementById('searchForm');
     
     // Don't need to run setSortParams on load because setSearchParam calls it.
     setSearchParam();
-    toggleEditClearVisibility(document.getElementById('clearFilterLink'), 'filter', filterLink);
-    toggleEditClearVisibility(document.getElementById('clearSortLink'), 'sort', sortLink);
+    toggleEditClearVisibility(clearFilterLink, 'filter', filterLink);
+    toggleEditClearVisibility(clearSortLink, 'sort', sortLink);
     setQueryParams(filterLink);
     setQueryParams(sortLink);
+    setClearLinks(clearFilterLink, 'filter');
+    setClearLinks(clearSortLink, 'sort');
 
     searchInput.addEventListener('keyup', debounce(searchTable, 250));
     searchMatchCase.addEventListener('change', searchTable);
@@ -236,6 +240,20 @@
         linkURL.searchParams.set(pair[0], pair[1]);
       }
       link.href = linkURL;
+    }
+
+    function setClearLinks(clearLink, type) {
+      // Take what's in the current url bar
+      const urlSearchParams = new URLSearchParams(window.location.search);
+      let linkURL = new URL(clearLink.href);
+      // for every entry in the current url, add the param except if it matches the type
+      for(let pair of urlSearchParams.entries()) {
+        const key = pair[0];
+        if (key.substring(0, type.length) !== type) {
+          linkURL.searchParams.set(key, pair[1]);
+        }
+      }
+      clearLink.href = linkURL
     }
 
     // Take the search query parameter if any and apply it to the table
