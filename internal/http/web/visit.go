@@ -155,7 +155,7 @@ func updateVisit(u updater.Service, l lister.Service, w http.ResponseWriter, r *
 
 	log.Printf("Updated visit with ID: %d. %d records affected\n", visitUpdate.ID, recordsAffected)
 
-	updateSuccessMsg := fmt.Sprintf("Visit to %s updated.", restaurant.Name)
+	updateSuccessMsg := fmt.Sprintf("Visit to %s updated", restaurant.Name)
 	renderVisit(w, r, restaurant, l, int(visitUpdate.ID), Alert{Class: AlertClassSuccess, Message: updateSuccessMsg})
 }
 

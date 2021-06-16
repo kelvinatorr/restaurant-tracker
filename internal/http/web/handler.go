@@ -95,7 +95,7 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 
 	restaurantPath := "/restaurants/:id"
 	restaurantGETHandler := authRequired(getRestaurant(l, m), auth, l)
-	restaurantPOSTHandler := authRequired(postRestaurant(u, a, m), auth, l)
+	restaurantPOSTHandler := authRequired(postRestaurant(u, a, m, l), auth, l)
 	router.GET(restaurantPath, restaurantGETHandler)
 	router.HEAD(restaurantPath, restaurantGETHandler)
 	router.POST(restaurantPath, restaurantPOSTHandler)
@@ -710,67 +710,7 @@ func getRestaurant(s lister.Service, m mapper.Service) httprouter.Handle {
 				http.StatusBadRequest)
 			return
 		}
-
-		v := newView("base", "./web/template/restaurant.html")
-
-		data := Data{}
-
-		cuisines := s.GetDistinct("cuisine", "restaurant")
-		cities := s.GetDistinct("name", "city")
-		states := s.GetDistinct("state", "city")
-
-		haveGmapsKey := m.HaveGmapsKey()
-
-		var restaurant lister.Restaurant
-		// Get the restaurant requested
-		if ID != 0 {
-			restaurant, err = s.GetRestaurant(int64(ID))
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusNotFound)
-				return
-			}
-			data.Head = Head{restaurant.Name}
-			data.Yield = struct {
-				Heading      string
-				Text         string
-				Restaurant   lister.Restaurant
-				Cuisines     []string
-				Cities       []string
-				States       []string
-				HaveGmapsKey bool
-			}{
-				restaurant.Name,
-				"Edit this restaurant's details below",
-				restaurant,
-				cuisines,
-				cities,
-				states,
-				haveGmapsKey,
-			}
-		} else {
-			// Adding a new restaurant
-			restaurant = lister.Restaurant{}
-			data.Head = Head{"Add A New Restaurant"}
-			data.Yield = struct {
-				Heading      string
-				Text         string
-				Restaurant   lister.Restaurant
-				Cuisines     []string
-				Cities       []string
-				States       []string
-				HaveGmapsKey bool
-			}{
-				"Add A New Restaurant",
-				"Add the new restaurant's details below",
-				restaurant,
-				cuisines,
-				cities,
-				states,
-				haveGmapsKey,
-			}
-		}
-
-		v.render(w, r, data)
+		renderRestaurant(w, r, s, m, ID, Alert{})
 	}
 }
 
@@ -799,7 +739,7 @@ func getPlaceSearch(m mapper.Service) httprouter.Handle {
 	}
 }
 
-func postRestaurant(u updater.Service, a adder.Service, m mapper.Service) httprouter.Handle {
+func postRestaurant(u updater.Service, a adder.Service, m mapper.Service, l lister.Service) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		ID, err := strconv.Atoi(p.ByName("id"))
 		if err != nil {
@@ -808,14 +748,14 @@ func postRestaurant(u updater.Service, a adder.Service, m mapper.Service) httpro
 			return
 		}
 		if ID != 0 {
-			updateRestaurant(u, m, w, r)
+			updateRestaurant(u, m, w, r, l)
 		} else {
-			addRestaurant(a, m, w, r)
+			addRestaurant(a, m, w, r, l)
 		}
 	}
 }
 
-func addRestaurant(a adder.Service, m mapper.Service, w http.ResponseWriter, r *http.Request) {
+func addRestaurant(a adder.Service, m mapper.Service, w http.ResponseWriter, r *http.Request, l lister.Service) {
 	var resNew adder.Restaurant
 	if err := parseForm(r, &resNew); err != nil {
 		log.Println(err)
@@ -857,10 +797,12 @@ func addRestaurant(a adder.Service, m mapper.Service, w http.ResponseWriter, r *
 		v.render(w, r, data)
 		return
 	}
-	http.Redirect(w, r, fmt.Sprintf("/restaurants/%d", newRestaurantID), http.StatusFound)
+	log.Printf("%s added with id %d", resNew.Name, newRestaurantID)
+	updateSuccessMsg := fmt.Sprintf("%s added", resNew.Name)
+	renderRestaurant(w, r, l, m, int(newRestaurantID), Alert{Class: AlertClassSuccess, Message: updateSuccessMsg})
 }
 
-func updateRestaurant(u updater.Service, m mapper.Service, w http.ResponseWriter, r *http.Request) {
+func updateRestaurant(u updater.Service, m mapper.Service, w http.ResponseWriter, r *http.Request, l lister.Service) {
 	var resUpdate updater.Restaurant
 	if err := parseForm(r, &resUpdate); err != nil {
 		log.Println(err)
@@ -892,8 +834,9 @@ func updateRestaurant(u updater.Service, m mapper.Service, w http.ResponseWriter
 		return
 	}
 	log.Printf("Updated restaurant with ID: %d. %d records affected\n", resUpdate.ID, recordsAffected)
-	// Redirect to the same page which will show the changed values.
-	http.Redirect(w, r, fmt.Sprintf("/restaurants/%d", resUpdate.ID), http.StatusFound)
+
+	updateSuccessMsg := "Restaurant updated"
+	renderRestaurant(w, r, l, m, int(resUpdate.ID), Alert{Class: AlertClassSuccess, Message: updateSuccessMsg})
 }
 
 func deletePlace(s remover.Service) httprouter.Handle {
