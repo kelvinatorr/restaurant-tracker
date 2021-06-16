@@ -1127,58 +1127,7 @@ func getVisit(l lister.Service) httprouter.Handle {
 			return
 		}
 
-		v := newView("base", "./web/template/visit.html")
-
-		title_template := "%s Visit %s"
-		heading_template := "%s a Visit to %s"
-		text := "Add the date and optional note for your visit below"
-
-		data := Data{}
-
-		if ID == 0 {
-			visit := lister.Visit{
-				ID:            0,
-				RestaurantID:  restaurant.ID,
-				VisitDateTime: "",
-				Note:          "",
-			}
-			for _, user := range l.GetUsers() {
-				lvu := lister.VisitUser{ID: 0, User: user, Rating: 0}
-				visit.VisitUsers = append(visit.VisitUsers, lvu)
-			}
-
-			data.Head = Head{fmt.Sprintf(title_template, "Add", restaurant.Name)}
-			data.Yield = struct {
-				Heading string
-				Text    string
-				Visit   lister.Visit
-			}{
-				fmt.Sprintf(heading_template, "Add", restaurant.Name),
-				text,
-				visit,
-			}
-
-		} else {
-			visit, err := l.GetVisit(int64(ID), resID64)
-			if err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusNotFound)
-				return
-			}
-
-			data.Head = Head{fmt.Sprintf(title_template, "Edit", restaurant.Name)}
-			data.Yield = struct {
-				Heading string
-				Text    string
-				Visit   lister.Visit
-			}{
-				fmt.Sprintf(heading_template, "Edit", restaurant.Name),
-				text,
-				visit,
-			}
-		}
-
-		v.render(w, r, data)
+		renderVisit(w, r, restaurant, l, ID, Alert{})
 	}
 }
 
@@ -1205,16 +1154,17 @@ func updateVisit(u updater.Service, l lister.Service, w http.ResponseWriter, r *
 		http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
 		return
 	}
+
+	restaurant, err := l.GetRestaurant(visitUpdate.RestaurantID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
 	recordsAffected, err := u.UpdateVisit(visitUpdate)
 	if err != nil {
 		updateErrorMsg := err.Error()
 		log.Println(updateErrorMsg)
-
-		restaurant, err := l.GetRestaurant(visitUpdate.RestaurantID)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
 
 		visit := lister.Visit{
 			ID:            visitUpdate.ID,
@@ -1247,8 +1197,9 @@ func updateVisit(u updater.Service, l lister.Service, w http.ResponseWriter, r *
 	}
 
 	log.Printf("Updated visit with ID: %d. %d records affected\n", visitUpdate.ID, recordsAffected)
-	// Redirect to the same page which will show the changed values.
-	http.Redirect(w, r, fmt.Sprintf("/r/%d/visits/%d", visitUpdate.RestaurantID, visitUpdate.ID), http.StatusFound)
+
+	updateSuccessMsg := fmt.Sprintf("Visit to %s updated.", restaurant.Name)
+	renderVisit(w, r, restaurant, l, int(visitUpdate.ID), Alert{Class: AlertClassSuccess, Message: updateSuccessMsg})
 }
 
 func addVisit(a adder.Service, l lister.Service, w http.ResponseWriter, r *http.Request) {
