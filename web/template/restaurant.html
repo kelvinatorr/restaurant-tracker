@@ -34,6 +34,9 @@
 {{if ne .Restaurant.ID 0}}
 <div class="row">
     <div class="col">
+        <a href="/r/{{.Restaurant.ID}}/visits">View Visits</a>
+    </div>
+    <div class="col text-end">
         <a href="/r/{{.Restaurant.ID}}/visits/0">Add Visit</a>
     </div>
 </div>
@@ -94,10 +97,6 @@
             <div class="mb-3">
                 <label class="form-label" for="lastVisitInput">Last Visit</label>
                 <input class="form-control" type="date" id="lastVisitInput" readonly value="{{.Restaurant.LastVisitDatetime}}" />
-            </div>
-
-            <div class="mb-3">
-                <a href="/r/{{.Restaurant.ID}}/visits">View Visits</a>
             </div>
             {{end}}
 
