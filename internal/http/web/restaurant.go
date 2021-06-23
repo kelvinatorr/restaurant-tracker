@@ -259,6 +259,7 @@ func renderRestaurant(w http.ResponseWriter, r *http.Request, s lister.Service, 
 	} else {
 		// Adding a new restaurant
 		restaurant = lister.Restaurant{}
+		restaurant.BusinessStatus = 1
 		data.Head = Head{"Add A New Restaurant"}
 		data.Yield = struct {
 			Heading      string

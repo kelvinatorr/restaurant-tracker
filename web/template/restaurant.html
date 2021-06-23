@@ -44,7 +44,7 @@
 
 <div class="row mb-4">
     <div class="col">
-        <form method="POST">
+        <form method="POST" id="restaurantForm">
             {{genCSRFField}}
             {{if ne .Restaurant.ID 0}}
             <div class="mb-3">
@@ -87,7 +87,13 @@
                         {{end}}
                     </datalist>
                 </div>
-            </div>            
+            </div>
+            <div class="mb-3 form-check form-switch">
+                <input type="hidden" name="businessStatus" value="{{.Restaurant.BusinessStatus}}" id="businessStatusInput"/>
+                <input class="form-check-input" type="checkbox" id="businessStatusCheckbox" 
+                    {{if eq .Restaurant.BusinessStatus 0}}checked{{end}}/>
+                <label class="form-check-label" for="businessStatusCheckbox">Not Operating 💀</label>
+            </div>
             <div class="mb-3">
                 <label class="form-label" for="noteText">Note</label>
                 <textarea class="form-control" name="note" id="noteText">{{.Restaurant.Note}}</textarea>
@@ -159,8 +165,8 @@
                             value="{{.Restaurant.GmapsPlace.PriceLevel}}"/>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="businessStatusInput">Business Status</label>
-                        <input class="form-control" type="text" name="gmapsPlace.businessStatus" id="businessStatusInput" readonly
+                        <label class="form-label" for="gMapsBStatusInput">Business Status</label>
+                        <input class="form-control" type="text" name="gmapsPlace.businessStatus" id="gMapsBStatusInput" readonly
                             value="{{.Restaurant.GmapsPlace.BusinessStatus}}"/>
                     </div>
                     <div class="mb-3 row">
@@ -327,6 +333,9 @@
         const backBtn = document.getElementById('backBtn');
         backBtn.addEventListener('click', goBack);
 
+        const restaurantForm = document.getElementById('restaurantForm');
+        restaurantForm.addEventListener('submit', resFormSubmitHandler);
+
         function goBack() {
             const destUrl = new URL(`/`, baseURL);
             // Go to the formed url. Don't use back because then the page won't be refreshed
@@ -371,7 +380,7 @@
         function displayGmapsData(data) {
             document.getElementById('placeIDInput').value = data.placeID;
             document.getElementById('addressInput').value = data.address;
-            document.getElementById('businessStatusInput').value = data.businessStatus;
+            document.getElementById('gMapsBStatusInput').value = data.businessStatus;
             document.getElementById('phoneInput').value = data.formattedPhoneNumber;
             document.getElementById('gmapsNameInput').value = data.name;
             document.getElementById('priceLevelInput').value = data.priceLevel;
@@ -499,6 +508,15 @@
             return errorText
         }
 
+        function resFormSubmitHandler() {
+            // Set this by js before submitting because of how golang initializes values to 0
+            const businessStatusInput = document.getElementById('businessStatusInput');
+            if (document.getElementById('businessStatusCheckbox').checked) {
+                businessStatusInput.value = 0;
+            } else {
+                businessStatusInput.value = 1;
+            }
+        }
     })();
 </script>
 {{end}}

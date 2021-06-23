@@ -43,6 +43,23 @@
                 </div>
             </div>
             <div class="mb-3">
+                <label class="form-label" for="businessStatusSelect">Business Status</label>
+                <select class="filter-field form-select" name="business_status" id="businessStatusSelect" data-operator="eq">
+                    <option {{if and (eq .BusinessStatus.Value "0") (eq .BusinessStatus.Operator "gteq")}} selected {{end}} value="0"
+                        data-operator="gteq">
+                        Any
+                    </option>
+                    <option {{if and (eq .BusinessStatus.Value "1") (eq .BusinessStatus.Operator "eq")}} selected {{end}} value="1" 
+                        data-operator="eq">
+                        Operating
+                    </option>
+                    <option {{if and (eq .BusinessStatus.Value "0") (eq .BusinessStatus.Operator "eq")}} selected {{end}} value="0" 
+                        data-operator="eq">
+                        Not Operating 💀
+                    </option>
+                </select>
+            </div>
+            <div class="mb-3">
                 <label class="form-label" for="visitedSelect">Visited</label>
                 <select class="filter-field form-select" name="last_visit" id="visitedSelect" data-operator="is">
                     <option {{if eq .LastVisitOp ""}} selected {{end}} value="">Any</option>
@@ -111,7 +128,10 @@
                         operator = 'isnt'
                     }
                     value = "NULL";
+                } else if (e.id === 'businessStatusSelect') {
+                    operator = e.options[e.selectedIndex].dataset.operator;
                 }
+
                 const key = `filter[${e.name}|${operator}]`
                 destUrl.searchParams.set(key, value);
             });

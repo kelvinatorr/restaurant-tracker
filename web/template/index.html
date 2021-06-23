@@ -55,7 +55,7 @@
       }
       
       /* This is the row label */
-      table td::before {
+      table td:not(:nth-child(2))::before {
         content: attr(data-label);
         float: left;
         font-weight: bold;
@@ -65,6 +65,12 @@
       
       table td:last-child {
         border-bottom: 0;
+      }
+    }
+
+    @media screen and (max-width: 378px) {
+      .d-xs-none {
+        display: none;
       }
     }
 </style>
@@ -82,9 +88,22 @@
         <input class="form-control" id="searchInput" type="input" placeholder="Type to search..." />
         <label class="" for="searchInput">Search</label>
       </div>
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="matchCase">
-        <label class="form-check-label" for="matchCase">Match Case</label>
+      <div class="row">
+        <div class="col-5">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="matchCase">
+            <label class="form-check-label" for="matchCase">Match Case</label>
+          </div>
+        </div>
+        <div class="col-7 d-flex justify-content-end">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="" id="showNotOperatingCheckbox"
+              {{if .ShowNotOperating}}checked{{end}}>
+            <label class="form-check-label" for="showNotOperatingCheckbox">
+              Show Not Operating <span class="d-xs-none">💀</span>
+            </label>
+          </div>
+        </div>
       </div>
     </form>
   </div>  
@@ -150,8 +169,9 @@
             {{range .Restaurants}}
             <tr class="restaurant-row">
               <td data-label="Search Value" class="search-value d-none">{{.SearchValue}}</td>
-              <td data-label="Name">
+              <td data-label="Name" class="d-flex d-lg-table-cell justify-content-center">
                 <a href="/restaurants/{{.ID}}">{{.Name}}</a>
+                <span class="{{if ne .BusinessStatus 0}}d-none{{end}} ms-1" title="Not Operating">💀</span>
               </td>
               <td data-label="Cuisine">{{.Cuisine}}</td>
               <td data-label="City">{{.CityState.Name}}</td>
@@ -196,6 +216,7 @@
     const sortLink = document.getElementById('sortLink');
     const clearSortLink = document.getElementById('clearSortLink');
     const searchForm = document.getElementById('searchForm');
+    const showNotOperatingCheckbox = document.getElementById('showNotOperatingCheckbox');
     
     // Don't need to run setSortParams on load because setSearchParam calls it.
     setSearchParam();
@@ -209,6 +230,7 @@
     searchInput.addEventListener('keyup', debounce(searchTable, 250));
     searchMatchCase.addEventListener('change', searchTable);
     searchForm.addEventListener('submit', searchTable);
+    showNotOperatingCheckbox.addEventListener('change', toggleShowNotOperating);
 
     // If the url search parms contain the given type, show the clear link and edit span, otherwise keep it hidden
     function toggleEditClearVisibility(clearLink, type, link) {
@@ -364,6 +386,26 @@
         cs.href = linkURL;
       }    
     }
+  
+    function toggleShowNotOperating() {
+      // Get the current url
+      let url = new URL(window.location.href);
+      // Delete any filter set for business_status
+      Array.from(url.searchParams.keys()).filter(k => {
+        return k.substr(0, 6) === 'filter' && k.substr(7, 15) === 'business_status';
+      }).forEach(k => {
+        url.searchParams.delete(k);
+      });
+      // Then set a new one based on the checkbox
+      if (showNotOperatingCheckbox.checked) {
+        url.searchParams.set('filter[business_status|gteq]', 0);
+      } else {
+        url.searchParams.set('filter[business_status|eq]', 1);
+      }
+      // Go to the formed url
+      window.location.href =  url;
+    }
+
   })();
 </script>
 {{end}}

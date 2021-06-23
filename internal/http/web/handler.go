@@ -405,6 +405,18 @@ func getHome(s lister.Service) httprouter.Handle {
 			queryParams.Add("sort[last_visit]", "desc")
 		}
 
+		// This controls whether the Show Not Operation checkbox is checked not not. We do it here rather in js so that when a user
+		// clicks on the box there isn't a split second where it is not clicked on page load
+		showNotOperating := false
+		// By default, filter out restaurants that are not operational (business_status = 0) unless a filter is already specified
+		businessStatusParam := s.GetFilterParam("business_status", queryParams)
+		if businessStatusParam.Field == "" {
+			queryParams.Add("filter[business_status|eq]", "1")
+		} else if businessStatusParam.Value == "0" && (businessStatusParam.Operator == "gteq" || businessStatusParam.Operator == "eq") {
+			// The checkbox should be checked
+			showNotOperating = true
+		}
+
 		data := Data{}
 		data.Head = Head{"Our Restaurant Tracker"}
 		// Get all restaurants
@@ -415,9 +427,11 @@ func getHome(s lister.Service) httprouter.Handle {
 			return
 		}
 		data.Yield = struct {
-			Restaurants []lister.Restaurant
+			Restaurants      []lister.Restaurant
+			ShowNotOperating bool
 		}{
 			restaurants,
+			showNotOperating,
 		}
 		v.render(w, r, data)
 	}
@@ -648,6 +662,14 @@ func getFilter(s lister.Service) httprouter.Handle {
 			Value    string
 		}{Operator: avgRatingFilterOp.Operator, Value: avgRatingFilterOp.Value}
 
+		// By default, initialize the filter page with Operational businessess only, unless a business_status filter is already
+		// set
+		businessStatusOp := s.GetFilterParam("business_status", queryParams)
+		if businessStatusOp.Field == "" {
+			businessStatusOp.Value = "1"
+			businessStatusOp.Operator = "eq"
+		}
+
 		data.Yield = struct {
 			Heading       string
 			Text          string
@@ -657,12 +679,14 @@ func getFilter(s lister.Service) httprouter.Handle {
 				Operator string
 				Value    string
 			}
+			BusinessStatus lister.FilterOperation
 		}{
 			"Filter Restaurants",
 			"Filter the restaurant table by selecting options below.",
 			filterOptions,
 			lastVisitOp,
 			avgRating,
+			businessStatusOp,
 		}
 		v.render(w, r, data)
 	}
