@@ -657,11 +657,6 @@ func getFilter(s lister.Service) httprouter.Handle {
 
 		avgRatingFilterOp := s.GetFilterParam("avg_rating", queryParams)
 
-		avgRating := struct {
-			Operator string
-			Value    string
-		}{Operator: avgRatingFilterOp.Operator, Value: avgRatingFilterOp.Value}
-
 		// By default, initialize the filter page with Operational businessess only, unless a business_status filter is already
 		// set
 		businessStatusOp := s.GetFilterParam("business_status", queryParams)
@@ -671,21 +666,18 @@ func getFilter(s lister.Service) httprouter.Handle {
 		}
 
 		data.Yield = struct {
-			Heading       string
-			Text          string
-			FilterOptions lister.FilterOptions
-			LastVisitOp   string
-			AvgRating     struct {
-				Operator string
-				Value    string
-			}
+			Heading        string
+			Text           string
+			FilterOptions  lister.FilterOptions
+			LastVisitOp    string
+			AvgRating      lister.FilterOperation
 			BusinessStatus lister.FilterOperation
 		}{
 			"Filter Restaurants",
 			"Filter the restaurant table by selecting options below.",
 			filterOptions,
 			lastVisitOp,
-			avgRating,
+			avgRatingFilterOp,
 			businessStatusOp,
 		}
 		v.render(w, r, data)
