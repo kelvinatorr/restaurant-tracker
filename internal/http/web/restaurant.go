@@ -62,9 +62,10 @@ func addRestaurant(a adder.Service, m mapper.Service, w http.ResponseWriter, r *
 
 		// Fill in the form again for convenience. Need lister.Restaurant because we need an ID property for the template
 		restaurant := lister.Restaurant{
-			Name:    resNew.Name,
-			Cuisine: resNew.Cuisine,
-			Note:    resNew.Note,
+			Name:           resNew.Name,
+			Cuisine:        resNew.Cuisine,
+			BusinessStatus: resNew.BusinessStatus,
+			Note:           resNew.Note,
 			CityState: lister.CityState{
 				Name:  resNew.CityState.Name,
 				State: resNew.CityState.State,
