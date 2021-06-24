@@ -75,19 +75,24 @@ func addRestaurant(a adder.Service, m mapper.Service, w http.ResponseWriter, r *
 			Heading      string
 			Text         string
 			Restaurant   lister.Restaurant
+			Cuisines     []string
+			Cities       []string
+			States       []string
 			HaveGmapsKey bool
 		}{
 			"Add A New Restaurant",
 			"Add the new restaurant's details below",
 			restaurant,
+			l.GetDistinct("cuisine", "restaurant"),
+			l.GetDistinct("name", "city"),
+			l.GetDistinct("state", "city"),
 			m.HaveGmapsKey(),
 		}
 		v.render(w, r, data)
 		return
 	}
 	log.Printf("%s added with id %d", resNew.Name, newRestaurantID)
-	updateSuccessMsg := fmt.Sprintf("%s added", resNew.Name)
-	renderRestaurant(w, r, l, m, int(newRestaurantID), Alert{Class: AlertClassSuccess, Message: updateSuccessMsg})
+	http.Redirect(w, r, fmt.Sprintf("/restaurants/%d", newRestaurantID), http.StatusFound)
 }
 
 func updateRestaurant(u updater.Service, m mapper.Service, w http.ResponseWriter, r *http.Request, l lister.Service) {
@@ -111,11 +116,17 @@ func updateRestaurant(u updater.Service, m mapper.Service, w http.ResponseWriter
 			Heading      string
 			Text         string
 			Restaurant   updater.Restaurant
+			Cuisines     []string
+			Cities       []string
+			States       []string
 			HaveGmapsKey bool
 		}{
 			resUpdate.Name,
 			"Edit this restuarant's details below",
 			resUpdate,
+			l.GetDistinct("cuisine", "restaurant"),
+			l.GetDistinct("name", "city"),
+			l.GetDistinct("state", "city"),
 			m.HaveGmapsKey(),
 		}
 		v.render(w, r, data)
