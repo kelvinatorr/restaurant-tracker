@@ -218,8 +218,12 @@
     const searchForm = document.getElementById('searchForm');
     const showNotOperatingCheckbox = document.getElementById('showNotOperatingCheckbox');
     
-    // Don't need to run setSortParams on load because setSearchParam calls it.
-    setSearchParam();
+    // setSearchParam() returns a boolean to represent if it ran searchTable() or not.    
+    if (!setSearchParam()) {
+      // If it did run, then we don't need to run setSortParams() on load because setSearchParam calls it.
+      // Otherwise call setSortParams() explicitly to set the sort params on the desktop table
+      setSortParams();
+    }
     toggleEditClearVisibility(clearFilterLink, 'filter', filterLink);
     toggleEditClearVisibility(clearSortLink, 'sort', sortLink);
     setQueryParams(filterLink);
@@ -278,14 +282,16 @@
       clearLink.href = linkURL
     }
 
-    // Take the search query parameter if any and apply it to the table
+    // Take the search query parameter if any and apply it to the table. Returns true if searchTable() was called.
     function setSearchParam() {
       const urlParams = new URLSearchParams(window.location.search);
       const searchParam = urlParams.get('search');
       if (searchParam) {
         searchInput.value = searchParam;
         searchTable();
+        return true;
       }
+      return false;
     }
 
     function searchTable(e) {
