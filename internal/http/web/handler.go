@@ -88,9 +88,14 @@ func Handler(l lister.Service, a adder.Service, u updater.Service, r remover.Ser
 	router.GET(filterPath, filterGETHandler)
 	router.HEAD(filterPath, filterGETHandler)
 
+	sortPath := "/sort"
+	sortGETHandler := authRequired(getSort(l), auth, l)
+	router.GET(sortPath, sortGETHandler)
+	router.HEAD(sortPath, sortGETHandler)
+
 	restaurantPath := "/restaurants/:id"
 	restaurantGETHandler := authRequired(getRestaurant(l, m), auth, l)
-	restaurantPOSTHandler := authRequired(postRestaurant(u, a, m), auth, l)
+	restaurantPOSTHandler := authRequired(postRestaurant(u, a, m, l), auth, l)
 	router.GET(restaurantPath, restaurantGETHandler)
 	router.HEAD(restaurantPath, restaurantGETHandler)
 	router.POST(restaurantPath, restaurantPOSTHandler)
@@ -394,6 +399,24 @@ func getHome(s lister.Service) httprouter.Handle {
 		// get the query parameters parameter
 		queryParams := r.URL.Query()
 
+		// By default, sort by last_visit desc unless a last_visit sort is specified
+		lastVisitSortParam := s.GetSortParam("last_visit", queryParams)
+		if lastVisitSortParam.Field == "" {
+			queryParams.Add("sort[last_visit]", "desc")
+		}
+
+		// This controls whether the Show Not Operation checkbox is checked not not. We do it here rather in js so that when a user
+		// clicks on the box there isn't a split second where it is not clicked on page load
+		showNotOperating := false
+		// By default, filter out restaurants that are not operational (business_status = 0) unless a filter is already specified
+		businessStatusParam := s.GetFilterParam("business_status", queryParams)
+		if businessStatusParam.Field == "" {
+			queryParams.Add("filter[business_status|eq]", "1")
+		} else if businessStatusParam.Value == "0" && (businessStatusParam.Operator == "gteq" || businessStatusParam.Operator == "eq") {
+			// The checkbox should be checked
+			showNotOperating = true
+		}
+
 		data := Data{}
 		data.Head = Head{"Our Restaurant Tracker"}
 		// Get all restaurants
@@ -404,9 +427,11 @@ func getHome(s lister.Service) httprouter.Handle {
 			return
 		}
 		data.Yield = struct {
-			Restaurants []lister.Restaurant
+			Restaurants      []lister.Restaurant
+			ShowNotOperating bool
 		}{
 			restaurants,
+			showNotOperating,
 		}
 		v.render(w, r, data)
 	}
@@ -632,84 +657,62 @@ func getFilter(s lister.Service) httprouter.Handle {
 
 		avgRatingFilterOp := s.GetFilterParam("avg_rating", queryParams)
 
-		avgRating := struct {
-			Operator string
-			Value    string
-		}{Operator: avgRatingFilterOp.Operator, Value: avgRatingFilterOp.Value}
+		// By default, initialize the filter page with Operational businessess only, unless a business_status filter is already
+		// set
+		businessStatusOp := s.GetFilterParam("business_status", queryParams)
+		if businessStatusOp.Field == "" {
+			businessStatusOp.Value = "1"
+			businessStatusOp.Operator = "eq"
+		}
 
 		data.Yield = struct {
-			Heading       string
-			Text          string
-			FilterOptions lister.FilterOptions
-			LastVisitOp   string
-			AvgRating     struct {
-				Operator string
-				Value    string
-			}
+			Heading        string
+			Text           string
+			FilterOptions  lister.FilterOptions
+			LastVisitOp    string
+			AvgRating      lister.FilterOperation
+			BusinessStatus lister.FilterOperation
 		}{
 			"Filter Restaurants",
 			"Filter the restaurant table by selecting options below.",
 			filterOptions,
 			lastVisitOp,
-			avgRating,
+			avgRatingFilterOp,
+			businessStatusOp,
 		}
 		v.render(w, r, data)
 	}
 }
 
-func getRestaurant(s lister.Service, m mapper.Service) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		// get the route parameter
-		ID, err := strconv.Atoi(p.ByName("id"))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("id")),
-				http.StatusBadRequest)
-			return
-		}
+func getSort(s lister.Service) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		// Read the query params to fill up the form
+		queryParams := r.URL.Query()
 
-		v := newView("base", "./web/template/restaurant.html")
+		v := newView("base", "./web/template/sort.html")
 
 		data := Data{}
+		data.Head = Head{"Sort Restaurants"}
 
-		haveGmapsKey := m.HaveGmapsKey()
-
-		var restaurant lister.Restaurant
-		// Get the restaurant requested
-		if ID != 0 {
-			restaurant, err = s.GetRestaurant(int64(ID))
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusNotFound)
-				return
-			}
-			data.Head = Head{restaurant.Name}
-			data.Yield = struct {
-				Heading      string
-				Text         string
-				Restaurant   lister.Restaurant
-				HaveGmapsKey bool
-			}{
-				restaurant.Name,
-				"Edit this restaurant's details below",
-				restaurant,
-				haveGmapsKey,
-			}
-		} else {
-			// Adding a new restaurant
-			restaurant = lister.Restaurant{}
-			data.Head = Head{"Add A New Restaurant"}
-			data.Yield = struct {
-				Heading      string
-				Text         string
-				Restaurant   lister.Restaurant
-				HaveGmapsKey bool
-			}{
-				"Add A New Restaurant",
-				"Add the new restaurant's details below",
-				restaurant,
-				haveGmapsKey,
-			}
+		data.Yield = struct {
+			Heading   string
+			Text      string
+			Name      lister.SortOperation
+			Cuisine   lister.SortOperation
+			City      lister.SortOperation
+			State     lister.SortOperation
+			LastVisit lister.SortOperation
+			AvgRating lister.SortOperation
+		}{
+			"Sort Restaurants",
+			"Sort the restaurant table by selecting options below.",
+			s.GetSortParam("name", queryParams),
+			s.GetSortParam("cuisine", queryParams),
+			s.GetSortParam("city", queryParams),
+			s.GetSortParam("state", queryParams),
+			s.GetSortParam("last_visit", queryParams),
+			s.GetSortParam("avg_rating", queryParams),
 		}
-
 		v.render(w, r, data)
 	}
 }
@@ -737,103 +740,6 @@ func getPlaceSearch(m mapper.Service) httprouter.Handle {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(candidates)
 	}
-}
-
-func postRestaurant(u updater.Service, a adder.Service, m mapper.Service) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		ID, err := strconv.Atoi(p.ByName("id"))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("id")),
-				http.StatusBadRequest)
-			return
-		}
-		if ID != 0 {
-			updateRestaurant(u, m, w, r)
-		} else {
-			addRestaurant(a, m, w, r)
-		}
-	}
-}
-
-func addRestaurant(a adder.Service, m mapper.Service, w http.ResponseWriter, r *http.Request) {
-	var resNew adder.Restaurant
-	if err := parseForm(r, &resNew); err != nil {
-		log.Println(err)
-		http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
-		return
-	}
-
-	newRestaurantID, err := a.AddRestaurant(resNew)
-	if err != nil {
-		log.Println(err)
-		v := newView("base", "./web/template/restaurant.html")
-		data := Data{}
-		data.Head = Head{"Add A New Restaurant"}
-		// Show the user the error.
-		data.Alert = Alert{Message: err.Error(), Class: AlertClassError}
-
-		// Fill in the form again for convenience. Need lister.Restaurant because we need an ID property for the template
-		restaurant := lister.Restaurant{
-			Name:    resNew.Name,
-			Cuisine: resNew.Cuisine,
-			Note:    resNew.Note,
-			CityState: lister.CityState{
-				Name:  resNew.CityState.Name,
-				State: resNew.CityState.State,
-			},
-		}
-
-		data.Yield = struct {
-			Heading      string
-			Text         string
-			Restaurant   lister.Restaurant
-			HaveGmapsKey bool
-		}{
-			"Add A New Restaurant",
-			"Add the new restaurant's details below",
-			restaurant,
-			m.HaveGmapsKey(),
-		}
-		v.render(w, r, data)
-		return
-	}
-	http.Redirect(w, r, fmt.Sprintf("/restaurants/%d", newRestaurantID), http.StatusFound)
-}
-
-func updateRestaurant(u updater.Service, m mapper.Service, w http.ResponseWriter, r *http.Request) {
-	var resUpdate updater.Restaurant
-	if err := parseForm(r, &resUpdate); err != nil {
-		log.Println(err)
-		http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
-		return
-	}
-
-	recordsAffected, err := u.UpdateRestaurant(resUpdate)
-	if err != nil {
-		log.Println(err)
-		v := newView("base", "./web/template/restaurant.html")
-		data := Data{}
-		data.Head = Head{resUpdate.Name}
-		// Show the user the error.
-		data.Alert = Alert{Message: err.Error(), Class: AlertClassError}
-		// Fill in the form again for convenience
-		data.Yield = struct {
-			Heading      string
-			Text         string
-			Restaurant   updater.Restaurant
-			HaveGmapsKey bool
-		}{
-			resUpdate.Name,
-			"Edit this restuarant's details below",
-			resUpdate,
-			m.HaveGmapsKey(),
-		}
-		v.render(w, r, data)
-		return
-	}
-	log.Printf("Updated restaurant with ID: %d. %d records affected\n", resUpdate.ID, recordsAffected)
-	// Redirect to the same page which will show the changed values.
-	http.Redirect(w, r, fmt.Sprintf("/restaurants/%d", resUpdate.ID), http.StatusFound)
 }
 
 func deletePlace(s remover.Service) httprouter.Handle {
@@ -906,423 +812,5 @@ func getPlaceRefresh(m mapper.Service) httprouter.Handle {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(pd)
-	}
-}
-
-func getDeleteRestaurant(l lister.Service) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		ID, err := strconv.Atoi(p.ByName("id"))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("id")),
-				http.StatusBadRequest)
-			return
-		}
-
-		v := newView("base", "./web/template/delete-restaurant.html")
-
-		data := Data{}
-
-		var restaurant lister.Restaurant
-		// Get the restaurant requested
-		restaurant, err = l.GetRestaurant(int64(ID))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
-		data.Head = Head{restaurant.Name}
-		data.Yield = struct {
-			Heading    string
-			Text       string
-			Restaurant lister.Restaurant
-		}{
-			fmt.Sprintf("Delete %s", restaurant.Name),
-			fmt.Sprintf("Are you sure you want to delete %s? This will also delete all visit data for this restaurant.", restaurant.Name),
-			restaurant,
-		}
-
-		v.render(w, r, data)
-	}
-}
-
-func postDeleteRestaurant(s remover.Service) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		ID, err := strconv.Atoi(p.ByName("id"))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("id")),
-				http.StatusBadRequest)
-			return
-		}
-
-		deleteConfirm := struct {
-			Name        string `schema:"name"`
-			ConfirmName string `schema:"confirmName"`
-		}{
-			"",
-			"",
-		}
-		if err := parseForm(r, &deleteConfirm); err != nil {
-			log.Println(err)
-			http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
-			return
-		}
-
-		if deleteConfirm.Name != deleteConfirm.ConfirmName {
-			log.Printf("Delete requested for %d, but confirmation name %s doesn't match %s", ID, deleteConfirm.ConfirmName,
-				deleteConfirm.Name)
-			v := newView("base", "./web/template/delete-restaurant.html")
-			data := Data{}
-			data.Head = Head{deleteConfirm.Name}
-			// Show the user the error.
-			data.Alert = Alert{Message: fmt.Sprintf("Input: %s did not match %s", deleteConfirm.ConfirmName, deleteConfirm.Name),
-				Class: AlertClassError}
-			// Fill in the form again for convenience
-			data.Yield = struct {
-				Heading    string
-				Text       string
-				Restaurant lister.Restaurant
-			}{
-				fmt.Sprintf("Delete %s", deleteConfirm.Name),
-				fmt.Sprintf("Are you sure you want to delete %s?", deleteConfirm.Name),
-				lister.Restaurant{Name: deleteConfirm.Name},
-			}
-			v.render(w, r, data)
-			return
-		} else {
-			log.Printf("Confirmed request to remove %s with ID: %d", deleteConfirm.Name, ID)
-			s.RemoveRestaurant(remover.Restaurant{ID: int64(ID)})
-			// Redirect to the list of other restaurants.
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-		}
-	}
-}
-
-func getVisits(l lister.Service) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		ID, err := strconv.Atoi(p.ByName("resid"))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("resid")),
-				http.StatusBadRequest)
-			return
-		}
-		resID := int64(ID)
-
-		// Get the restaurant 1st so we can show its name and make sure it exists
-		restaurant, err := l.GetRestaurant(resID)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
-
-		// get the query parameters parameter
-		queryParams := r.URL.Query()
-
-		// Then we get its visits
-		visits, err := l.GetVisitsByRestaurantID(resID, queryParams)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, "There was a problem processing your request", http.StatusBadRequest)
-			return
-		}
-
-		v := newView("base", "./web/template/visits.html")
-
-		data := Data{}
-
-		data.Head = Head{fmt.Sprintf("%s Visits", restaurant.Name)}
-		data.Yield = struct {
-			Heading      string
-			RestaurantID int64
-			Visits       []lister.Visit
-		}{
-			fmt.Sprintf("%s", restaurant.Name),
-			restaurant.ID,
-			visits,
-		}
-
-		v.render(w, r, data)
-	}
-}
-
-func getVisit(l lister.Service) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		resID, err := strconv.Atoi(p.ByName("resid"))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("resid")),
-				http.StatusBadRequest)
-			return
-		}
-
-		resID64 := int64(resID)
-		// Get the restaurant 1st so we can show its name and make sure it exists
-		restaurant, err := l.GetRestaurant(resID64)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
-
-		ID, err := strconv.Atoi(p.ByName("id"))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("%s is not a valid visit ID, it must be a number.", p.ByName("id")),
-				http.StatusBadRequest)
-			return
-		}
-
-		v := newView("base", "./web/template/visit.html")
-
-		title_template := "%s Visit %s"
-		heading_template := "%s a Visit to %s"
-		text := "Add the date and optional note for your visit below"
-
-		data := Data{}
-
-		if ID == 0 {
-			visit := lister.Visit{
-				ID:            0,
-				RestaurantID:  restaurant.ID,
-				VisitDateTime: "",
-				Note:          "",
-			}
-			for _, user := range l.GetUsers() {
-				lvu := lister.VisitUser{ID: 0, User: user, Rating: 0}
-				visit.VisitUsers = append(visit.VisitUsers, lvu)
-			}
-
-			data.Head = Head{fmt.Sprintf(title_template, "Add", restaurant.Name)}
-			data.Yield = struct {
-				Heading string
-				Text    string
-				Visit   lister.Visit
-			}{
-				fmt.Sprintf(heading_template, "Add", restaurant.Name),
-				text,
-				visit,
-			}
-
-		} else {
-			visit, err := l.GetVisit(int64(ID), resID64)
-			if err != nil {
-				log.Println(err.Error())
-				http.Error(w, err.Error(), http.StatusNotFound)
-				return
-			}
-
-			data.Head = Head{fmt.Sprintf(title_template, "Edit", restaurant.Name)}
-			data.Yield = struct {
-				Heading string
-				Text    string
-				Visit   lister.Visit
-			}{
-				fmt.Sprintf(heading_template, "Edit", restaurant.Name),
-				text,
-				visit,
-			}
-		}
-
-		v.render(w, r, data)
-	}
-}
-
-func postVisit(u updater.Service, a adder.Service, l lister.Service) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		ID, err := strconv.Atoi(p.ByName("id"))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("%s is not a valid visit ID, it must be a number.", p.ByName("id")),
-				http.StatusBadRequest)
-			return
-		}
-		if ID != 0 {
-			updateVisit(u, l, w, r)
-		} else {
-			addVisit(a, l, w, r)
-		}
-	}
-}
-
-func updateVisit(u updater.Service, l lister.Service, w http.ResponseWriter, r *http.Request) {
-	var visitUpdate updater.Visit
-	if err := parseForm(r, &visitUpdate); err != nil {
-		log.Println(err)
-		http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
-		return
-	}
-	recordsAffected, err := u.UpdateVisit(visitUpdate)
-	if err != nil {
-		updateErrorMsg := err.Error()
-		log.Println(updateErrorMsg)
-
-		restaurant, err := l.GetRestaurant(visitUpdate.RestaurantID)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
-
-		visit := lister.Visit{
-			ID:            visitUpdate.ID,
-			RestaurantID:  visitUpdate.RestaurantID,
-			VisitDateTime: visitUpdate.VisitDateTime,
-			Note:          visitUpdate.Note,
-		}
-		for _, vu := range visitUpdate.VisitUsers {
-			lvu := lister.VisitUser{ID: vu.ID, User: l.GetUserByID(vu.UserID), Rating: vu.Rating}
-			visit.VisitUsers = append(visit.VisitUsers, lvu)
-		}
-
-		v := newView("base", "./web/template/visit.html")
-
-		data := Data{}
-		// Show the user the error.
-		data.Alert = Alert{Message: updateErrorMsg, Class: AlertClassError}
-		data.Head = Head{fmt.Sprintf("Edit Visit %s", restaurant.Name)}
-		data.Yield = struct {
-			Heading string
-			Text    string
-			Visit   lister.Visit
-		}{
-			fmt.Sprintf("Edit Visit to %s", restaurant.Name),
-			"Add the date and optional note for your visit below",
-			visit,
-		}
-		v.render(w, r, data)
-		return
-	}
-
-	log.Printf("Updated visit with ID: %d. %d records affected\n", visitUpdate.ID, recordsAffected)
-	// Redirect to the same page which will show the changed values.
-	http.Redirect(w, r, fmt.Sprintf("/r/%d/visits/%d", visitUpdate.RestaurantID, visitUpdate.ID), http.StatusFound)
-}
-
-func addVisit(a adder.Service, l lister.Service, w http.ResponseWriter, r *http.Request) {
-	var visitNew adder.Visit
-	if err := parseForm(r, &visitNew); err != nil {
-		log.Println(err)
-		http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
-		return
-	}
-
-	newVisitID, err := a.AddVisit(visitNew)
-	if err != nil {
-		errorMsg := err.Error()
-		log.Println(errorMsg)
-		restaurant, err := l.GetRestaurant(visitNew.RestaurantID)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
-
-		// Create a new visit but with what the user typed in
-		visit := lister.Visit{
-			ID:            0,
-			RestaurantID:  visitNew.RestaurantID,
-			VisitDateTime: visitNew.VisitDateTime,
-			Note:          visitNew.Note,
-		}
-		for _, vu := range visitNew.VisitUsers {
-			lvu := lister.VisitUser{ID: 0, User: l.GetUserByID(vu.UserID), Rating: vu.Rating}
-			visit.VisitUsers = append(visit.VisitUsers, lvu)
-		}
-
-		v := newView("base", "./web/template/visit.html")
-
-		data := Data{}
-		// Show the user the error.
-		data.Alert = Alert{Message: errorMsg, Class: AlertClassError}
-		data.Head = Head{fmt.Sprintf("Add Visit %s", restaurant.Name)}
-		data.Yield = struct {
-			Heading string
-			Text    string
-			Visit   lister.Visit
-		}{
-			fmt.Sprintf("Add a Visit to %s", restaurant.Name),
-			"Add the date and optional note for your visit below",
-			visit,
-		}
-		v.render(w, r, data)
-		return
-	}
-
-	log.Printf("Added new visit to restaurant %d with ID: %d.\n", visitNew.RestaurantID, newVisitID)
-	// Redirect to the list which should show the new entry
-	http.Redirect(w, r, fmt.Sprintf("/r/%d/visits", visitNew.RestaurantID), http.StatusFound)
-}
-
-func getDeleteVisit(l lister.Service) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		resID, err := strconv.Atoi(p.ByName("resid"))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("%s is not a valid restaurant ID, it must be a number.", p.ByName("resid")),
-				http.StatusBadRequest)
-			return
-		}
-
-		resID64 := int64(resID)
-		// Get the restaurant 1st so we can show its name and make sure it exists
-		restaurant, err := l.GetRestaurant(resID64)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
-
-		ID, err := strconv.Atoi(p.ByName("id"))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("%s is not a valid visit ID, it must be a number.", p.ByName("id")),
-				http.StatusBadRequest)
-			return
-		}
-
-		visit, err := l.GetVisit(int64(ID), resID64)
-		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
-
-		v := newView("base", "./web/template/delete-visit.html")
-
-		data := Data{}
-		titleHeading := fmt.Sprintf("Delete Visit To %s", restaurant.Name)
-		data.Head = Head{titleHeading}
-		data.Yield = struct {
-			Heading    string
-			Restaurant lister.Restaurant
-			Visit      lister.Visit
-		}{
-			titleHeading,
-			restaurant,
-			visit,
-		}
-
-		v.render(w, r, data)
-	}
-}
-
-func postDeleteVisit(s remover.Service) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		ID, err := strconv.Atoi(p.ByName("id"))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("%s is not a valid visit ID, it must be a number.", p.ByName("id")),
-				http.StatusBadRequest)
-			return
-		}
-
-		deleteConfirm := struct {
-			RestaurantName string `schema:"restaurantName"`
-			RestaurantID   int    `schema:"restaurantID"`
-			VisitDateTime  string `schema:"VisitDateTime"`
-		}{
-			"",
-			0,
-			"",
-		}
-		if err := parseForm(r, &deleteConfirm); err != nil {
-			log.Println(err)
-			http.Error(w, AlertFormParseErrorGeneric, http.StatusInternalServerError)
-			return
-		}
-
-		log.Printf("Confirmed request to remove visit to %s on %s with ID: %d", deleteConfirm.RestaurantName,
-			deleteConfirm.VisitDateTime, ID)
-		s.RemoveVisit(remover.Visit{ID: int64(ID)})
-		// Redirect to the list of other visits.
-		http.Redirect(w, r, fmt.Sprintf("/r/%d/visits", deleteConfirm.RestaurantID), http.StatusSeeOther)
 	}
 }

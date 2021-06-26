@@ -68,7 +68,8 @@ func (s Storage) AddRestaurant(r adder.Restaurant) int64 {
 				address,
 				zipcode,
 				latitude,
-				longitude
+				longitude,
+				business_status
 			)
 		VALUES
 			(
@@ -79,7 +80,8 @@ func (s Storage) AddRestaurant(r adder.Restaurant) int64 {
 				CASE WHEN $5 == "" THEN NULL ELSE $5 END,
 				CASE WHEN $6 == "" THEN NULL ELSE $6 END,
 				CASE WHEN $7 == 0 THEN NULL ELSE $7 END,
-				CASE WHEN $8 == 0 THEN NULL ELSE $8 END
+				CASE WHEN $8 == 0 THEN NULL ELSE $8 END,
+				$9
 			)
 	`
 	res, err := s.tx.Exec(sqlStatement,
@@ -91,6 +93,7 @@ func (s Storage) AddRestaurant(r adder.Restaurant) int64 {
 		r.Zipcode,
 		r.Latitude,
 		r.Longitude,
+		r.BusinessStatus,
 	)
 	checkAndPanic(err)
 	lastID, err := res.LastInsertId()
@@ -239,6 +242,7 @@ func generateRestaurantSQL() string {
 			res.id,
     		res.name,
     		cuisine,
+			res.business_status,
     		COALESCE(res.note, "") as note,
     		COALESCE(address, "") as address,
     		COALESCE(zipcode, "") as zipcode,
@@ -251,7 +255,7 @@ func generateRestaurantSQL() string {
 			COALESCE(gp.id, 0) as gmaps_place_id,
 			COALESCE(last_updated, ""),
 			COALESCE(place_id, ""),
-			COALESCE(business_status, "") as business_status,
+			COALESCE(gp.business_status, "") as business_status,
 			COALESCE(formatted_phone_number, "") as formatted_phone_number,
 			COALESCE(gp.name, "") as gmaps_place_name,
 			COALESCE(price_level, 0) as price_level,
@@ -314,6 +318,7 @@ func fillRestaurant(row scanner, r *lister.Restaurant) error {
 		&r.ID,
 		&r.Name,
 		&r.Cuisine,
+		&r.BusinessStatus,
 		&r.Note,
 		&r.Address,
 		&r.Zipcode,
@@ -482,9 +487,10 @@ func (s Storage) UpdateRestaurant(r updater.Restaurant) int64 {
 			address = CASE WHEN $5 == "" THEN NULL ELSE $5 END,
 			zipcode = CASE WHEN $6 == 0 THEN NULL ELSE $6 END,
 			latitude = CASE WHEN $7 == 0 THEN NULL ELSE $7 END,
-			longitude = CASE WHEN $8 == 0 THEN NULL ELSE $8 END
+			longitude = CASE WHEN $8 == 0 THEN NULL ELSE $8 END,
+			business_status = $9
 		WHERE
-			id = $9
+			id = $10
 	`
 
 	res, err := s.tx.Exec(sqlStatement,
@@ -496,6 +502,7 @@ func (s Storage) UpdateRestaurant(r updater.Restaurant) int64 {
 		r.Zipcode,
 		r.Latitude,
 		r.Longitude,
+		r.BusinessStatus,
 		r.ID,
 	)
 	checkAndPanic(err)

@@ -12,7 +12,7 @@
     <input type="hidden" name="name" value="{{.Restaurant.Name}}" />
     <div class="mb-3">
         <label class="form-label" for="confirmNameInput">Please type <b>{{.Restaurant.Name}}</b> to confirm.</label>            
-        <input class="form-control" type="text" name="confirmName" id="confirmNameInput" value="" required autofocus />        
+        <input class="form-control" type="text" name="confirmName" id="confirmNameInput" value="" required autofocus autocomplete="off" />
     </div>
     
     <button class="btn btn-danger w-100" type="submit">Delete It!</button>

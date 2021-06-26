@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS restaurant (
     city_id INTEGER NOT NULL REFERENCES city(id) ON UPDATE CASCADE, -- Must track id in city table
     zipcode TEXT,
     latitude REAL,
-    longitude REAL
+    longitude REAL,
+    business_status INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS visit (

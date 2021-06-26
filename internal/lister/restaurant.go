@@ -4,6 +4,7 @@ type Restaurant struct {
 	ID                int64           `json:"id"`
 	Name              string          `json:"name"`
 	Cuisine           string          `json:"cuisine"`
+	BusinessStatus    int             `json:"business_status"`
 	Note              string          `json:"note"`
 	Address           string          `json:"address"`
 	CityState         CityState       `json:"city_state"`

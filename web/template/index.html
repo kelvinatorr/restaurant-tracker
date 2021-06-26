@@ -12,10 +12,6 @@
       border-bottom-width: 2px;
     }
 
-    .display-none {
-      display: none;
-    }
-
     @media screen and (max-width: 992px) {
       table {
         /* This removes the border between rows so they look more like cards */
@@ -59,7 +55,7 @@
       }
       
       /* This is the row label */
-      table td::before {
+      table td:not(:nth-child(2))::before {
         content: attr(data-label);
         float: left;
         font-weight: bold;
@@ -71,24 +67,43 @@
         border-bottom: 0;
       }
     }
+
+    @media screen and (max-width: 378px) {
+      .d-xs-none {
+        display: none;
+      }
+    }
 </style>
 {{end}}
 
 {{define "yield"}}
-<div class="row mb-2">
+<div class="row">
   <h1 id="pageHeadingH1">Restaurants</h1>
 </div>
 
 <div class="row mb-2">
   <div class="col">
-    <form>
+    <form id="searchForm">
       <div class="form-floating mb-1">
-        <input class="form-control" id="searchInput" type="input" placeholder="Type to search..." />
+        <input class="form-control" id="searchInput" type="input" placeholder="Type to search..." autocomplete="off" />
         <label class="" for="searchInput">Search</label>
       </div>
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="matchCase">
-        <label class="form-check-label" for="matchCase">Match Case</label>
+      <div class="row">
+        <div class="col-5">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="matchCase">
+            <label class="form-check-label" for="matchCase">Match Case</label>
+          </div>
+        </div>
+        <div class="col-7 d-flex justify-content-end">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="" id="showNotOperatingCheckbox"
+              {{if .ShowNotOperating}}checked{{end}}>
+            <label class="form-check-label" for="showNotOperatingCheckbox">
+              Show Not Operating <span class="d-xs-none">💀</span>
+            </label>
+          </div>
+        </div>
       </div>
     </form>
   </div>  
@@ -96,8 +111,10 @@
 
 <div class="row mb-1">
   <div class="col">
-    <a id="filterLink" href="/filter">Filter</a>
-    <a id="clearFilterLink" class="display-none ms-3" href="/">Clear Filter</a>
+    <a id="filterLink" href="/filter"><span class="d-none">Edit</span> Filter</a>
+    <a id="clearFilterLink" class="ms-3 d-none" href="/">Clear Filter</a>
+    <a id="sortLink" class="ms-3" href="/sort"><span class="d-none">Edit</span> Sort</a>
+    <a id="clearSortLink" class="ms-3 d-none" href="/">Clear Sort</a>
   </div>
   <div class="col text-end">
     <a id="addRestaurantLink" href="/restaurants/0">Add Restaurant</a>
@@ -110,7 +127,7 @@
       <table class="table border-start border-end border-dark" id="restaurantTable">
           <thead class="bg-dark bg-gradient text-light">
             <tr>
-              <th scope="col" class="display-none">
+              <th scope="col" class="d-none">
                 Search Value
               </th>
               <th scope="col">
@@ -142,9 +159,6 @@
                 </a>
               </th>
               <th scope="col">
-                  User's Average Ratings
-              </th>
-              <th scope="col">
                 <a class="column-sort" href="/?sort[avg_rating]=asc">
                   Average Rating
                 </a>
@@ -154,19 +168,26 @@
           <tbody>
             {{range .Restaurants}}
             <tr class="restaurant-row">
-              <td data-label="Search Value" class="search-value display-none">{{.SearchValue}}</td>
-              <td data-label="Name">
+              <td data-label="Search Value" class="search-value d-none">{{.SearchValue}}</td>
+              <td data-label="Name" class="d-flex d-lg-table-cell justify-content-center">
                 <a href="/restaurants/{{.ID}}">{{.Name}}</a>
+                <span class="{{if ne .BusinessStatus 0}}d-none{{end}} ms-1" title="Not Operating">💀</span>
               </td>
               <td data-label="Cuisine">{{.Cuisine}}</td>
               <td data-label="City">{{.CityState.Name}}</td>
               <td data-label="State">{{.CityState.State}}</td>
-              <td data-label="Note">{{.Note}}</td>
-              <td data-label="Last Visit">{{.LastVisitDatetime}}</td>
-              <td data-label="User's Average Rating">
+              <td data-label="Note" class="col-lg-3">{{.Note}}</td>
+              <td data-label="Last Visit" class="col-lg-1">{{.LastVisitDatetime}}</td>
+              <td data-label="Average Rating">
+                <div>
+                  {{if .AvgRating}}
+                  {{.AvgRating}}
+                  {{end}}
+                </div>
+                <div>
                   {{range .AvgUserRatings}}
-                  <p>
-                    {{.FirstName}}:
+                  <p class="mb-0 text-start">
+                    <span class="d-none d-lg-inline">↳</span>{{.FirstName}}:
                     {{if .AvgRating}}
                     {{.AvgRating}}
                     {{else}}
@@ -174,11 +195,7 @@
                     {{end}}
                   </p>
                   {{end}}
-              </td>
-              <td data-label="Average Rating">
-                {{if .AvgRating}}
-                {{.AvgRating}}
-                {{end}}
+                </div>
               </td>
             </tr>
             {{end}}
@@ -194,59 +211,98 @@
   (function() {
     const searchInput = document.getElementById('searchInput');
     const searchMatchCase = document.getElementById("matchCase");
+    const filterLink = document.getElementById('filterLink');
     const clearFilterLink = document.getElementById('clearFilterLink');
+    const sortLink = document.getElementById('sortLink');
+    const clearSortLink = document.getElementById('clearSortLink');
+    const searchForm = document.getElementById('searchForm');
+    const showNotOperatingCheckbox = document.getElementById('showNotOperatingCheckbox');
     
-    setSortParams();
-    setSearchParam();
-    toggleClearFilterVisibility();
-    setFilterParams();
+    // setSearchParam() returns a boolean to represent if it ran searchTable() or not.    
+    if (!setSearchParam()) {
+      // If it did run, then we don't need to run setSortParams() on load because setSearchParam calls it.
+      // Otherwise call setSortParams() explicitly to set the sort params on the desktop table
+      setSortParams();
+    }
+    toggleEditClearVisibility(clearFilterLink, 'filter', filterLink);
+    toggleEditClearVisibility(clearSortLink, 'sort', sortLink);
+    setQueryParams(filterLink);
+    setQueryParams(sortLink);
+    setClearLinks(clearFilterLink, 'filter');
+    setClearLinks(clearSortLink, 'sort');
 
     searchInput.addEventListener('keyup', debounce(searchTable, 250));
     searchMatchCase.addEventListener('change', searchTable);
+    searchForm.addEventListener('submit', searchTable);
+    showNotOperatingCheckbox.addEventListener('change', toggleShowNotOperating);
 
-    // If the url search parms contain a filter, show the clear filter link, otherwise keep it hidden
-    function toggleClearFilterVisibility() {
+    // If the url search parms contain the given type, show the clear link and edit span, otherwise keep it hidden
+    function toggleEditClearVisibility(clearLink, type, link) {
       const urlParams = new URLSearchParams(window.location.search);
       for(var key of urlParams.keys()) {
-        if (key.substring(0, 6) === 'filter') {
-          clearFilterLink.classList.remove('display-none');
+        if (key.substring(0, type.length) === type) {
+          link.querySelector('span').classList.remove('d-none');
+          clearLink.classList.add('d-md-inline');
           return;
         }
       }
-      clearFilterLink.classList.add('display-none');
-    }    
-
-    // Take all the filters in the current url and then add it to the filter page link
-    function setFilterParams() {      
-      const urlSearchParams = new URLSearchParams(window.location.search);
-      const filterLink = document.getElementById('filterLink');
-
-      let linkURL = new URL(filterLink.href);
-
-      for(var pair of urlSearchParams.entries()) {
-        const key = pair[0];
-        const value = pair[1];
-        if (key.substring(0, 6) === 'filter') {
-          linkURL.searchParams.set(key, value);
-        }
-      }
-      filterLink.href = linkURL;
+      link.querySelector('span').classList.add('d-none');
+      clearLink.classList.remove('d-md-inline');
     }
 
-    // Take the search query parameter if any and apply it to the table
+
+    // Take all the search params in the current url and then add it to the filter or sort page link
+    function setQueryParams(link) {
+      const urlSearchParams = new URLSearchParams(window.location.search);
+
+      let linkURL = new URL(link.href);
+
+      // Delete the current params and start fresh, the url bar is the source of truth
+      for(let pair of linkURL.searchParams.entries()) {
+        linkURL.searchParams.delete(pair[0]);
+      }
+
+      for(let pair of urlSearchParams.entries()) {
+        linkURL.searchParams.set(pair[0], pair[1]);
+      }
+      link.href = linkURL;
+    }
+
+    function setClearLinks(clearLink, type) {
+      // Take what's in the current url bar
+      const urlSearchParams = new URLSearchParams(window.location.search);
+      let linkURL = new URL(clearLink.href);
+      // for every entry in the current url, add the param except if it matches the type
+      for(let pair of urlSearchParams.entries()) {
+        const key = pair[0];
+        if (key.substring(0, type.length) !== type) {
+          linkURL.searchParams.set(key, pair[1]);
+        }
+      }
+      clearLink.href = linkURL
+    }
+
+    // Take the search query parameter if any and apply it to the table. Returns true if searchTable() was called.
     function setSearchParam() {
       const urlParams = new URLSearchParams(window.location.search);
       const searchParam = urlParams.get('search');
       if (searchParam) {
         searchInput.value = searchParam;
         searchTable();
+        return true;
       }
+      return false;
     }
 
     function searchTable(e) {
-      const searchTerm = searchInput.value      
+      // Prevents the submission of the form which causes a reload
+      if (e) {
+        e.preventDefault();
+      }
 
-      const matchCase = searchMatchCase.checked
+      const searchTerm = searchInput.value;
+      
+      const matchCase = searchMatchCase.checked;
 
       const searchTermRex = new RegExp(searchTerm, matchCase ? '' : 'i');
 
@@ -256,17 +312,28 @@
       restaurantRows.forEach((e) => {
         const searchValue = e.querySelector('.search-value').innerHTML;
         if (!searchTermRex.test(searchValue)) {
-          e.classList.add('display-none');
+          e.classList.add('d-none');
         } else {
-          e.classList.remove('display-none');
+          e.classList.remove('d-none');
         }
       });
-
+      
       // Get the current url
       let url = new URL(window.location.href);
-      url.searchParams.set('search', searchTerm);
+      if (searchTerm !== '') {
+        url.searchParams.set('search', searchTerm);
+      } else {
+        url.searchParams.delete('search');
+      }
+      
       // Add the param to the url
-      window.history.replaceState('', '', url)
+      window.history.replaceState('', '', url);
+      // Set the filter link
+      setQueryParams(filterLink);
+      // Set the sort link
+      setQueryParams(sortLink);
+      // Set the sort params on the desktop table
+      setSortParams();
     }
 
     function debounce(func, wait, immediate) {
@@ -316,7 +383,7 @@
         for (const e  of urlParams.entries()) {
           const key = e[0];
           const val = e[1];
-          if (key.substring(0, 6) !== 'filter') {
+          if (key.substring(0, 6) !== 'filter' && key !== 'search') {
             continue;
           }
           linkURL.searchParams.set(key, val);
@@ -325,6 +392,26 @@
         cs.href = linkURL;
       }    
     }
+  
+    function toggleShowNotOperating() {
+      // Get the current url
+      let url = new URL(window.location.href);
+      // Delete any filter set for business_status
+      Array.from(url.searchParams.keys()).filter(k => {
+        return k.substr(0, 6) === 'filter' && k.substr(7, 15) === 'business_status';
+      }).forEach(k => {
+        url.searchParams.delete(k);
+      });
+      // Then set a new one based on the checkbox
+      if (showNotOperatingCheckbox.checked) {
+        url.searchParams.set('filter[business_status|gteq]', 0);
+      } else {
+        url.searchParams.set('filter[business_status|eq]', 1);
+      }
+      // Go to the formed url
+      window.location.href =  url;
+    }
+
   })();
 </script>
 {{end}}
