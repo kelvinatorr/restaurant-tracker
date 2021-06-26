@@ -31,7 +31,9 @@ type Service interface {
 	GetUserByID(int64) User
 	GetFilterOptions(url.Values) FilterOptions
 	GetFilterParam(string, url.Values) FilterOperation
+	GetSortParam(string, url.Values) SortOperation
 	GetUsers() []User
+	GetDistinct(string, string) []string
 }
 
 // Repository provides access to restaurant repository.
@@ -183,6 +185,10 @@ func (s service) GetFilterOptions(qp url.Values) FilterOptions {
 // GetUsers gets all the users in storage
 func (s service) GetUsers() []User {
 	return s.r.GetUsers()
+}
+
+func (s service) GetDistinct(field string, obj string) []string {
+	return s.r.GetDistinct(field, obj)
 }
 
 func generateFilterOptions(distinctSlice []string, selectedValue string) []FilterOption {

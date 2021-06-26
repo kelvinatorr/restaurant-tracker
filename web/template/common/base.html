@@ -68,11 +68,13 @@
         </nav>
     </header>
     <main class="flex-grow-1 pt-3">
+        {{if ne .Alert.Message ""}}
         <div class="container">
-            {{template "yield" .Yield}}
-        </div>
-        <div class="container mt-3">
             {{template "alert" .Alert}}
+        </div>
+        {{end}}
+        <div class="container {{if ne .Alert.Message ""}}mt-3{{end}} mb-3">
+            {{template "yield" .Yield}}
         </div>
     </main>    
     <footer class="footer bg-dark text-white mt-auto pt-3">
@@ -96,12 +98,6 @@
 </body>
 <script>
     (function(){
-        // If the alert div has content then scroll it into view so the user sees it.
-        const bottomAlertDiv = document.getElementById('bottomAlertDiv');
-        if (bottomAlertDiv.innerHTML.trim() != '') {
-            bottomAlertDiv.scrollIntoView();
-        }
-
         setupBackToTopBtn();
 
         function setupBackToTopBtn() {

@@ -4,6 +4,7 @@ type Restaurant struct {
 	ID                int64      `json:"id" schema:"id,required"`
 	Name              string     `json:"name" schema:"name,required"`
 	Cuisine           string     `json:"cuisine" schema:"cuisine,required"`
+	BusinessStatus    int        `json:"business_status" schema:"businessStatus"`
 	Note              string     `json:"note" schema:"note"`
 	Address           string     `json:"address" schema:"address"`
 	CityState         CityState  `json:"city_state" schema:"cityState"`
