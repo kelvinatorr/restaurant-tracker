@@ -1,2 +1,2 @@
 #!/bin/bash
-web-server -db $DBPATH -v -csrf $CSRFKEY
+/usr/local/bin/web-server -db $DBPATH -v -csrf $CSRFKEY
